@@ -1,6 +1,6 @@
 ---
 MultiSwap Overview: >-
-  MultiSwap allows users to securely bridge any asset on network 1 for any asset on network 2 at transaction speed. Read the docs here:
+  MultiSwap allows users to securely bridge any asset on network 1 for any asset on network 2 at transaction speed. Read the docs here: ([MultiSwap and MultiChain Liquidity Pool Bridge](https://docs.ferrumnetwork.io/ferrum-network-ecosystem/v/multiswap-and-multichain-liquidity-pool-bridge/))
 ---
 
 # MultiSwap
