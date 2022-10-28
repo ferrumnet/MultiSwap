@@ -12,32 +12,32 @@
 
 ### Flow of Foundry Swap
 1. Source Network: FAC check (Does this token exist in the Fund Manager?)
-    A. Answer: Yes -> Categorized as Foundry Asset
+    - Answer: Yes -> Categorized as Foundry Asset
 2. Destination Network: FAC Check (Does the requested token exist on the destination network Fund Manager? If so, is there enough liquidity for this token in the Fund Manager to support the requested amount?)
-    A. Answer: Yes -> Categorized as Foundry Asset
+    - Answer: Yes -> Categorized as Foundry Asset
 
 ### Flow of Refinery Swap
 1. Source Network: FAC check (Does the requested token exist on the Source network Fund Manager?)
-    A. Answer: No -> Initiates RIAC check
-    B. Source Network: Can I swap source token to a foundry asset in a single transaction through ecosystem DEX or aggregators?
-        i. Answer: Yes -> Categorized as Refinery Asset
-    C. Source Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
+    - Answer: No -> Initiates RIAC check
+    - Source Network: Can I swap source token to a foundry asset in a single transaction through ecosystem DEX or aggregators?
+        - Answer: Yes -> Categorized as Refinery Asset
+    - Source Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
 
 2. Destination Network: FAC Check (Does the requested token exist on the destination network Fund Manager? If so, is there enough liquidity for this token in the Fund Manager to support the requested amount?)
-    A. Answer: No -> Initiates RIAC check
-    B. Destination Network: Can I swap to a foundry asset in a single transaction through ecosystem DEX or aggregators?
-        i. Answer: Yes -> Categorized as Refinery Asset
-    C. Destination Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
+    - Answer: No -> Initiates RIAC check
+    - Destination Network: Can I swap to a foundry asset in a single transaction through ecosystem DEX or aggregators?
+        - Answer: Yes -> Categorized as Refinery Asset
+    - Destination Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
 
 ### Flow of Ionic Swap
 
 1. Source Network: FAC check (Does the requested token exist on the Source network Fund Manager?)
-    A. Answer: No -> Initiates RIAC check
-    B. Source Network: Can I swap to a foundry asset in a single transaction through ecosystem DEX or aggregators?
-        i. Answer: No -> Categorized as Ionic Asset
-    C. Source Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
+    - Answer: No -> Initiates RIAC check
+    - Source Network: Can I swap to a foundry asset in a single transaction through ecosystem DEX or aggregators?
+        - Answer: No -> Categorized as Ionic Asset
+    - Source Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
 2.  Destination Network: FAC Check (Does the requested token exist on the destination network Fund Manager? If so, is there enough liquidity for this token in the Fund Manager to support the requested amount?)
-    A. Answer: No -> Initiates RIAC check
-    B. Destination Network: Can I swap to a foundry asset in a single transaction through ecosystem DEX or aggregators?
-        i. Answer: Yes -> Categorized as Ionic Asset
-    C. Destination Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
+    - Answer: No -> Initiates RIAC check
+    - Destination Network: Can I swap to a foundry asset in a single transaction through ecosystem DEX or aggregators?
+        - Answer: Yes -> Categorized as Ionic Asset
+    - Destination Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
