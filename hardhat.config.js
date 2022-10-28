@@ -22,9 +22,16 @@ module.exports = {
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [process.env.PRI_KEY]
+    },
+    binance: {
+      url: process.env.BINANCE_TESTNET_RPC,
+      accounts:[process.env.PRI_KEY] 
     }
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  bscscan: {
+    apiKey: process.env.BSCSCAN_API_KEY,
+  }
 };

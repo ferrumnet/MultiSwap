@@ -6,6 +6,7 @@ typechain
 typechain-types
 test
 .openzeppelin
+Network
 #Hardhat files
 cache
 artifacts
