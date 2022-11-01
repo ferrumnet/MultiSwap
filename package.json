@@ -10,6 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.29.2",
+    "@cosmjs/proto-signing": "^0.29.2",
+    "@cosmjs/stargate": "^0.29.2",
     "@openzeppelin/contracts": "^4.7.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1",
     "@openzeppelin/hardhat-upgrades": "^1.21.0",
