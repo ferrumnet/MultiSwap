@@ -1,6 +1,11 @@
-# MultiChainSwap
+---
+MultiSwap Overview: >-
+  MultiSwap allows users to securely bridge any asset on network 1 for any asset on network 2 at transaction speed. Read the docs here: https://docs.ferrumnetwork.io/ferrum-network-ecosystem/v/multiswap-and-multichain-liquidity-pool-bridge/
+---
 
-### MultiChainSwap is divided into three major parts 
+# MultiSwap
+
+### MultiSwap is divided into three major parts 
 1. Fiber Engine: Controls everything
 2. Fiber Router: Everything flows through the router, to ensure that there is no external contract interaction with the Fund Manager contract where the majority of Foundry Assets are.
 3. Fund Manager Contract: This is where all the Foundry Assets are and also where the MultiSwap nodes will look to settle assets that need to be bridged across chains.
