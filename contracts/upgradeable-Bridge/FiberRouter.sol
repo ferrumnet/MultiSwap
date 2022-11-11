@@ -79,9 +79,9 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
      */
     function swapAndCross(
         address swapRouter,
-        uint256 amountIn,
+        uint256 amountIn, // 10 USDC 
         uint256 amountCrossMin, // amountOutMin on uniswap
-        address[] calldata path,
+        address[] calldata path, // usdc -> usdt 
         uint256 deadline,
         uint256 crossTargetNetwork,
         address crossTargetToken
