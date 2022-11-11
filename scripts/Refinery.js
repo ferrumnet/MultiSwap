@@ -11,7 +11,7 @@ const toEther = (i) => ethers.utils.formatEther(i);
 //goerli rpc
 const sourceNetwork = "https://goerli.infura.io/v3/fa18fa35171744ae8ac35d12baa36ae3";
 //bsc rpc
-const targetNetwork = "https://data-seed-prebsc-1-s2.binance.org:8545";
+const targetNetwork = "https://apis.ankr.com/f9946df03b9741df9e20e6d376021c81/17d51fb5735bba322c78e521ac58c161/binance/full/test";
 
 //networks chain id
 const sourceNetworkId = 5;//goerli
@@ -105,29 +105,49 @@ const targetFiberRouterContract = new ethers.Contract(
 
 //check the requested token exist on the Source network Fund Manager
 async function sourceFACCheck(tokenAddress) {
-  const isSourceTokenFoundryAsset =
-    await sourceFundMangerContract.isFoundryAsset(tokenAddress);
+  const isSourceTokenFoundryAsset = await sourceFundMangerContract.isFoundryAsset(tokenAddress);
   return isSourceTokenFoundryAsset;
 }
 
 //check the requested token exist on the Source network Fund Manager
-async function targetFACCheck(tokenAddress) {
-  const isTargetTokenFoundryAsset =
-  await targetFundMangerContract.isFoundryAsset(tokenAddress);
-  return isTargetTokenFoundryAsset;
+async function targetFACCheck(tokenAddress, amount) {
+  const isTargetTokenFoundryAsset = await targetFundMangerContract.isFoundryAsset(tokenAddress);
+
+  const targetFoundryTokenContract = new ethers.Contract(
+    tokenAddress,
+    tokenAbi.abi,
+    targetProvider
+  );
+
+  // Liquidity Check for targetFoundryTokken in TargetFundManager
+  const targetFoundryAssetLiquidity = await targetFoundryTokenContract.balanceOf(
+    targetFundMangerContract.address
+  );
+
+  if (isTargetTokenFoundryAsset == true && Number(targetFoundryAssetLiquidity) > Number(amount)) {
+      return true;
+  }
+  else{
+    return false;
+  }
 }
 
 
-//check source toke is foundry asset
-async function isSourceRefineryAsset(tokenAddress, amount) {
-  const isTokenFoundryAsset = await targetFACCheck(tokenAddress);
+//check source token is Refinery asset
+async function isSourceRefineryCheck(tokenAddress) {
+  const isTokenFoundryAsset = await sourceFACCheck(tokenAddress);
+    if (isTokenFoundryAsset == false) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
-  const tokenContract = new ethers.Contract(
-    tokenAddress,
-    tokenAbi.abi,
-    sourceProvider
-  );
-  const decimal = await tokenContract.decimals();
+//check target token is Refinery asset
+async function isTargetRefineryCheck(tokenAddress, amount) {
+
+  // if target token is a foundry asset or refinery asset
+  const isTokenFoundryAsset = await targetFACCheck(tokenAddress, amount);
 
   const targetFoundryTokenContract = new ethers.Contract(
     targetFoundryTokenAddress,
@@ -135,35 +155,39 @@ async function isSourceRefineryAsset(tokenAddress, amount) {
     targetProvider
   );
 
+  // Liquidity Check for targetFoundryToken in TargetFundManager
   const targetFundMangerLiquidity = await targetFoundryTokenContract.balanceOf(
     targetFundMangerContract.address
   );
-  let path = [tokenAddress, sourceFoundryTokenAddress];
-  const amounts = await sourceDexContract.getAmountsOut(amount, path);
-  const amountsOut = amounts[1];
-  if (isTokenFoundryAsset == false && Number(targetFundMangerLiquidity) > Number(amountsOut)) {
-    return true;
-  } else {
-    return false;
-  }
+
+  if (isTokenFoundryAsset == false && Number(targetFundMangerLiquidity) > Number(amount)) {
+    return true; 
+  }else {
+      return false;
+    }
 }
-
-
 
 //swap foundry asset on two networks
 async function RefinerySwap(sourcetokenAddress, targetTokenAddress, amount) {
-  const isRefineryAsset = isSourceRefineryAsset(sourcetokenAddress, amount);
+  const isSourceRefineryAsset = isSourceRefineryCheck(sourcetokenAddress, amount);
 
-  if (isRefineryAsset == false) return;
-  console.log('Token is refinery asset')
+  // If its a foundry asset then cancel the tx
+  if (isSourceRefineryAsset == false) return;
+
+  console.log('SN-1: Source Token is RefineryAsset');
+  console.log("   ");
   const sourceTokenContract = new ethers.Contract(
     sourcetokenAddress,
     tokenAbi.abi,
     sourceProvider
   );
-  console.log('swap refinery token to foudry token ...')
+  console.log('SN-2: Swap RefineryToken to FouderyToken ...')
+  console.log("   ");
   //swap refinery token to the foundry token
+
+        // usdc --> usdt 
   let path = [sourcetokenAddress, sourceFoundryTokenAddress];
+  // 10 usdc --> 9.89 usdt 
   const amounts = await sourceDexContract.getAmountsOut(amount, path);
   const amountsOut = amounts[1];
 
@@ -186,53 +210,55 @@ async function RefinerySwap(sourcetokenAddress, targetTokenAddress, amount) {
   //wait until the transaction be completed
   const receipt = await result.wait();
   if (receipt.status == 1) {
-    console.log('successfully swap in source network !')
+    console.log('SN-3 SUCCESS: Swapped RefineryToken to FoundryToken!')
+    console.log("Transaction hash is: ", result.hash);
 
-
-    const isTargetTokenFoundry = await targetFACCheck(
-      targetTokenAddress,
-      amountsOut
+    // Check if Target Token is Refinery
+    const isTargetRefineryAsset = await isTargetRefineryCheck(
+      targetTokenAddress,  // target token that needs to be swapped to user (cake)
+      amountsOut  // foundryToken swapped from source (amount of usdt)
     );
 
-    // Check if Target Token is Foundry
-    if (isTargetTokenFoundry === true) {
-      console.log('Target token is foundry asset')
-      console.log('withdraw foundry asset ...')
+    // If it is a foundry token 
+    if (isTargetRefineryAsset === false) {
+      console.log('TN-1 FoundrySwap: Target Token is a Foundry Asset')
+      console.log('TN-2 FoundrySwap: Withdraw FoundryToken from FundManager to User ...')
 
       //if target token is foundry asset
       // Call FiberRouter to withdraw tokens from FundManager to user's account
-      const result = await targetFiberRouterContract.connect(targetSigner).withdraw(
+      const result1 = await targetFiberRouterContract.connect(targetSigner).withdraw(
         targetFoundryTokenAddress, //token address on network 2
         signer.address, //receiver
         amountsOut, //targetToken amount
         { gasLimit: 1000000 }
       );
 
-      const receipt = result.wait();
+      const receipt = result1.wait();
       if (receipt.status == 1) {
-        console.log("success withdraw foundry token on source network !");
+        console.log("TN-3 SUCCESS: Withdraw FoundryToken on Source Network (SN)!");
+        console.log("Transaction hash is: ", result1);
       }
-
     } else {
-      console.log('target token is refinery asset')
-      console.log('withdraw foundry token ....')
+      console.log('TN-1 RefinerySwap: Target Token is RefineryAsset')
 
-      //if target token is not foundry asset
-      console.log('swap foundry token to target token ....')
+      console.log('TN-2 RefinerySwap: Withdraw FoundryToken from FundManager for Swap ....')
 
-      // Swap pair (Foundry, Target)
+      console.log('TN-3 RefinerySwap: Swap FoundryToken to TargetToken from DEX....')
+
+      // Swap pair (Foundry, Target)  --> (usdt, cake)
       let path2 = [targetFoundryTokenAddress, targetTokenAddress];
 
       // Check the swapOut amount of target tokens to be received from DEX
+       // 9.89 usdt --> 8 cake 
       const amounts2 = await targetDexContract.getAmountsOut(amountsOut, path2);
       const amountsOut2 = amounts2[1];
 
       // Call FiberRouter to perform swap on DEX 
       // Transfer tokens from user wallet to DEX Router
-      const result3 = await targetFiberRouterContract.connect(targetSigner).withdrawAndSwap(
+      const result2 = await targetFiberRouterContract.connect(targetSigner).withdrawAndSwap(
         signer.address, // user wallet address
         targetRouterAddress, // DEX Address
-        amountsOut,  // the amount that needs to be swapped to TargetToken
+        amountsOut,  // the amount of foundrytoken that needs to be swapped to TargetToken
         amountsOut2, // the amount that will be received after swap from DEX
         path2, // targetToken pair (Foundry, Target)
         '1669318064', // Timeout
@@ -240,13 +266,14 @@ async function RefinerySwap(sourcetokenAddress, targetTokenAddress, amount) {
           gasLimit: 1000000,
         }
       );
-      const receipt3 = await result3.wait();
+      const receipt3 = await result2.wait();
       if (receipt3.status == 1) {
-        console.log('successfully swap foundry token to target token')
-        console.log("Cheers! your bridge and swap was successful !!!");
+        console.log('TN-4: Successfully, Swapped FoundryToken to TargetToken')
+        console.log("Transaction hash is: ", result2.hash);
+        console.log("Cheers! your swap was successful !!!");
       }
     }
   }
 }
-
+// Swap 10 USDC from Ethereum to CAKE token on BSC
 RefinerySwap('0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C', '0xFa60D973F7642B748046464e165A65B7323b0DEE', '10000000')
