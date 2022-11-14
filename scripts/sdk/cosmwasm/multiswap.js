@@ -76,7 +76,7 @@ class MultiswapContract {
   }
 
   // admin function
-  async add_foundry_asset(token) {
+  async addFoundryAsset(token) {
     let gasPrice = GasPrice.fromString("0.025stake");
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -114,7 +114,7 @@ class MultiswapContract {
   }
 
   // admin function
-  async remove_foundry_asset(token) {
+  async removeFoundryAsset(token) {
     let gasPrice = GasPrice.fromString("0.025stake");
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -152,7 +152,7 @@ class MultiswapContract {
   }
 
   // admin function
-  async transfer_ownership(new_owner) {
+  async transferOwnership(new_owner) {
     let gasPrice = GasPrice.fromString("0.025stake");
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -190,7 +190,7 @@ class MultiswapContract {
   }
 
   // admin function
-  async add_signer(signer) {
+  async addSigner(signer) {
     let gasPrice = GasPrice.fromString("0.025stake");
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -228,7 +228,7 @@ class MultiswapContract {
   }
 
   // admin function
-  async remove_signer(signer) {
+  async removeSigner(signer) {
     let gasPrice = GasPrice.fromString("0.025stake");
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -265,7 +265,7 @@ class MultiswapContract {
     console.log("Executed remove_signer", tx.transactionHash);
   }
 
-  async add_liquidity(token, amount) {
+  async addLiquidity(token, amount) {
     let gasPrice = GasPrice.fromString("0.025stake");
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -308,7 +308,7 @@ class MultiswapContract {
     console.log("Executed add_liquidity", tx.transactionHash);
   }
 
-  async remove_liquidity(token, amount) {
+  async removeLiquidity(token, amount) {
     let gasPrice = GasPrice.fromString("0.025stake");
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
