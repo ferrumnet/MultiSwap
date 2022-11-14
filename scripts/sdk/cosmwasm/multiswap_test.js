@@ -1,4 +1,4 @@
-const { MultiswapContract } = require("./helper");
+const { MultiswapContract } = require("./multiswap");
 
 async function main() {
   helper = new MultiswapContract(
