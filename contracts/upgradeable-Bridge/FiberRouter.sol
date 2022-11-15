@@ -8,26 +8,22 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
-
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address public pool;
+    mapping(address => AggregatorV3Interface) public priceFeed; // map each token address to racle
 
     function initialize() public initializer {
         __Ownable_init();
         __ReentrancyGuard_init();
     }
 
-
     /**
      @notice The payable receive method
      */
-    receive() external payable {
-    }
-
-
+    receive() external payable {}
 
     /**
      @notice Sets the fund manager contract.
@@ -37,7 +33,38 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         pool = _pool;
     }
 
+    /**
+     @notice Sets the oracle for foundry tokens.
+     @param _token The foundry token address
+     @param _oracleAddress The oracle address for price feed
+     */
+    function setOracle(address _token, address _oracleAddress)
+        external
+        onlyOwner
+    {
+        priceFeed[_token] = AggregatorV3Interface(_oracleAddress);
+    }
 
+    function getFoundryTokenPrice(address _token)
+        public
+        view
+        returns (uint256)
+    {
+        (
+            ,
+            /*uint80 roundID*/
+            int256 price,
+            ,
+            ,
+
+        ) = /*uint startedAt*/
+            /*uint timeStamp*/
+            /*uint80 answeredInRound*/
+            priceFeed[_token].latestRoundData();
+        uint8 baseDecimals = priceFeed[_token].decimals();
+        return uint256(price) * 10**(18 - baseDecimals);
+        // return uint(price);
+    }
 
     /*
      @notice Initiate an x-chain swap.
@@ -55,7 +82,12 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address targetToken,
         address targetAddress
     ) external {
-        IERC20Upgradeable(token).safeTransferFrom(msg.sender, pool, amount);
+        IERC20Upgradeable(token).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+        IERC20Upgradeable(token).approve(pool, amount);
         FundManager(pool).swapToAddress(
             token,
             amount,
@@ -79,14 +111,19 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
      */
     function swapAndCross(
         address swapRouter,
-        uint256 amountIn, // 10 USDC 
+        uint256 amountIn,
         uint256 amountCrossMin, // amountOutMin on uniswap
-        address[] calldata path, // usdc -> usdt 
+        address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
         address crossTargetToken
     ) external nonReentrant {
-        amountIn = SafeAmount.safeTransferFrom(path[0], msg.sender, address(this), amountIn);
+        amountIn = SafeAmount.safeTransferFrom(
+            path[0],
+            msg.sender,
+            address(this),
+            amountIn
+        );
         IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
         _swapAndCross(
             msg.sender,
@@ -101,7 +138,6 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             // crossTargetAddress
         );
     }
-
 
     /*
      @notice Do a local swap and generate a cross-chain swap
@@ -141,7 +177,6 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         );
     }
 
-
     /*
     @notice Runs a local swap and then a cross chain swap
     @param to The receiver
@@ -159,14 +194,14 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address to,
         address swapRouter,
         uint256 amountIn,
-        uint256 amountCrossMin, 
+        uint256 amountCrossMin,
         address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
         address crossTargetToken
-        // address crossSwapTargetTokenTo
-        // address crossTargetAddress
-    ) internal {
+    ) internal // address crossSwapTargetTokenTo
+    // address crossTargetAddress
+    {
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForTokensSupportingFeeOnTransferTokens(
                 amountIn,
@@ -185,8 +220,6 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             to
         );
     }
-
-
 
     /*
      @notice Withdraws funds based on a multisig
@@ -214,18 +247,55 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         );
     }
 
+    /*
+     @notice Withdraws funds based on a multisig
+     @dev For signature swapToToken must be the same as token
+     @param token The token to withdraw
+     @param payee Address for where to send the tokens to
+     @param amount The mount
+     @param sourceChainId The source chain initiating the tx
+     @param swapTxId The txId for the swap from the source chain
+     @param multiSignature The multisig validator signature
+     */
+    function withdrawSignedAndSwapToFoundry(
+        address bridgeFoundry,
+        address targetFoundry,
+        address payee,
+        uint256 amount,
+        bytes32 salt,
+        bytes memory multiSignature
+    ) external {
+        uint256 bridgeFoundryPrice = getFoundryTokenPrice(bridgeFoundry);
+        uint256 targetFoundryPrice = getFoundryTokenPrice(targetFoundry);
+        uint256 amountOut = (amount * bridgeFoundryPrice) / targetFoundryPrice;
+        FundManager(pool).withdrawSigned(
+            targetFoundry,
+            payee,
+            amountOut,
+            salt,
+            multiSignature
+        );
+    }
+
     function withdraw(
         address token,
         address payee,
         uint256 amount
     ) external {
-        FundManager(pool).withdraw(
-            token,
-            payee,
-            amount
-        );
+        FundManager(pool).withdraw(token, payee, amount);
     }
 
+    function withdrawAndSwapToFoundry(
+        address bridgeFoundry,
+        address targetFoundry,
+        address payee,
+        uint256 amount
+    ) external {
+        uint256 bridgeFoundryPrice = getFoundryTokenPrice(bridgeFoundry);
+        uint256 targetFoundryPrice = getFoundryTokenPrice(targetFoundry);
+        uint256 amountOut = (amount * bridgeFoundryPrice) / targetFoundryPrice;
+        FundManager(pool).withdraw(targetFoundry, payee, amountOut);
+    }
 
     /*
      @notice Withdraws funds and swaps to a new token
@@ -269,7 +339,6 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             );
     }
 
-
     /*
      @notice Withdraws funds and swaps to a new token
      @param to Address for where to send the tokens to
@@ -289,11 +358,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 deadline
     ) external {
         require(path.length > 1, "BR: path too short");
-        FundManager(pool).withdraw(
-            path[0],
-            address(this),
-            amountIn
-        );
+        FundManager(pool).withdraw(path[0], address(this), amountIn);
         amountIn = IERC20Upgradeable(path[0]).balanceOf(address(this)); // Actual amount received
         IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
         IUniswapV2Router02(swapRouter)
@@ -345,5 +410,4 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
                 deadline
             );
     }
-
 }
