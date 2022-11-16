@@ -1,24 +1,21 @@
 const { FIBERRouterContract } = require("./router");
+require("dotenv").config();
 
 async function main() {
+  let denom = process.env.DENOM;
+  let wallet2 = process.env.WALLET2;
+
   helper = new FIBERRouterContract(
-    "cudos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9strccpl",
-    "http://localhost:26657",
-    // cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv
+    process.env.ROUTER || "",
+    process.env.NODE || "",
     // cudos-noded tx bank send validator cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv 100000000stake --keyring-backend=test --chain-id=test
-    "bag vintage surge smile upper medal lava peasant antique envelope reward mixture nut lemon aspect distance truth maple cricket burst grit result employ music"
+    process.env.ADMIN_PRIVKEY || ""
   );
   // await helper.owner();
   let pool = await helper.pool();
-  await helper.swap("stake", "100000", "111", "target_token", "target_address");
-  // await helper.withdraw(
-  //   "stake",
-  //   "cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv",
-  //   "100000",
-  //   "0x0",
-  //   "0x0"
-  // );
-  // await helper.transferOwnership("cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv");
+  // await helper.swap(denom, "100000", "111", "target_token", "target_address"); // 5F46502DD2C2C4B6EC490251B0E2984C369D622D394EF3E433D3F74F2314399A
+  await helper.withdraw(denom, wallet2, "100000", "0x0", "0x0"); // ACB82ACB76E151DF3510BDAEF41DF493B87CADE2C4590FC7FB7D8B879CB134A5
+  // await helper.transferOwnership(wallet2);
 }
 
 main();

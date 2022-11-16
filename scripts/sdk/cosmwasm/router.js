@@ -42,7 +42,7 @@ class FIBERRouterContract {
 
   // admin function
   async transferOwnership(new_owner) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -80,7 +80,7 @@ class FIBERRouterContract {
 
   // admin function
   async setPool(pool) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -123,7 +123,7 @@ class FIBERRouterContract {
     targetTokenAddress,
     targetAddress
   ) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -154,7 +154,12 @@ class FIBERRouterContract {
               })
             ),
             contract: this.contract,
-            funds: [],
+            funds: [
+              {
+                denom: sourceToken,
+                amount: sourceAmount,
+              },
+            ],
           },
         },
       ],
@@ -164,7 +169,7 @@ class FIBERRouterContract {
   }
 
   async withdraw(token, user, amount, salt, signature) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
