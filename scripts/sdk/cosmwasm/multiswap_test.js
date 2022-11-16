@@ -1,33 +1,36 @@
 const { MultiswapContract } = require("./multiswap");
+require("dotenv").config();
 
 async function main() {
+  let denom = process.env.DENOM;
+  let wallet2 = process.env.WALLET2;
+
   helper = new MultiswapContract(
-    "cudos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9strccpl",
-    "http://localhost:26657",
-    // cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv
+    process.env.MULTISWAP || "",
+    process.env.NODE || "",
     // cudos-noded tx bank send validator cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv 100000000stake --keyring-backend=test --chain-id=test
-    "bag vintage surge smile upper medal lava peasant antique envelope reward mixture nut lemon aspect distance truth maple cricket burst grit result employ music"
+    process.env.ADMIN_PRIVKEY || ""
   );
-  let isFoundryAsset = await helper.isFoundryAsset("stake");
+  let isFoundryAsset = await helper.isFoundryAsset(denom);
   console.log("isFoundryAsset", isFoundryAsset);
   let allSigners = await helper.allSigners();
   let allLiquidity = await helper.allLiquidity();
-  await helper.swap("stake", "100000", "111", "target_token", "target_address");
+  // await helper.swap(denom, "100000", "111", "target_token", "target_address");
   // await helper.withdraw(
-  //   "stake",
-  //   "cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv",
+  //   denom,
+  //   wallet2,
   //   "100000",
   //   "0x0",
   //   "0x0"
   // );
   // await helper.owner();
-  // await helper.add_foundry_asset("stake");
-  // await helper.remove_foundry_asset("stake");
-  // await helper.transfer_ownership("cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv");
-  // await helper.add_signer("cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv");
-  // await helper.remove_signer("cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv");
-  // await helper.add_liquidity("stake", "100000");
-  // await helper.remove_liquidity("stake", "100");
+  // await helper.addFoundryAsset(denom); // 1661E4E9462BB700159948B5409F0EA84A3836E2F8E45032AEC69E55CDFB02AA
+  // await helper.removeFoundryAsset(denom);
+  // await helper.transferOwnership(wallet2);
+  // await helper.addSigner(wallet2);
+  // await helper.removeSigner(wallet2);
+  // await helper.addLiquidity(denom, "100000000000000000000"); // B58ADA4CEC2CC2949597EA58D34759844838A62DDBF528E2B701F8B236AD6FE0
+  // await helper.removeLiquidity(denom, "100");
 }
 
 main();
