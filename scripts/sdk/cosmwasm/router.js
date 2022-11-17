@@ -168,7 +168,7 @@ class FIBERRouterContract {
     console.log("Executed swap", tx.transactionHash);
   }
 
-  async withdraw(token, user, amount, salt, signature) {
+  async withdrawSigned(token, user, amount, salt, signature) {
     let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -196,6 +196,47 @@ class FIBERRouterContract {
                   amount: amount,
                   salt: salt,
                   signature: signature,
+                },
+              })
+            ),
+            contract: this.contract,
+            funds: [],
+          },
+        },
+      ],
+      calculateFee(41000000, gasPrice)
+    );
+    console.log("Executed withdrawSigned", tx.transactionHash);
+  }
+
+  async withdraw(token, user, amount) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
+    let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
+      prefix: "cudos",
+    });
+    let client = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint,
+      wallet
+    );
+    let sender = await wallet.getAccounts().then((res) => {
+      return res[0]?.address;
+    });
+
+    const tx = await client.signAndBroadcast(
+      sender,
+      [
+        {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender,
+            msg: toUtf8(
+              JSON.stringify({
+                withdraw_signed: {
+                  payee: user,
+                  token: token,
+                  amount: amount,
+                  salt: "0x0",
+                  signature: "0x0",
                 },
               })
             ),
