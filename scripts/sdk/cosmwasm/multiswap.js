@@ -10,6 +10,21 @@ class MultiswapContract {
     this.mnemonic = mnemonic;
   }
 
+  async owner() {
+    let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
+      prefix: "cudos",
+    });
+    let client = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint,
+      wallet
+    );
+    const owner = await client.queryContractSmart(this.contract, {
+      owner: {},
+    });
+    console.log("owner", owner);
+    return owner;
+  }
+
   async isFoundryAsset(asset) {
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -30,9 +45,39 @@ class MultiswapContract {
     return false;
   }
 
+  async allSigners() {
+    let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
+      prefix: "cudos",
+    });
+    let client = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint,
+      wallet
+    );
+    const signers = await client.queryContractSmart(this.contract, {
+      signers: {},
+    });
+    console.log("signers", signers);
+    return signers;
+  }
+
+  async allLiquidity() {
+    let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
+      prefix: "cudos",
+    });
+    let client = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint,
+      wallet
+    );
+    const liquidities = await client.queryContractSmart(this.contract, {
+      all_liquidity: {},
+    });
+    console.log("liquidities", liquidities);
+    return liquidities;
+  }
+
   // admin function
-  async add_foundry_asset(token) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+  async addFoundryAsset(token) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -69,8 +114,8 @@ class MultiswapContract {
   }
 
   // admin function
-  async remove_foundry_asset(token) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+  async removeFoundryAsset(token) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -107,8 +152,8 @@ class MultiswapContract {
   }
 
   // admin function
-  async transfer_ownership(new_owner) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+  async transferOwnership(new_owner) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -145,8 +190,8 @@ class MultiswapContract {
   }
 
   // admin function
-  async add_signer(signer) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+  async addSigner(signer) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -183,8 +228,8 @@ class MultiswapContract {
   }
 
   // admin function
-  async remove_signer(signer) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+  async removeSigner(signer) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -220,8 +265,8 @@ class MultiswapContract {
     console.log("Executed remove_signer", tx.transactionHash);
   }
 
-  async add_liquidity(token, amount) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+  async addLiquidity(token, amount) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -249,7 +294,12 @@ class MultiswapContract {
               })
             ),
             contract: this.contract,
-            funds: [],
+            funds: [
+              {
+                denom: token,
+                amount: amount,
+              },
+            ],
           },
         },
       ],
@@ -258,8 +308,8 @@ class MultiswapContract {
     console.log("Executed add_liquidity", tx.transactionHash);
   }
 
-  async remove_liquidity(token, amount) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+  async removeLiquidity(token, amount) {
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -316,7 +366,7 @@ class MultiswapContract {
     targetTokenAddress,
     targetAddress
   ) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -347,7 +397,12 @@ class MultiswapContract {
               })
             ),
             contract: this.contract,
-            funds: [],
+            funds: [
+              {
+                denom: sourceToken,
+                amount: sourceAmount,
+              },
+            ],
           },
         },
       ],
@@ -357,7 +412,7 @@ class MultiswapContract {
   }
 
   async withdraw(token, user, amount, salt, signature) {
-    let gasPrice = GasPrice.fromString("0.025stake");
+    let gasPrice = GasPrice.fromString(process.env.GAS_PRICE);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
