@@ -1,23 +1,22 @@
-const { ethers, upgrades } = require('hardhat');
+const { ethers, upgrades } = require("hardhat");
 
 async function main() {
-
   const FundManager = await ethers.getContractFactory("FundManager");
-  console.log('Deploying FundManager...');
+  console.log("Deploying FundManager...");
 
-  const fundManager = await upgrades.deployProxy(FundManager, { initializer: 'initialize' })
+  const fundManager = await upgrades.deployProxy(FundManager, {
+    initializer: "initialize",
+  });
   await fundManager.deployed();
-
 
   console.log(`FundManager deployed to ${fundManager.address}`);
 
-  if(network.name == 'hardhat') return
-  await fundManager.deployTransaction.wait(6)
-  console.log('Verifing...')
+  if (network.name == "hardhat") return;
+  await fundManager.deployTransaction.wait(6);
+  console.log("Verifing...");
   await hre.run("verify:verify", {
     address: fundManager.address,
-    constructorArguments: [
-    ],
+    constructorArguments: [],
   });
   console.log("Contract verified successfully !");
 }

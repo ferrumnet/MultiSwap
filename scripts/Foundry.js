@@ -1,7 +1,7 @@
 const { ethers } = require("ethers");
 const axios = require("axios");
-const fundManagerAbi = require('../artifacts/contracts/upgradeable-Bridge/FundManager.sol/FundManager.json')
-const tokenAbi = require('../artifacts/contracts/token/Token.sol/Token.json')
+const fundManagerAbi = require("../artifacts/contracts/upgradeable-Bridge/FundManager.sol/FundManager.json");
+const tokenAbi = require("../artifacts/contracts/token/Token.sol/Token.json");
 
 const toWei = (i) => ethers.utils.parseEther(i);
 const toEther = (i) => ethers.utils.formatEther(i);
@@ -15,19 +15,18 @@ const targetNetworkId = "137";
 const sourceProvider = new ethers.providers.JsonRpcProvider(sourceNetwork);
 const targetProvider = new ethers.providers.JsonRpcProvider(targetNetwork);
 
-
 const sourcefundMangerAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 const targetFundManagerAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
 
 const sourceFundMangerContract = new ethers.Contract(
   sourcefundMangerAddress,
-  fundManagerAbi.data.result,
+  fundManagerAbi.abi,
   sourceProvider
 );
 
 const targetFundMangerContract = new ethers.Contract(
   targetFundManagerAddress,
-  fundManagerAbi.data.result,
+  fundManagerAbi.abi,
   targetProvider
 );
 
@@ -85,7 +84,7 @@ async function FACCheck(sourcetokenAddress, targetTokenAddress, amount) {
   );
 
   await sourceTokenContract.approve(sourceFundMangerContract, amount);
-  const result = await sourceFundMangerContract.swap(
+  const swapResult = await sourceFundMangerContract.swap(
     sourcetokenAddress, //token address on network 1
     amount, //token amount
     targetNetworkId, //target network
@@ -93,16 +92,16 @@ async function FACCheck(sourcetokenAddress, targetTokenAddress, amount) {
     { gasLimit: 1000000 }
   );
 
-  const receipt = await result.wait();
+  const receipt = await swapResult.wait();
   if (receipt.status == 1) {
-    const result = await targetFundMangerContract.withdraw(
+    const swapResult = await targetFundMangerContract.withdraw(
       targetTokenAddress, //token address on network 2
       user, //reciver
       amount, //targetToken amount
       { gasLimit: 1000000 }
     );
 
-    const receipt = result.wait();
+    const receipt = swapResult.wait();
     if (receipt.status == 1) {
       console.log("success");
     }

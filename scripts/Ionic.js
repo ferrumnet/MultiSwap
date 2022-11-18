@@ -4,16 +4,22 @@ require("dotenv").config();
 const fundManagerAbi = require("../artifacts/contracts/upgradeable-Bridge/FundManager.sol/FundManager.json");
 const fiberRouterAbi = require("../artifacts/contracts/upgradeable-Bridge/FiberRouter.sol/FiberRouter.json");
 const tokenAbi = require("../artifacts/contracts/token/Token.sol/Token.json");
-const routerAbi = require('../artifacts/contracts/common/uniswap/IUniswapV2Router02.sol/IUniswapV2Router02.json');
+const routerAbi = require("../artifacts/contracts/common/uniswap/IUniswapV2Router02.sol/IUniswapV2Router02.json");
+const { goerliAda } = require("../Network");
 const toWei = (i) => ethers.utils.parseEther(i);
 const toEther = (i) => ethers.utils.formatEther(i);
 
 const bscCake = "0xFa60D973F7642B748046464e165A65B7323b0DEE";
+const bscUsdc = "0x64544969ed7EBf5f083679233325356EbE738930";
+const bscAda = "0x93498CD124EE957CCc1E0e7Acb6022Fc6caF3D10";
+const Busd = "0xed24fc36d5ee211ea25a80239fb8c4cfd80f12ee";
 const goerliUsdc = "0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C";
 //goerli rpc
-const sourceNetwork = "https://goerli.infura.io/v3/fa18fa35171744ae8ac35d12baa36ae3";
+const sourceNetwork =
+  "https://goerli.infura.io/v3/fa18fa35171744ae8ac35d12baa36ae3";
 //bsc rpc
-const targetNetwork = "https://apis.ankr.com/f9946df03b9741df9e20e6d376021c81/17d51fb5735bba322c78e521ac58c161/binance/full/test";
+const targetNetwork =
+  "https://apis.ankr.com/f9946df03b9741df9e20e6d376021c81/17d51fb5735bba322c78e521ac58c161/binance/full/test";
 
 //networks chain id
 const sourceNetworkId = 5; //goerli
@@ -84,9 +90,9 @@ const targetFundMangerContract = new ethers.Contract(
 );
 
 // goerli fundManager contract
-const sourceFiberRouterAddress = "0xa20Ea6722D828C9A5d370E6cdB9608d9e0459F26";
+const sourceFiberRouterAddress = "0x757FaA8A92b6B813f96058725eC731F75cE0C59f";
 // bsc fundManager contract
-const targetFiberRouterAddress = "0x6147F4c2b20d3638d12600C6F2189e7A890F3Bbf";
+const targetFiberRouterAddress = "0x6Cb6Aa70511C9289FbD212E5e320c799Ed2a7Be9";
 
 // goerli fund manager contract
 const sourceFiberRouterContract = new ethers.Contract(
@@ -104,13 +110,15 @@ const targetFiberRouterContract = new ethers.Contract(
 
 //check the requested token exist on the Source network Fund Manager
 async function sourceFACCheck(tokenAddress) {
-  const isSourceTokenFoundryAsset = await sourceFundMangerContract.isFoundryAsset(tokenAddress);
+  const isSourceTokenFoundryAsset =
+    await sourceFundMangerContract.isFoundryAsset(tokenAddress);
   return isSourceTokenFoundryAsset;
 }
 
 //check the requested token exist on the Source network Fund Manager
 async function targetFACCheck(tokenAddress, amount) {
-  const isTargetTokenFoundryAsset = await targetFundMangerContract.isFoundryAsset(tokenAddress);
+  const isTargetTokenFoundryAsset =
+    await targetFundMangerContract.isFoundryAsset(tokenAddress);
 
   const targetFoundryTokenContract = new ethers.Contract(
     tokenAddress,
@@ -119,33 +127,35 @@ async function targetFACCheck(tokenAddress, amount) {
   );
 
   // Liquidity Check for targetFoundryTokken in TargetFundManager
-  const targetFoundryAssetLiquidity = await targetFoundryTokenContract.balanceOf(
-    targetFundMangerContract.address
-  );
+  const targetFoundryAssetLiquidity =
+    await targetFoundryTokenContract.balanceOf(
+      targetFundMangerContract.address
+    );
 
-  if (isTargetTokenFoundryAsset == true && Number(targetFoundryAssetLiquidity) > Number(amount)) {
-      return true;
-  }
-  else{
+  if (
+    isTargetTokenFoundryAsset == true &&
+    Number(targetFoundryAssetLiquidity) > Number(amount)
+  ) {
+    return true;
+  } else {
     return false;
   }
 }
-
 
 //check source toke is foundry asset
 async function isSourceRefineryAsset(tokenAddress, amount) {
   try {
     const isTokenFoundryAsset = await sourceFACCheck(tokenAddress);
 
-      let path = [tokenAddress, sourceFoundryTokenAddress];
-      const amounts = await sourceDexContract.getAmountsOut(amount, path);
-      const amountsOut = amounts[1];
+    let path = [tokenAddress, sourceFoundryTokenAddress];
+    const amounts = await sourceDexContract.getAmountsOut(amount, path);
+    const amountsOut = amounts[1];
 
-      if (isTokenFoundryAsset == false && Number(amountsOut) > 0) {
-        return true;
-      } else {
-        return false;
-      }
+    if (isTokenFoundryAsset == false && Number(amountsOut) > 0) {
+      return true;
+    } else {
+      return false;
+    }
   } catch (error) {
     return false;
   }
@@ -157,14 +167,14 @@ async function isTargetRefineryAsset(tokenAddress, amount) {
     const isTokenFoundryAsset = await targetFACCheck(tokenAddress, amount);
 
     let path = [targetFoundryTokenAddress, tokenAddress];
-    const amounts = await sourceDexContract.getAmountsOut(amount, path);
+    const amounts = await targetDexContract.getAmountsOut(amount, path);
     const amountsOut = amounts[1];
 
     if (isTokenFoundryAsset == false && Number(amountsOut) > 0) {
-          return true;
-      } else {
-          return false;
-      }
+      return true;
+    } else {
+      return false;
+    }
   } catch (error) {
     return false;
   }
@@ -186,21 +196,25 @@ async function IONICCheck(sourcetokenAddress, targetTokenAddress, amount) {
   // SwapRoute1 : [goerliADA -> USDC]   SwapRoute2 : [USDC -> USDT]
   let path = [sourcetokenAddress, goerliUsdc, sourceFoundryTokenAddress];
 
-
   const amounts = await sourceDexContract.getAmountsOut(amount, path);
 
-  // Since there are more than two tokens so (amounts.length - 1) 
-  // represents the amountOut of optimal price
-  const amountsOut = amounts[amounts.length - 1];  
+  /*
+  Since there are more than two tokens so (amounts.length - 1) 
+  represents the amountOut of optimal price:
+  
+    [tokanA, tokenB, tokenC] => [amountA, amountB, amountC]  
+    amountsOut = array[array.length -1] = amountC
+  */
+  const amountsOut = amounts[amounts.length - 1];
 
   // User Approves FiberRouter to use the x Amount of tokens
   await sourceTokenContract
     .connect(sourceSigner)
     .approve(sourceFiberRouterContract.address, amount);
 
-  // FiberEngine calls FiberRouter's SwapAndCross function 
+  // FiberEngine calls FiberRouter's SwapAndCross function
   // TO Perform swapRoute1 & swapRoute2 to get USDC on DEXRouter
-  const result = await sourceFiberRouterContract
+  const swapResult = await sourceFiberRouterContract
     .connect(sourceSigner)
     .swapAndCross(
       sourceDexContract.address, // DEX Router
@@ -215,10 +229,12 @@ async function IONICCheck(sourcetokenAddress, targetTokenAddress, amount) {
       }
     );
   //wait until the transaction be completed
-  const receipt = await result.wait();
+  const receipt = await swapResult.wait();
   if (receipt.status == 1) {
-    console.log("SN-3: Successfully swapped from SourceToken to FoundryToken on SourceNetwork!");
-    console.log("Transaction hash is: ", result.hash);
+    console.log(
+      "SN-3: Successfully swapped from SourceToken to FoundryToken on SourceNetwork!"
+    );
+    console.log("Transaction hash is: ", swapResult.hash);
     const isTargetTokenFoundry = await targetFACCheck(
       targetTokenAddress,
       amountsOut
@@ -228,9 +244,9 @@ async function IONICCheck(sourcetokenAddress, targetTokenAddress, amount) {
       console.log("TN-2: Withdraw Foundry Asset...");
 
       // IF target token is Foundry Asset
-      // FiberEngine will call FiberRouter Withdraw 
+      // FiberEngine will call FiberRouter Withdraw
       // Function to withdraw FoundryTokens
-      const result = await targetFiberRouterContract
+      const swapResult = await targetFiberRouterContract
         .connect(targetSigner)
         .withdraw(
           targetFoundryTokenAddress, //token address on network 2
@@ -239,10 +255,12 @@ async function IONICCheck(sourcetokenAddress, targetTokenAddress, amount) {
           { gasLimit: 1000000 }
         );
 
-      const receipt = result.wait();
+      const receipt = swapResult.wait();
       if (receipt.status == 1) {
-        console.log("TN-3 SUCCESS: Withdrawn Foundry Token on Target Network !");
-        console.log("Transaction hash is: ", result.hash);
+        console.log(
+          "TN-3 SUCCESS: Withdrawn Foundry Token on Target Network !"
+        );
+        console.log("Transaction hash is: ", swapResult.hash);
       }
     } else {
       const isTargetRefineryToken = await isTargetRefineryAsset(
@@ -252,14 +270,16 @@ async function IONICCheck(sourcetokenAddress, targetTokenAddress, amount) {
       if (isTargetRefineryToken == true) {
         console.log("TN-1: Target Token is Refinery Asset");
 
-        console.log("TN-2: Withdraw and Swap Foundry Token to Target Token ....");
+        console.log(
+          "TN-2: Withdraw and Swap Foundry Token to Target Token ...."
+        );
         let path2 = [targetFoundryTokenAddress, targetTokenAddress];
         const amounts2 = await targetDexContract.getAmountsOut(
           amountsOut,
           path2
         );
         const amountsOut2 = amounts2[1];
-        const result2 = await targetFiberRouterContract
+        const swapResult2 = await targetFiberRouterContract
           .connect(targetSigner)
           .withdrawAndSwap(
             signer.address,
@@ -272,18 +292,25 @@ async function IONICCheck(sourcetokenAddress, targetTokenAddress, amount) {
               gasLimit: 1000000,
             }
           );
-        const receipt2 = await result2.wait();
+        const receipt2 = await swapResult2.wait();
         if (receipt2.status == 1) {
-          console.log("TN-3: Successfully Swapped Foundry Token to Target Token");
+          console.log(
+            "TN-3: Successfully Swapped Foundry Token to Target Token"
+          );
           console.log("Cheers! your bridge and swap was successful !!!");
-          console.log("Transaction hash is: ", result2.hash);
+          console.log("Transaction hash is: ", swapResult2.hash);
         }
       } else {
         console.log("TN-1: Target Token is Ionic Asset");
 
-        console.log("TN-2: Withdraw and Swap Foundry Token to Target Token ....");
+        console.log(
+          "TN-2: Withdraw and Swap Foundry Token to Target Token ...."
+        );
 
-        // SwapRoute1 : [USDT -> CAKE]   SwapRoute2 : [CAKE -> bscADA]
+        // // SwapRoute1 : [USDT -> ADA]   SwapRoute2 : [ADA -> CAKE]
+        // let path2 = [targetFoundryTokenAddress, bscAda, targetTokenAddress];
+
+        // SwapRoute1 : [USDT -> CAKE]   SwapRoute2 : [CAKE -> ADA]
         let path2 = [targetFoundryTokenAddress, bscCake, targetTokenAddress];
 
         const amounts2 = await targetDexContract.getAmountsOut(
@@ -293,35 +320,44 @@ async function IONICCheck(sourcetokenAddress, targetTokenAddress, amount) {
 
         const amountsOut2 = amounts2[amounts2.length - 1];
 
-        // FiberEngine calls FiberRouter's withdrawAndSwap function 
+        // FiberEngine calls FiberRouter's withdrawAndSwap function
         // TO Perform swapRoute1 & swapRoute2 to get bscADA on DEXRouter
-        const result3 = await targetFiberRouterContract
+        const swapResult3 = await targetFiberRouterContract
           .connect(targetSigner)
           .withdrawAndSwap(
             signer.address,
-            targetRouterAddress,  // DEX
-            amountsOut,  // SwapIn Out of FoundryToken
+            targetRouterAddress, // DEX
+            amountsOut, // SwapIn Out of FoundryToken
             amountsOut2, // SwapOut amount of TargetToken
-            path2,  // SwapRoute
+            path2, // SwapRoute
             "1669318064",
             {
               gasLimit: 1000000,
             }
           );
-        const receipt3 = await result3.wait();
+        const receipt3 = await swapResult3.wait();
         if (receipt3.status == 1) {
-          console.log("TN-3: Successfully Swapped Foundry Token to Target Token");
+          console.log(
+            "TN-3: Successfully Swapped Foundry Token to Target Token"
+          );
           console.log("Cheers! your bridge and swap was successful !!!");
-          console.log("Transaction hash is: ", result3.hash);
+          console.log("Transaction hash is: ", swapResult3.hash);
         }
       }
     }
   }
 }
 
-// Swap 10 Goerli ADA  --> BSC ADA
+// // Swap 10 GoerliADA  --> BSC CAKE
+// IONICCheck(
+//   "0x93e7a4C6FF5f5D786a33076c8F9D380E1bbA7E90", // goerli ada
+//   "0xFa60D973F7642B748046464e165A65B7323b0DEE", // bsc cake
+//   "10000000000000000000"
+// );
+
+// Swap 10 goerliADA --> bscADA
 IONICCheck(
-  "0x93e7a4C6FF5f5D786a33076c8F9D380E1bbA7E90",
-  "0x93498CD124EE957CCc1E0e7Acb6022Fc6caF3D10",
+  "0x93e7a4C6FF5f5D786a33076c8F9D380E1bbA7E90", // goerli ADA
+  "0x93498CD124EE957CCc1E0e7Acb6022Fc6caF3D10", // bsc ADA
   "10000000000000000000"
 );
