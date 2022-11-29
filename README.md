@@ -19,7 +19,7 @@ MultiSwap Overview: >-
 1. Source Network: FAC check (Does this token exist in the Fund Manager?)
     - Answer: Yes -> Categorized as Foundry Asset
 2. Destination Network: FAC Check (Does the requested token exist on the destination network Fund Manager? If so, is there enough liquidity for this token in the Fund Manager to support the requested amount?)
-    - Answer: Yes -> Categorized as Foundry Asset
+    - Answer: Yes -> Categorized as Foundry Asset.
 
 ### Flow of Refinery Swap
 1. Source Network: FAC check (Does the requested token exist on the Source network Fund Manager?)
