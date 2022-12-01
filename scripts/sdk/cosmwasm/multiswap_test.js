@@ -9,7 +9,8 @@ async function main() {
     process.env.MULTISWAP || "",
     process.env.NODE || "",
     // cudos-noded tx bank send validator cudos1nysrj2xxpm77xpkvglne0zcvnxuq0laacc7nrv 100000000stake --keyring-backend=test --chain-id=test
-    process.env.ADMIN_PRIVKEY || ""
+    process.env.ADMIN_PRIVKEY || "",
+    process.env.GAS_PRICE || ""
   );
   let isFoundryAsset = await helper.isFoundryAsset(denom);
   console.log("isFoundryAsset", isFoundryAsset);
