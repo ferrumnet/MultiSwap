@@ -1,5 +1,5 @@
-const bscChain = 97;
-const goerliChain = 5;
+const targetChainId = 97;
+const sourceChainId = 5;
 
 // FundManagers
 const goerliFundManager = "0x9B887791463cc3BfEBB04D8f54603E5E9ed81f1C"; //proxy
@@ -28,8 +28,8 @@ const bscUsdc = "0x64544969ed7ebf5f083679233325356ebe738930";
 const bscCake = "0xFa60D973F7642B748046464e165A65B7323b0DEE";
 
 module.exports = {
-  bscChain,
-  goerliChain,
+  targetChainId,
+  sourceChainId,
   goerliFundManager,
   bscFundManager,
   goerliFiberRouter,
