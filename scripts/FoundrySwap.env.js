@@ -9,55 +9,30 @@ const toWei = (i) => ethers.utils.parseEther(i);
 const toEther = (i) => ethers.utils.formatEther(i);
 
 //goerli rpc
-const sourceNetwork =
-  "https://goerli.infura.io/v3/fa18fa35171744ae8ac35d12baa36ae3";
+const sourceNetwork = process.env.SOURCE_CHAIN_RPC;
 //bsc rpc
-const targetNetwork =
-  "https://apis.ankr.com/f9946df03b9741df9e20e6d376021c81/17d51fb5735bba322c78e521ac58c161/binance/full/test";
+const targetNetwork = process.env.DESTINATION_CHAIN_RPC;
 
 //networks chain id
-const goeliChainId = 5;
-const bscChainId = 97;
-
-//networks chain id
-const sourceChainId = 5;
-const targetChainId = 97;
+const sourceChainId = process.env.SOURCE_CHAIN_ID;
+const targetChainId = process.env.DESTINATION_CHAIN_ID;
 
 //network providers
 const sourceProvider = new ethers.providers.JsonRpcProvider(sourceNetwork);
 const targetProvider = new ethers.providers.JsonRpcProvider(targetNetwork);
 
 // user wallet
-const signer = new ethers.Wallet(process.env.PRI_KEY);
-const sourceSigner = signer.connect(sourceProvider);
-const targetSigner = signer.connect(targetProvider);
-
-// usdt token on goerli and bsc networks as foundry asset
-const sourceFoundryTokenAddress = "0x636b346942ee09Ee6383C22290e89742b55797c5"; //goerli usdt
-const targetFoundryTokenAddress = "0xD069d62C372504d7fc5f3194E3fB989EF943d084"; //bsc usdt
-
-// link token on goerli and bsc netwroks as other foundry asset
-const sourceLinkAddress = "0x6CD74120C67A5c0C1Ed6f34a3c40f3224E4Cf5bC"; //goerli link
-const targetLinkAddress = "0x800181891a79A3Aa28f271884c7c6cAD07847967"; // bsc link
-
-//source foundry token contract
-const sourceFoundryTokenContract = new ethers.Contract(
-  sourceFoundryTokenAddress,
-  tokenAbi.abi,
-  sourceProvider
-);
-
-//target foundry token contract
-const targetFoundryTokenContract = new ethers.Contract(
-  targetFoundryTokenAddress,
-  tokenAbi.abi,
-  targetProvider
-);
+const sourceSigner = new ethers.Wallet(
+  process.env.SOURCE_CHAIN_PRIV_KEY
+).connect(sourceProvider);
+const targetSigner = new ethers.Wallet(
+  process.env.DESTINATION_CHAIN_PRIV_KEY
+).connect(targetProvider);
 
 // goerli fundManager contract
-const sourcefundMangerAddress = "0x9B887791463cc3BfEBB04D8f54603E5E9ed81f1C";
+const sourcefundMangerAddress = process.env.SOURCE_FUND_MANAGER_CONTRACT;
 // bsc fundManager contract
-const targetFundManagerAddress = "0xE450A528532FaeF1Feb1094eA2674e7A1fAA3E78";
+const targetFundManagerAddress = process.env.DESTINATION_FUND_MANAGER_CONTRACT;
 
 // goerli fund manager contract
 const sourceFundMangerContract = new ethers.Contract(
@@ -74,9 +49,9 @@ const targetFundMangerContract = new ethers.Contract(
 );
 
 // goerli fundManager contract
-const sourceFiberRouterAddress = "0x757FaA8A92b6B813f96058725eC731F75cE0C59f";
+const sourceFiberRouterAddress = process.env.SOURCE_FIBER_ROUTER_CONTRACT;
 // bsc fundManager contract
-const targetFiberRouterAddress = "0x6Cb6Aa70511C9289FbD212E5e320c799Ed2a7Be9";
+const targetFiberRouterAddress = process.env.DESTINATION_FIBER_ROUTER_CONTRACT;
 
 // goerli fund manager contract
 const sourceFiberRouterContract = new ethers.Contract(
@@ -107,7 +82,12 @@ async function targetFACCheck(tokenAddress) {
 }
 
 //swap foundry asset on two networks
-async function swap(sourcetokenAddress, targetTokenAddress, amount) {
+async function swap(
+  sourcetokenAddress,
+  targetFoundryTokenAddress,
+  targetTokenAddress,
+  amount
+) {
   const isFoundryAsset = sourceFACCheck(sourcetokenAddress, amount);
 
   if (isFoundryAsset == false) return;
@@ -149,7 +129,7 @@ async function swap(sourcetokenAddress, targetTokenAddress, amount) {
         .withdrawAndSwapToFoundry(
           targetFoundryTokenAddress, //token address on network 2
           targetTokenAddress,
-          signer.address, //reciver
+          targetSigner.address, //reciver
           amount, //targetToken amount
           { gasLimit: 1000000 }
         );
@@ -166,7 +146,8 @@ async function swap(sourcetokenAddress, targetTokenAddress, amount) {
 }
 
 swap(
-  "0x636b346942ee09Ee6383C22290e89742b55797c5",
-  "0x800181891a79A3Aa28f271884c7c6cAD07847967",
+  process.env.SOURCE_CHAIN_TOKEN,
+  process.env.DESTINATION_CHAIN_SOURCE_TOKEN,
+  process.env.DESTINATION_CHAIN_TOKEN,
   "10000000000000000000"
 );
