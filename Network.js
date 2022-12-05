@@ -24,9 +24,12 @@ const goerliRouter = "0xEfF92A263d31888d860bD50809A8D171709b7b1c";
 const bscUsdt = "0xD069d62C372504d7fc5f3194E3fB989EF943d084";
 const goerliUsdt = "0x636b346942ee09Ee6383C22290e89742b55797c5";
 
+const goerliCake = '0xdb4d2a90C3dD45F72fA03A6FDAFe939cE52B2131';
 const bscCake = "0xFa60D973F7642B748046464e165A65B7323b0DEE";
 
-const goerliUsdc = "0xD87Ba7A50B2E7E660f678A895E4B72E7CB4CCd9C";
+
+const bscUsdc = '0x2211593825f59ABcC809D1F64DE1930d56C7e483'
+const goerliUsdc = '0x54E1F0a14F5a901c54563c0Ea177eB5B43CeeFc0'
 
 const bscAda = "0x93498CD124EE957CCc1E0e7Acb6022Fc6caF3D10";
 const goerliAda = "0x93e7a4C6FF5f5D786a33076c8F9D380E1bbA7E90";
@@ -134,7 +137,9 @@ module.exports = {
   bscUsdt,
   goerliUsdt,
   bscCake,
+  goerliCake,
   goerliUsdc,
+  bscUsdc,
   bscAda,
   goerliAda,
   bscLink,
