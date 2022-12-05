@@ -47,7 +47,7 @@ const goerliCudos = "0xe6A57A671F23CcB8cA54264e2cF5E05D47a200ED";
 const bscCudos = "0x34e93782447c34C1526f4A2C2c30B54178289d90";
 
 const goerliWeth = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
-const bscWeth = "0xae13d989dac2f0debff460ac112a837c89baa7cd";
+const bscWbnb = "0xae13d989dac2f0debff460ac112a837c89baa7cd";
 
 const goerliAave = "0xbAa54514a31F64c1eB3340789943bCc0abb29f9f";
 const bscAave = "0x8834b57Fb0162977011C9D11dFF1d24b93073DA6";
@@ -119,7 +119,7 @@ const networks = {
     dexContract: bscDexContract,
     fundManagerContract: bscFundMangerContract,
     fiberRouterContract: bscFiberRouterContract,
-    weth: bscWeth,
+    wbnb: bscWbnb,
   },
 };
 

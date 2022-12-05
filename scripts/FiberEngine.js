@@ -335,7 +335,7 @@ class Fiber {
           );
           let path2 = [
             targetNetwork.foundryTokenAddress,
-            targetNetwork.weth,
+            targetNetwork.wbnb,
             targetTokenAddress,
           ];
           const amounts2 = await targetNetwork.dexContract.getAmountsOut(
