@@ -373,14 +373,12 @@ module.exports = Fiber;
 const fiber = new Fiber();
 
 fiber.SWAP(
-  bscUsdc, 
-  goerliUsdc, 
-  97, // source chain id
-  5, // target chain id
+  goerliCudos, // goerli ada
+  bscCudos, // bsc ada
+  5, // source chain id (goerli)
+  97, // target chain id (bsc)
   10 //source token amount
 );
-
-// 
 
 
 
