@@ -53,12 +53,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         (
             ,
             /*uint80 roundID*/
-            int256 price,
+            int256 price, /*uint startedAt*/
             ,
             ,
 
-        ) = /*uint startedAt*/
-            /*uint timeStamp*/
+        ) = /*uint timeStamp*/
             /*uint80 answeredInRound*/
             priceFeed[_token].latestRoundData();
         uint8 baseDecimals = priceFeed[_token].decimals();
@@ -113,7 +112,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address swapRouter,
         uint256 amountIn,
         uint256 amountCrossMin, // amountOutMin on uniswap
-        address[] calldata path,
+        address[] calldata path, // usdt,ada
         uint256 deadline,
         uint256 crossTargetNetwork,
         address crossTargetToken
@@ -198,9 +197,8 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
-        address crossTargetToken
-    ) internal // address crossSwapTargetTokenTo
-    // address crossTargetAddress
+        address crossTargetToken // address crossSwapTargetTokenTo
+    ) internal // address crossTargetAddress
     {
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForTokensSupportingFeeOnTransferTokens(

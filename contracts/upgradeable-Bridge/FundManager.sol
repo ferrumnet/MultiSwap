@@ -27,8 +27,7 @@ contract FundManager is SigCheckable, WithAdmin {
         address signer,
         address receiver,
         address token,
-        uint256 amount,
-        uint256 fee
+        uint256 amount
     );
     event BridgeLiquidityAdded(address actor, address token, uint256 amount);
     event BridgeLiquidityRemoved(address actor, address token, uint256 amount);
@@ -215,18 +214,18 @@ contract FundManager is SigCheckable, WithAdmin {
         console.log(_signer);
         require(signers[_signer], "BridgePool: Invalid signer");
 
-        uint256 fee = 0;
-        address _feeDistributor = feeDistributor;
-        if (_feeDistributor != address(0)) {
-            fee = (amount * fees[token]) / 10000;
-            amount = amount - fee;
-            if (fee != 0) {
-                IERC20Upgradeable(token).safeTransfer(_feeDistributor, fee);
-                IGeneralTaxDistributor(_feeDistributor).distributeTax(token);
-            }
-        }
+        // uint256 fee = 0;
+        // address _feeDistributor = feeDistributor;
+        // if (_feeDistributor != address(0)) {
+        //     fee = (amount * fees[token]) / 10000;
+        //     amount = amount - fee;
+        //     if (fee != 0) {
+        //         IERC20Upgradeable(token).safeTransfer(_feeDistributor, fee);
+        //         IGeneralTaxDistributor(_feeDistributor).distributeTax(token);
+        //     }
+        // }
         IERC20Upgradeable(token).safeTransfer(payee, amount);
-        emit TransferBySignature(_signer, payee, token, amount, fee);
+        emit TransferBySignature(_signer, payee, token, amount);
         return amount;
     }
 
