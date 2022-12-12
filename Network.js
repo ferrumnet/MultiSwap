@@ -15,8 +15,8 @@ const bscRPC =
 const goerliFundManager = "0x9B887791463cc3BfEBB04D8f54603E5E9ed81f1C"; //proxy
 const bscFundManager = "0xE450A528532FaeF1Feb1094eA2674e7A1fAA3E78"; //proxy
 
-const goerliFiberRouter = '0x13e6558F134a7a785A2B8CAcE3be0966161cac88'//proxy
-const bscFiberRouter = '0xb33074D5b4E81bFa64763450BD69420976b75F39'//proxy
+const goerliFiberRouter = "0x13e6558F134a7a785A2B8CAcE3be0966161cac88"; //proxy
+const bscFiberRouter = "0xb33074D5b4E81bFa64763450BD69420976b75F39"; //proxy
 
 const bscRouter = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1";
 const goerliRouter = "0xEfF92A263d31888d860bD50809A8D171709b7b1c";
@@ -46,7 +46,7 @@ const goerliCudos = "0xe6A57A671F23CcB8cA54264e2cF5E05D47a200ED";
 const bscCudos = "0x34e93782447c34C1526f4A2C2c30B54178289d90";
 
 const goerliWeth = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
-const bscWbnb = "0xae13d989dac2f0debff460ac112a837c89baa7cd";
+const bscWeth = "0xae13d989dac2f0debff460ac112a837c89baa7cd";
 
 const goerliAave = "0xbAa54514a31F64c1eB3340789943bCc0abb29f9f";
 const bscAave = "0x8834b57Fb0162977011C9D11dFF1d24b93073DA6";
@@ -118,7 +118,7 @@ const networks = {
     dexContract: bscDexContract,
     fundManagerContract: bscFundMangerContract,
     fiberRouterContract: bscFiberRouterContract,
-    wbnb: bscWbnb,
+    weth: bscWeth,
   },
 };
 
@@ -147,6 +147,7 @@ module.exports = {
   bscAave,
   goerliCudos,
   bscCudos,
+  bscWeth,
   bscUsdtOracle,
   goerliUsdtOracle,
   bscLinkOracle,
