@@ -2,9 +2,8 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@nomiclabs/hardhat-ethers");
 require("@openzeppelin/hardhat-upgrades");
 const { ethers } = require("ethers");
+require('dotenv').config()
 
-/** @type import('hardhat/config').HardhatUserConfig */
-require("dotenv").config();
 module.exports = {
   solidity: {
     compilers: [
@@ -21,16 +20,12 @@ module.exports = {
   },
   networks: {
     goerli: {
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      accounts: [process.env.PRIVATE_KEY],
-    },
-    sepolia: {
-      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      accounts: [process.env.PRIVATE_KEY],
+      url: `https://nd-018-780-500.p2pify.com/8d55fdf55750fe8f435ef82b610d1bba`,
+      accounts:[process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1] 
     },
     binance: {
-      url: process.env.BINANCE_TESTNET_RPC,
-      accounts: [process.env.PRIVATE_KEY],
+      url: `https://nd-409-138-440.p2pify.com/a2b2f87cd496703b1cc64ff8e91b7981`,
+      accounts:[process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1] 
     },
   },
   etherscan: {
