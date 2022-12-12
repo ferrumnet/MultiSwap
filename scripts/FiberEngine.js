@@ -35,12 +35,13 @@ const {
   networks,
   goerliCudos,
   bscCudos,
+  goerliWeth,
 } = require("../Network");
 const toWei = (i) => ethers.utils.parseEther(i);
 const toEther = (i) => ethers.utils.formatEther(i);
 
 // user wallet
-const signer = new ethers.Wallet(process.env.PRIVATE_KEY);
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY0);
 
 class Fiber {
   constructor() {}
@@ -122,6 +123,76 @@ class Fiber {
     }
   }
 
+
+  async swapOnSameNetwork(sourceChainId, sourceTokenAddress, targetTokenAddress, inputAmout){
+    const sourceNetwork = networks[sourceChainId];
+    const path = [sourceTokenAddress, targetTokenAddress];
+
+    const sourceSigner = signer.connect(sourceNetwork.provider);
+
+    const amounts = await sourceNetwork.dexContract.getAmountsOut(
+      inputAmout,
+      path
+    );
+    const amountOutMin = amounts[1];
+    
+    // For swapping on ETHEREUM Blockchain IF ElseIf both conditions are performed
+    // IF SourceToken(Eth) <> TargetToken on Same Network 
+    // ELESE IF (SourceToken <> TargetToken (Eth) on Same Network
+    if(sourceTokenAddress == sourceNetwork.weth){
+      const res = await sourceNetwork.fiberRouterContract.connect(sourceSigner).swapETHForTokenSameNetwork(
+        sourceSigner.address,
+        sourceNetwork.router,
+        inputAmout,
+        amountOutMin,
+        path,
+        this.getDeadLine().toString(), // deadline
+        {value: inputAmout, gasLimit: 1000000}
+      )
+      const receipt = res.wait();
+      if(receipt.status == 1){
+        console.log("Successfully swap ETH to token on the same network")
+      }
+    }else if(targetTokenAddress == sourceNetwork.weth){
+      const sourceTokenContract = new ethers.Contract(sourceTokenAddress, tokenAbi.abi, sourceNetwork.provider);
+      await sourceTokenContract.connect(sourceSigner).approve(sourceNetwork.fiberRouter, inputAmout);
+      const res = await sourceNetwork.fiberRouterContract.connect(sourceSigner).swapTokenForETHSameNetwork(
+        sourceSigner.address,
+        sourceNetwork.router,
+        inputAmout,
+        amountOutMin,
+        path,
+        this.getDeadLine().toString(), // deadline
+        {gasLimit: 1000000}
+      )
+      const receipt = await res.wait();
+      if(receipt.status == 1){
+        console.log("Successfully swap token to ETH on the same network")
+      }
+    } // For Swapping Different Tokens on Same Network
+    else {
+      const sourceTokenContract = new ethers.Contract(sourceTokenAddress, tokenAbi.abi, sourceNetwork.provider);
+      await sourceTokenContract.connect(sourceSigner).approve(sourceNetwork.fiberRouter, inputAmout);
+      const res = await sourceNetwork.fiberRouterContract.connect(sourceSigner).swapTokenForTokenSameNetwork(
+        sourceSigner.address,
+        sourceNetwork.router,
+        inputAmout,
+        amountOutMin,
+        path,
+        this.getDeadLine().toString(), // deadline
+        {gasLimit: 1000000}
+      )
+      const receipt = await res.wait();
+      if(receipt.status == 1){
+        console.log(
+              "SUCCESS: Successfully Swapped sourceToken to TargetToken on same Network"
+            );
+        console.log("Cheers! your bridge and swap was successful !!!");
+        console.log("Transaction hash is: ", res.hash);
+      }
+    }
+  }
+
   getDeadLine() {
     const currentDate = new Date();
     const deadLine = currentDate.getTime() + 20 * 60000;
@@ -130,13 +201,18 @@ class Fiber {
 
   //main function to bridge and swap tokens
   async SWAP(
-    sourcetokenAddress,
+    sourceTokenAddress,
     targetTokenAddress,
     sourceChainId,
     targetChainId,
     inputAmount
   ) {
-    // mapping source and target networs (go to Network.js file)
+    //error if source and network token and chain id are similar
+    if(sourceTokenAddress == targetTokenAddress && sourceChainId == targetChainId){
+      console.error("ERROR: SAME TOKEN ADDRESS AND CHAIN ID");
+      return;
+    }
+    // mapping source and target networks (go to Network.js file)
     const sourceNetwork = networks[sourceChainId];
     const targetNetwork = networks[targetChainId];
     //signers for both side networks
@@ -144,7 +220,7 @@ class Fiber {
     const targetSigner = signer.connect(targetNetwork.provider);
     // source token contract (required to approve function)
     const sourceTokenContract = new ethers.Contract(
-      sourcetokenAddress,
+      sourceTokenAddress,
       tokenAbi.abi,
       sourceNetwork.provider
     );
@@ -152,15 +228,20 @@ class Fiber {
     const sourceTokenDecimal = await sourceTokenContract.decimals();
     const amount = (inputAmount * 10 ** Number(sourceTokenDecimal)).toString();
     console.log("INIT: Swap Initiated for this Amount: ", inputAmount);
+    if(sourceChainId == targetChainId){
+      console.log("ALERT: Swap Initiated on the Same Network");
+      await this.swapOnSameNetwork(sourceChainId, sourceTokenAddress, targetTokenAddress, amount);
+      return;
+    }    
     // is source token foundy asset
     const isFoundryAsset = await this.sourceFACCheck(
       sourceNetwork,
-      sourcetokenAddress
+      sourceTokenAddress
     );
     //is source token refinery asset
     const isRefineryAsset = await this.isSourceRefineryAsset(
       sourceNetwork,
-      sourcetokenAddress,
+      sourceTokenAddress,
       amount
     );
 
@@ -171,7 +252,7 @@ class Fiber {
       console.log("SN-1: Source Token is Foundry Asset");
       console.log("SN-2: Add Foundry Asset in Source Network FundManager");
       // approve to fiber router to transfer tokens to the fund manager contract
-      const targetFoundryTokenAddress = await sourceNetwork.fundManagerContract.allowedTargets(sourcetokenAddress, targetChainId);
+      const targetFoundryTokenAddress = await sourceNetwork.fundManagerContract.allowedTargets(sourceTokenAddress, targetChainId);
       await sourceTokenContract
         .connect(sourceSigner)
         .approve(sourceNetwork.fiberRouterContract.address, amount);
@@ -179,7 +260,7 @@ class Fiber {
       swapResult = await sourceNetwork.fiberRouterContract
         .connect(sourceSigner)
         .swap(
-          sourcetokenAddress,
+          sourceTokenAddress,
           amount,
           targetChainId,
           targetFoundryTokenAddress,
@@ -193,7 +274,7 @@ class Fiber {
       console.log("SN-1: Source Token is Refinery Asset");
       console.log("SN-2: Swap Refinery Asset to Foundry Asset ...");
       //swap refinery token to the foundry token
-      let path = [sourcetokenAddress, sourceNetwork.foundryTokenAddress];
+      let path = [sourceTokenAddress, sourceNetwork.foundryTokenAddress];
 
       const amounts = await sourceNetwork.dexContract.getAmountsOut(
         amount,
@@ -225,7 +306,7 @@ class Fiber {
       console.log("SN-2: Swap Ionic Asset to Foundry Asset ...");
       //swap refinery token to the foundry token
       let path = [
-        sourcetokenAddress,
+        sourceTokenAddress,
         sourceNetwork.weth,
         sourceNetwork.foundryTokenAddress,
       ];
@@ -373,10 +454,10 @@ module.exports = Fiber;
 const fiber = new Fiber();
 
 fiber.SWAP(
-  goerliCudos, // goerli ada
-  bscCudos, // bsc ada
+  goerliAda, // goerli ada
+  goerliAave, // bsc ada
   5, // source chain id (goerli)
-  97, // target chain id (bsc)
+  5, // target chain id (bsc)
   10 //source token amount
 );
 
