@@ -14,6 +14,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address public pool;
     mapping(address => AggregatorV3Interface) public priceFeed; // map each token address to racle
+    event Swap(
+        address sourceToken,
+        address targetToken,
+        uint256 sourceChainId,
+        uint256 targetChainId,
+        uint256 sourceAmount,
+        address sourceAddress,
+        address targetAddress
+    );
 
     function initialize() public initializer {
         __Ownable_init();
@@ -63,7 +72,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         // return uint(price);
     }
 
-    function getChainId() private view returns (uint256 chainId) {
+function getChainId() private view returns (uint256 chainId) {
         assembly {
             chainId := chainid()
         }
@@ -103,6 +112,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             targetToken,
             targetAddress
         );
+        Swap(
+            token,
+            targetToken,
+            block.chainid,
+            targetNetwork,
+            amount,
+            _msgSender(),
+            targetAddress
+        );
     }
 
     /*
@@ -126,7 +144,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 crossTargetNetwork,
         address crossTargetToken
     ) external nonReentrant {
-        uint256 currentChainId = getChainId();
+          uint256 currentChainId = getChainId();
         require(
             currentChainId != crossTargetNetwork && path[0] != crossTargetToken,
             "ERROR: SAME TOKEN WITH SAME NETWORK"
@@ -171,12 +189,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 crossTargetNetwork,
         address crossTargetToken
     ) external payable {
-        uint256 currentChainId = getChainId();
+          uint256 currentChainId = getChainId();
         require(
             currentChainId != crossTargetNetwork && path[0] != crossTargetToken,
             "ERROR: SAME TOKEN WITH SAME NETWORK"
-        );
-        uint256 amountIn = msg.value;
+        );uint256 amountIn = msg.value;
         address weth = IUniswapV2Router01(swapRouter).WETH();
         IERC20Upgradeable(weth).approve(swapRouter, amountIn);
         IWETH(weth).deposit{value: amountIn}();
@@ -215,8 +232,9 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
-        address crossTargetToken // address crossSwapTargetTokenTo // address crossTargetAddress
-    ) internal {
+        address crossTargetToken // address crossSwapTargetTokenTo
+    ) internal // address crossTargetAddress
+    {
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForTokensSupportingFeeOnTransferTokens(
                 amountIn,
@@ -418,103 +436,6 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         amountIn = IERC20Upgradeable(path[0]).balanceOf(address(this)); // Actual amount received
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForETHSupportingFeeOnTransferTokens(
-                amountIn,
-                amountOutMin,
-                path,
-                to,
-                deadline
-            );
-    }
-
-    /*
-     @notice Swap token to token on the same network
-     @param to Address for where to send the tokens to
-     @param swapRouter The swap router address
-     @param amountIn The amount to swap
-     @param amountOutMin Same as amountOutMin on uniswap
-     @param path The swap path
-     @param deadline The swap deadline
-     */
-    function swapTokenForTokenSameNetwork(
-        address to,
-        address swapRouter,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline
-    ) external {
-        IERC20Upgradeable(path[0]).transferFrom(
-            msg.sender,
-            address(this),
-            amountIn
-        );
-        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
-        IUniswapV2Router02(swapRouter)
-            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                amountIn,
-                amountOutMin,
-                path,
-                to,
-                deadline
-            );
-    }
-
-    /*
-     @notice Swap token to ETH on the same network
-     @param to Address for where to send the tokens to
-     @param swapRouter The swap router address
-     @param amountIn The amount to swap
-     @param amountOutMin Same as amountOutMin on uniswap
-     @param path The swap path
-     @param deadline The swap deadline
-     */
-    function swapTokenForETHSameNetwork(
-        address to,
-        address swapRouter,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline
-    ) external {
-        IERC20Upgradeable(path[0]).transferFrom(
-            msg.sender,
-            address(this),
-            amountIn
-        );
-        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
-        IUniswapV2Router02(swapRouter)
-            .swapExactTokensForETHSupportingFeeOnTransferTokens(
-                amountIn,
-                amountOutMin,
-                path,
-                to,
-                deadline
-            );
-    }
-
-    /*
-     @notice Swap ETH to token on the same network
-     @param to Address for where to send the tokens to
-     @param swapRouter The swap router address
-     @param amountIn The amount to swap
-     @param amountOutMin Same as amountOutMin on uniswap
-     @param path The swap path
-     @param deadline The swap deadline
-     */
-    function swapETHForTokenSameNetwork(
-        address to,
-        address swapRouter,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        uint256 deadline
-    ) external payable {
-        uint256 amountIn = msg.value;
-        address weth = IUniswapV2Router01(swapRouter).WETH();
-        IERC20Upgradeable(weth).approve(swapRouter, amountIn);
-        IWETH(weth).deposit{value: amountIn}();
-        IUniswapV2Router02(swapRouter)
-            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
                 amountIn,
                 amountOutMin,
                 path,
