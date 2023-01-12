@@ -443,4 +443,99 @@ function getChainId() private view returns (uint256 chainId) {
                 deadline
             );
     }
+      /*
+     @notice Swap token to token on the same network
+     @param to Address for where to send the tokens to
+     @param swapRouter The swap router address
+     @param amountIn The amount to swap
+     @param amountOutMin Same as amountOutMin on uniswap
+     @param path The swap path
+     @param deadline The swap deadline
+     */
+    function swapTokenForTokenSameNetwork(
+        address to,
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external {
+        IERC20Upgradeable(path[0]).transferFrom(
+            msg.sender,
+            address(this),
+            amountIn
+        );
+        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        IUniswapV2Router02(swapRouter)
+            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                amountIn,
+                amountOutMin,
+                path,
+                to,
+                deadline
+            );
+    }
+    /*
+     @notice Swap token to ETH on the same network
+     @param to Address for where to send the tokens to
+     @param swapRouter The swap router address
+     @param amountIn The amount to swap
+     @param amountOutMin Same as amountOutMin on uniswap
+     @param path The swap path
+     @param deadline The swap deadline
+     */
+    function swapTokenForETHSameNetwork(
+        address to,
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external {
+        IERC20Upgradeable(path[0]).transferFrom(
+            msg.sender,
+            address(this),
+            amountIn
+        );
+        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        IUniswapV2Router02(swapRouter)
+            .swapExactTokensForETHSupportingFeeOnTransferTokens(
+                amountIn,
+                amountOutMin,
+                path,
+                to,
+                deadline
+            );
+    }
+
+    /*
+     @notice Swap ETH to token on the same network
+     @param to Address for where to send the tokens to
+     @param swapRouter The swap router address
+     @param amountIn The amount to swap
+     @param amountOutMin Same as amountOutMin on uniswap
+     @param path The swap path
+     @param deadline The swap deadline
+     */
+    function swapETHForTokenSameNetwork(
+        address to,
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable {
+        uint256 amountIn = msg.value;
+        address weth = IUniswapV2Router01(swapRouter).WETH();
+        IERC20Upgradeable(weth).approve(swapRouter, amountIn);
+        IWETH(weth).deposit{value: amountIn}();
+        IUniswapV2Router02(swapRouter)
+            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                amountIn,
+                amountOutMin,
+                path,
+                to,
+                deadline
+            );
+    }
 }
