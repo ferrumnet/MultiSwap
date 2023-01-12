@@ -10,10 +10,10 @@ const toEther = (i) => ethers.utils.formatEther(i);
 
 //goerli rpc
 const sourceNetwork =
-  "https://goerli.infura.io/v3/fa18fa35171744ae8ac35d12baa36ae3";
+  "https://nd-018-780-500.p2pify.com/8d55fdf55750fe8f435ef82b610d1bba";
 //bsc rpc
 const targetNetwork =
-  "https://apis.ankr.com/f9946df03b9741df9e20e6d376021c81/17d51fb5735bba322c78e521ac58c161/binance/full/test";
+  "https://nd-409-138-440.p2pify.com/a2b2f87cd496703b1cc64ff8e91b7981";
 
 //networks chain id
 const sourceNetworkId = 5; //goerli

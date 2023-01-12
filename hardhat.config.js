@@ -1,18 +1,22 @@
 require("@nomicfoundation/hardhat-toolbox");
-require('@nomiclabs/hardhat-ethers');
-require('@openzeppelin/hardhat-upgrades');
+require("@nomiclabs/hardhat-ethers");
+require("@openzeppelin/hardhat-upgrades");
 const { ethers } = require("ethers");
+require('dotenv').config()
 
-/** @type import('hardhat/config').HardhatUserConfig */
-require('dotenv').config();
 module.exports = {
   solidity: {
-    compilers: [{ version: "0.8.2", settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    } }],
+    compilers: [
+      {
+        version: "0.8.2",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+    ],
   },
   networks: {
     goerli: {
