@@ -14,6 +14,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address public pool;
     mapping(address => AggregatorV3Interface) public priceFeed; // map each token address to racle
+    event Swap(
+        address sourceToken,
+        address targetToken,
+        uint256 sourceChainId,
+        uint256 targetChainId,
+        uint256 sourceAmount,
+        address sourceAddress,
+        address targetAddress
+    );
 
     function initialize() public initializer {
         __Ownable_init();
@@ -53,12 +62,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         (
             ,
             /*uint80 roundID*/
-            int256 price,
+            int256 price, /*uint startedAt*/
             ,
             ,
 
-        ) = /*uint startedAt*/
-            /*uint timeStamp*/
+        ) = /*uint timeStamp*/
             /*uint80 answeredInRound*/
             priceFeed[_token].latestRoundData();
         uint8 baseDecimals = priceFeed[_token].decimals();
@@ -93,6 +101,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             amount,
             targetNetwork,
             targetToken,
+            targetAddress
+        );
+        Swap(
+            token,
+            targetToken,
+            block.chainid,
+            targetNetwork,
+            amount,
+            _msgSender(),
             targetAddress
         );
     }
@@ -198,9 +215,8 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
-        address crossTargetToken
-    ) internal // address crossSwapTargetTokenTo
-    // address crossTargetAddress
+        address crossTargetToken // address crossSwapTargetTokenTo
+    ) internal // address crossTargetAddress
     {
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForTokensSupportingFeeOnTransferTokens(
