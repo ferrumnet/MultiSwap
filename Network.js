@@ -15,8 +15,8 @@ const bscRPC =
 const goerliFundManager = "0x9B887791463cc3BfEBB04D8f54603E5E9ed81f1C"; //proxy
 const bscFundManager = "0xE450A528532FaeF1Feb1094eA2674e7A1fAA3E78"; //proxy
 
-const goerliFiberRouter = "0x757FaA8A92b6B813f96058725eC731F75cE0C59f"; //proxy
-const bscFiberRouter = "0x6Cb6Aa70511C9289FbD212E5e320c799Ed2a7Be9"; //proxy
+const goerliFiberRouter = "0x13e6558F134a7a785A2B8CAcE3be0966161cac88"; //proxy
+const bscFiberRouter = "0xb33074D5b4E81bFa64763450BD69420976b75F39"; //proxy
 
 const bscRouter = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1";
 const goerliRouter = "0xEfF92A263d31888d860bD50809A8D171709b7b1c";
@@ -26,7 +26,6 @@ const goerliUsdt = "0x636b346942ee09Ee6383C22290e89742b55797c5";
 
 const goerliCake = '0xdb4d2a90C3dD45F72fA03A6FDAFe939cE52B2131';
 const bscCake = "0xFa60D973F7642B748046464e165A65B7323b0DEE";
-
 
 const bscUsdc = '0x2211593825f59ABcC809D1F64DE1930d56C7e483'
 const goerliUsdc = '0x54E1F0a14F5a901c54563c0Ea177eB5B43CeeFc0'
@@ -47,7 +46,7 @@ const goerliCudos = "0xe6A57A671F23CcB8cA54264e2cF5E05D47a200ED";
 const bscCudos = "0x34e93782447c34C1526f4A2C2c30B54178289d90";
 
 const goerliWeth = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
-const bscWbnb = "0xae13d989dac2f0debff460ac112a837c89baa7cd";
+const bscWeth = "0xae13d989dac2f0debff460ac112a837c89baa7cd";
 
 const goerliAave = "0xbAa54514a31F64c1eB3340789943bCc0abb29f9f";
 const bscAave = "0x8834b57Fb0162977011C9D11dFF1d24b93073DA6";
@@ -119,7 +118,7 @@ const networks = {
     dexContract: bscDexContract,
     fundManagerContract: bscFundMangerContract,
     fiberRouterContract: bscFiberRouterContract,
-    wbnb: bscWbnb,
+    weth: bscWeth,
   },
 };
 
@@ -148,6 +147,7 @@ module.exports = {
   bscAave,
   goerliCudos,
   bscCudos,
+  bscWeth,
   bscUsdtOracle,
   goerliUsdtOracle,
   bscLinkOracle,
