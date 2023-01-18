@@ -36,6 +36,7 @@ const {
   goerliCudos,
   bscCudos,
   goerliWeth,
+  bscWeth
 } = require("../Network");
 const toWei = (i) => ethers.utils.parseEther(i);
 const toEther = (i) => ethers.utils.formatEther(i);
@@ -129,11 +130,15 @@ class Fiber {
     const path = [sourceTokenAddress, targetTokenAddress];
 
     const sourceSigner = signer.connect(sourceNetwork.provider);
-
-    const amounts = await sourceNetwork.dexContract.getAmountsOut(
-      inputAmout,
-      path
-    );
+    let amounts;
+    try{
+      amounts = await sourceNetwork.dexContract.getAmountsOut(
+        inputAmout,
+        path
+      );
+      } catch (error) {
+        throw "ALERT: DEX doesn't have liquidity for this pair";
+      }
     const amountOutMin = amounts[1];
     
     // For swapping on ETHEREUM Blockchain IF ElseIf both conditions are performed
@@ -275,11 +280,15 @@ class Fiber {
       console.log("SN-2: Swap Refinery Asset to Foundry Asset ...");
       //swap refinery token to the foundry token
       let path = [sourceTokenAddress, sourceNetwork.foundryTokenAddress];
-
-      const amounts = await sourceNetwork.dexContract.getAmountsOut(
+      let amounts;
+      try{
+       amounts = await sourceNetwork.dexContract.getAmountsOut(
         amount,
         path
       );
+          } catch (error) {
+            throw "ALERT: DEX doesn't have liquidity for this pair"
+          }
       const amountsOut = amounts[1];
       sourceBridgeAmount = amountsOut;
       await sourceTokenContract
@@ -310,11 +319,15 @@ class Fiber {
         sourceNetwork.weth,
         sourceNetwork.foundryTokenAddress,
       ];
-
-      const amounts = await sourceNetwork.dexContract.getAmountsOut(
+      let amounts;
+    try {
+       amounts = await sourceNetwork.dexContract.getAmountsOut(
         amount,
         path
       );
+      } catch (error) {
+        throw "ALERT: DEX doesn't have liquidity for this pair"
+      }
       const amountsOut = amounts[amounts.length - 1];
       sourceBridgeAmount = amountsOut;
       await sourceTokenContract
@@ -382,10 +395,15 @@ class Fiber {
             "TN-2: Withdraw and Swap Foundry Asset to Target Token ...."
           );
           let path2 = [targetNetwork.foundryTokenAddress, targetTokenAddress];
-          const amounts2 = await targetNetwork.dexContract.getAmountsOut(
+          let amounts2;
+          try{
+           amounts2 = await targetNetwork.dexContract.getAmountsOut(
             sourceBridgeAmount,
             path2
           );
+        } catch (error) {
+            throw "ALERT: DEX doesn't have liquidity for this pair"
+          }
           const amountsOut2 = amounts2[1];
           const swapResult2 = await targetNetwork.fiberRouterContract
             .connect(targetSigner)
@@ -416,13 +434,18 @@ class Fiber {
           );
           let path2 = [
             targetNetwork.foundryTokenAddress,
-            targetNetwork.wbnb,
+            targetNetwork.weth,
             targetTokenAddress,
           ];
-          const amounts2 = await targetNetwork.dexContract.getAmountsOut(
+          let amounts2;
+        try{
+          amounts2 = await targetNetwork.dexContract.getAmountsOut(
             sourceBridgeAmount,
             path2
           );
+          } catch (error) {
+            throw "ALERT: DEX doesn't have liquidity for this pair"
+          }
           const amountsOut2 = amounts2[amounts2.length - 1];
           const swapResult3 = await targetNetwork.fiberRouterContract
             .connect(targetSigner)
@@ -455,7 +478,7 @@ const fiber = new Fiber();
 
 fiber.SWAP(
   goerliAda, // goerli ada
-  goerliAave, // bsc ada
+  goerliCudos, // bsc ada
   5, // source chain id (goerli)
   5, // target chain id (bsc)
   10 //source token amount
