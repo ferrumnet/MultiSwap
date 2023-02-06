@@ -14,6 +14,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address public pool;
     mapping(address => AggregatorV3Interface) public priceFeed; // map each token address to racle
+    mapping(address => uint256) public swapFee;
 
     function initialize() public initializer {
         __Ownable_init();
@@ -43,6 +44,21 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         onlyOwner
     {
         priceFeed[_token] = AggregatorV3Interface(_oracleAddress);
+    }
+
+    function setFee(address _token, uint256 _fee) 
+        external
+        onlyOwner 
+    {
+        swapFee[_token] = _fee;
+    }
+
+    function getFee(address _token) 
+        public 
+        view 
+        returns (uint256 _fee)
+    {
+        return swapFee[_token];
     }
 
     function getFoundryTokenPrice(address _token)
