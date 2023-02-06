@@ -34,7 +34,7 @@ class MultiswapContract {
     return owner;
   }
 
-  async getFee() {
+  async getFee(token) {
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
     });
@@ -43,7 +43,9 @@ class MultiswapContract {
       wallet
     );
     const fee = await client.queryContractSmart(this.contract, {
-      fee: {},
+      fee: {
+        token,
+      },
     });
     console.log("fee", fee);
     return fee;
