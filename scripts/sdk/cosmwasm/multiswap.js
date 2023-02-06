@@ -34,6 +34,23 @@ class MultiswapContract {
     return owner;
   }
 
+  async getFee(token) {
+    let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
+      prefix: "cudos",
+    });
+    let client = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint,
+      wallet
+    );
+    const fee = await client.queryContractSmart(this.contract, {
+      fee: {
+        token,
+      },
+    });
+    console.log("fee", fee);
+    return fee;
+  }
+
   async isFoundryAsset(asset) {
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -196,6 +213,44 @@ class MultiswapContract {
       calculateFee(41000000, gasPrice)
     );
     console.log("Executed transfer_ownership", tx.transactionHash);
+  }
+
+  async setFee(token, amount) {
+    let gasPrice = GasPrice.fromString(this.gasPrice);
+    let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
+      prefix: "cudos",
+    });
+    let client = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint,
+      wallet
+    );
+    let sender = await wallet.getAccounts().then((res) => {
+      return res[0]?.address;
+    });
+
+    const tx = await client.signAndBroadcast(
+      sender,
+      [
+        {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender,
+            msg: toUtf8(
+              JSON.stringify({
+                set_fee: {
+                  token,
+                  amount,
+                },
+              })
+            ),
+            contract: this.contract,
+            funds: [],
+          },
+        },
+      ],
+      calculateFee(200000, gasPrice)
+    );
+    console.log("Executed setFee", tx.transactionHash);
   }
 
   // admin function
