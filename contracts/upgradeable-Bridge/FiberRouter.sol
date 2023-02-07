@@ -15,6 +15,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     address public pool;
     mapping(address => AggregatorV3Interface) public priceFeed; // map each token address to racle
     mapping(address => uint256) public swapFee;
+    event Swap(
+        address sourceToken,
+        address targetToken,
+        uint256 sourceChainId,
+        uint256 targetChainId,
+        uint256 sourceAmount,
+        address sourceAddress,
+        address targetAddress
+    );
 
     function initialize() public initializer {
         __Ownable_init();
@@ -31,6 +40,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
      @param _pool The fund manager
      */
     function setPool(address _pool) external onlyOwner {
+        require(_pool != address(0), "Bad Pool");
         pool = _pool;
     }
 
@@ -43,16 +53,29 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         external
         onlyOwner
     {
+        require(_token != address(0), "Bad token");
+        require(_oracleAddress != address(0), "Bad token");
         priceFeed[_token] = AggregatorV3Interface(_oracleAddress);
     }
 
+    /**
+     @notice Sets the fee for foundry tokens.
+     @param _token The foundry token address
+     @param _fee The swap fee of a token
+     */
     function setFee(address _token, uint256 _fee) 
         external
         onlyOwner 
     {
+        require(_token != address(0), "Bad token");
         swapFee[_token] = _fee;
     }
 
+    /**
+     @notice Gets the fee for foundry tokens.
+     @param _token The foundry token address
+     @param _fee The swap fee of a token
+     */
     function getFee(address _token) 
         public 
         view 
@@ -69,11 +92,13 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         (
             ,
             /*uint80 roundID*/
-            int256 price, /*uint startedAt*/ /*uint timeStamp*/ /*uint80 answeredInRound*/
+            int256 price, /*uint startedAt*/
             ,
             ,
 
-        ) = priceFeed[_token].latestRoundData();
+        ) = /*uint timeStamp*/
+            /*uint80 answeredInRound*/
+            priceFeed[_token].latestRoundData();
         uint8 baseDecimals = priceFeed[_token].decimals();
         return uint256(price) * 10**(18 - baseDecimals);
         // return uint(price);
@@ -113,6 +138,46 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         );
         IERC20Upgradeable(token).approve(pool, amount);
         FundManager(pool).swapToAddress(
+            token,
+            amount,
+            targetNetwork,
+            targetToken,
+            targetAddress
+        );
+        Swap(
+            token,
+            targetToken,
+            block.chainid,
+            targetNetwork,
+            amount,
+            _msgSender(),
+            targetAddress
+        );
+    }
+
+        /*
+     @notice Initiate an x-chain swap.
+     @param token The source token to be swaped
+     @param amount The source amount
+     @param targetNetwork The chain ID for the target network
+     @param targetToken The target token address
+     @param swapTargetTokenTo Swap the target token to a new token
+     @param targetAddress Final destination on target
+     */
+    function nonEvmSwap(
+        address token,
+        uint256 amount,
+        string memory targetNetwork,
+        string memory targetToken,
+        string memory targetAddress
+    ) external {
+        IERC20Upgradeable(token).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+        IERC20Upgradeable(token).approve(pool, amount);
+        FundManager(pool).nonEvmSwapToAddress(
             token,
             amount,
             targetNetwork,
@@ -171,6 +236,50 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     /*
      @notice Do a local swap and generate a cross-chain swap
      @param swapRouter The local swap router
+     @param amountIn The amount in
+     @param amountCrossMin Equivalent to amountOutMin on uniswap
+     @param path The swap path
+     @param deadline The swap dealine
+     @param crossTargetNetwork The target network for the swap
+     @param crossSwapTargetTokenTo If different than crossTargetToken, a swap
+       will also be required on the other end
+     @param crossTargetAddress The target address for the swap
+     */
+    function nonEvmSwapAndCross(
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountCrossMin, // amountOutMin on uniswap
+        address[] calldata path,
+        uint256 deadline,
+        string memory crossTargetNetwork,
+        string memory crossTargetToken,
+        string memory receiver
+    ) external nonReentrant {
+        amountIn = SafeAmount.safeTransferFrom(
+            path[0],
+            msg.sender,
+            address(this),
+            amountIn
+        );
+        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        _nonEvmSwapAndCross(
+            receiver,
+            swapRouter,
+            amountIn,
+            amountCrossMin,
+            path,
+            deadline,
+            crossTargetNetwork,
+            crossTargetToken
+            // crossSwapTargetTokenTo
+            // crossTargetAddress
+        );
+    }
+
+
+    /*
+     @notice Do a local swap and generate a cross-chain swap
+     @param swapRouter The local swap router
      @param amountCrossMin Equivalent to amountOutMin on uniswap
      @param path The swap path
      @param deadline The swap dealine
@@ -187,13 +296,14 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 crossTargetNetwork,
         address crossTargetToken
     ) external payable {
-        uint256 currentChainId = getChainId();
+            uint256 currentChainId = getChainId();
         require(
             currentChainId != crossTargetNetwork && path[0] != crossTargetToken,
             "ERROR: SAME TOKEN WITH SAME NETWORK"
         );
         uint256 amountIn = msg.value;
         address weth = IUniswapV2Router01(swapRouter).WETH();
+        // approveIfRequired(weth, swapRouter, amountIn);
         IERC20Upgradeable(weth).approve(swapRouter, amountIn);
         IWETH(weth).deposit{value: amountIn}();
         _swapAndCross(
@@ -231,8 +341,9 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
-        address crossTargetToken // address crossSwapTargetTokenTo // address crossTargetAddress
-    ) internal {
+        address crossTargetToken // address crossSwapTargetTokenTo
+    ) internal // address crossTargetAddress
+    {
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForTokensSupportingFeeOnTransferTokens(
                 amountIn,
@@ -244,6 +355,49 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address crossToken = path[path.length - 1];
         IERC20Upgradeable(crossToken).approve(pool, amountCrossMin);
         FundManager(pool).swapToAddress(
+            crossToken,
+            amountCrossMin,
+            crossTargetNetwork,
+            crossTargetToken,
+            to
+        );
+    }
+
+        /*
+    @notice Runs a local swap and then a cross chain swap
+    @param to The receiver
+    @param swapRouter the swap router
+    @param amountIn The amount in
+    @param amountCrossMin Equivalent to amountOutMin on uniswap 
+    @param path The swap path
+    @param deadline The swap deadline
+    @param crossTargetNetwork The target chain ID
+    @param crossTargetToken The target network token
+    @param crossSwapTargetTokenTo The target network token after swap
+    @param crossTargetAddress The receiver of tokens on the target network
+    */
+    function _nonEvmSwapAndCross(
+        string memory to,
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountCrossMin,
+        address[] calldata path,
+        uint256 deadline,
+        string memory crossTargetNetwork,
+        string memory crossTargetToken // address crossSwapTargetTokenTo
+    ) internal // address crossTargetAddress
+    {
+        IUniswapV2Router02(swapRouter)
+            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                amountIn,
+                amountCrossMin,
+                path,
+                address(this),
+                deadline
+            );
+        address crossToken = path[path.length - 1];
+        IERC20Upgradeable(crossToken).approve(pool, amountCrossMin);
+        FundManager(pool).nonEvmSwapToAddress(
             crossToken,
             amountCrossMin,
             crossTargetNetwork,
