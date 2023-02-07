@@ -134,7 +134,7 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed add_foundry_asset", tx.transactionHash);
   }
@@ -172,7 +172,7 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed remove_foundry_asset", tx.transactionHash);
   }
@@ -210,7 +210,7 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed transfer_ownership", tx.transactionHash);
   }
@@ -286,7 +286,7 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed add_signer", tx.transactionHash);
   }
@@ -324,7 +324,7 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed remove_signer", tx.transactionHash);
   }
@@ -367,7 +367,7 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed add_liquidity", tx.transactionHash);
   }
@@ -405,7 +405,7 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed remove_liquidity", tx.transactionHash);
   }
@@ -470,10 +470,10 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(400000, gasPrice)
     );
-    console.log("Executed swap", tx.transactionHash);
-    return true;
+    console.log("Executed swap", tx);
+    return tx;
   }
 
   async withdraw(token, user, amount, salt, signature) {
@@ -512,9 +512,9 @@ class MultiswapContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
-    console.log("Executed withdraw", tx.transactionHash);
+    console.log("Executed withdraw multiswap", tx.transactionHash);
   }
 }
 
