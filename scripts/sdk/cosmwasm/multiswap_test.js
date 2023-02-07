@@ -25,7 +25,7 @@ async function main() {
   //   "0x0"
   // );
   // await helper.owner();
-  // await helper.addFoundryAsset(denom); // 1661E4E9462BB700159948B5409F0EA84A3836E2F8E45032AEC69E55CDFB02AA
+  await helper.addFoundryAsset(denom); // 1661E4E9462BB700159948B5409F0EA84A3836E2F8E45032AEC69E55CDFB02AA
   // await helper.removeFoundryAsset(denom);
   // await helper.transferOwnership(wallet2);
   // await helper.addSigner(wallet2);
