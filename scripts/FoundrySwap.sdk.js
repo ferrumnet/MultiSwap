@@ -85,15 +85,15 @@ async function swap(
     targetFoundryTokenAddress,
     await sourceFiberRouter.getConnectedWallet()
   );
-  const success = await sourceFiberRouter.swap(
-    sourceTokenAddress,
-    amount,
-    targetChainId,
-    targetFoundryTokenAddress,
-    await sourceFiberRouter.getConnectedWallet()
-  );
+  // const success = await sourceFiberRouter.swap(
+  //   sourceTokenAddress,
+  //   amount,
+  //   targetChainId,
+  //   targetFoundryTokenAddress,
+  //   await sourceFiberRouter.getConnectedWallet()
+  // );
 
-  if (success) {
+  // if (success) {
     console.log("successfully add foundry in source network !");
 
     const isTargetTokenFoundry = await targetMultiswap.isFoundryAsset(
@@ -116,12 +116,12 @@ async function swap(
         console.log("failed to withdraw and swap foundry token");
       }
     }
-  }
+  // }
 }
 
 swap(
-  process.env.SOURCE_CHAIN_TOKEN,
+  "acudos",
   process.env.DESTINATION_CHAIN_SOURCE_TOKEN,
   process.env.DESTINATION_CHAIN_TOKEN,
-  "10000000000000000000"
+  "5000000000000000000"
 );

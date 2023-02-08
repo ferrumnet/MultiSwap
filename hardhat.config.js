@@ -27,8 +27,12 @@ module.exports = {
       url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [process.env.PRIVATE_KEY0]
     },
+    polygon: {
+      url: `https://polygon-rpc.com`,
+      accounts: [process.env.PRIVATE_KEY0]
+    },
     binance: {
-      url: process.env.BINANCE_TESTNET_RPC,
+      url: "https://bsc-dataseed1.binance.org",
       accounts:[process.env.PRIVATE_KEY0] 
     }
   },

@@ -82,7 +82,7 @@ class FIBERRouterContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed transfer_ownership", tx.transactionHash);
   }
@@ -120,7 +120,7 @@ class FIBERRouterContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed add_signer", tx.transactionHash);
   }
@@ -172,10 +172,10 @@ class FIBERRouterContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(400000, gasPrice)
     );
     console.log("Executed swap", tx.transactionHash);
-    return true;
+    return tx;
   }
 
   async withdrawSigned(token, user, amount, salt, signature) {
@@ -214,7 +214,7 @@ class FIBERRouterContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(200000, gasPrice)
     );
     console.log("Executed withdrawSigned", tx.transactionHash);
   }
@@ -255,9 +255,9 @@ class FIBERRouterContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(500000, gasPrice)
     );
-    console.log("Executed withdraw", tx.transactionHash);
+    console.log("Executed withdraw router1", tx.transactionHash);
   }
 
   async withdrawAndSwapToFoundry(foundryToken, token, amount) {
@@ -296,9 +296,9 @@ class FIBERRouterContract {
           },
         },
       ],
-      calculateFee(41000000, gasPrice)
+      calculateFee(400000, gasPrice)
     );
-    console.log("Executed withdraw", tx.transactionHash);
+    console.log("Executed withdraw router2", tx.transactionHash);
     console.log(
       "explorer: ",
       "https://explorer.testnet.cudos.org/transactions/F2DED41F7B473549D37D9B0AF2516D55B26BDA479A80A01258D8CD89FD2D9F0F"

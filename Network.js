@@ -12,17 +12,22 @@ const routerAbiMainnet = require("./artifacts/contracts/common/uniswap/IUniswapV
 // TESTNET Configurations
 const bscChainId = 97;
 const goerliChainId = 5;
+const cudosChainId = 'cudos-1'
 
 const goerliRPC =
   `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`;
 const bscRPC =
   process.env.BINANCE_TESTNET_RPC;
 
+const cudosRPC = "https://rpc.cudos.org";
+
 const goerliFundManager = "0x9B887791463cc3BfEBB04D8f54603E5E9ed81f1C"; //proxy
 const bscFundManager = "0xE450A528532FaeF1Feb1094eA2674e7A1fAA3E78"; //proxy
+const cudosFundManager = "cudos12hj0w2r7l2rr7hu56zcs7gmjdpl30ektwua0sq320p3txdcnvr6szt0wgf"
 
 const goerliFiberRouter = "0x47C9f492c14bb23ED88Df2EE250E3baC45283019"; //proxy
 const bscFiberRouter = "0x116321eF4642518774E00528Facf8C825552cd2B"; //proxy
+const cudosFiberRouter = "cudos1c676xpc64x9lxjfsvpn7ajw2agutthe75553ws45k3ld46vy8ptsg9e9ez";
 
 const bscRouter = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1";
 const goerliRouter = "0xEfF92A263d31888d860bD50809A8D171709b7b1c";
@@ -113,10 +118,14 @@ const polygonMainnetProvider = new ethers.providers.JsonRpcProvider(polygonMainn
 const bscMainnetDEXRouter = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
 const polygonMainnetDEXRouter = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff';
 
-const bscMainnetFundManager = '0x42cEB2Bb4B04FC5A2D7621A382019F8E3ADB6B68';
-const polygonMainnetFundManager = '0x5c7c2b89113Bd94e4796cb2B06a81ef47Af1208B';
+// const bscMainnetFundManager = '0x42cEB2Bb4B04FC5A2D7621A382019F8E3ADB6B68';
 
-const bscMainnetFiberRouter = '0x7cA60AA20761EBC81F70Bb93F5068Be4e6765E87';
+const bscMainnetFundManager = '0x9E566928AcC3594555A35d4D319f081013Ea9949'; //for non evm testin
+const polygonMainnetFundManager = '0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8';
+
+// const bscMainnetFiberRouter = '0x7cA60AA20761EBC81F70Bb93F5068Be4e6765E87';
+const bscMainnetFiberRouter = '0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8'; // for non evm testing
+
 const polygonMainnetFiberRouter = '0x72329a50E785bc1A414022D319E3a10A6f12184f';
 
 const bscMainnetUsdc = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
@@ -177,6 +186,8 @@ const networks = {
     fundManagerContract: bscMainnetFundMangerContract,
     fiberRouterContract: bscMainnetFiberRouterContract,
     weth: bscMainnetWeth,
+    type: 'evm',
+    decimals: null,
   },
   137: {
     name: "polygonMainnet",
@@ -192,6 +203,8 @@ const networks = {
     fundManagerContract: polygonMainnetFundMangerContract,
     fiberRouterContract: polygonMainnetFiberRouterContract,
     weth: polygonMainnetWeth,
+    type: 'evm',
+    decimals: null,
   },
   5: {
     name: "goerli",
@@ -207,6 +220,8 @@ const networks = {
     fundManagerContract: goerliFundMangerContract,
     fiberRouterContract: goerliFiberRouterContract,
     weth: goerliWeth,
+    type: 'evm',
+    decimals: null,
   },
   97: {
     name: "bsc",
@@ -222,6 +237,25 @@ const networks = {
     fundManagerContract: bscFundMangerContract,
     fiberRouterContract: bscFiberRouterContract,
     weth: bscWeth,
+    type: 'evm',
+    decimals: null,
+  },
+  'cudos-1': {
+    name: "CUDOS",
+    shortName: "cudos",
+    rpc: cudosRPC,
+    chainId: cudosChainId,
+    fundManager: cudosFundManager,
+    fiberRouter: cudosFiberRouter,
+    router: null,
+    provider: null,
+    foundryTokenAddress: null,
+    dexContract: null,
+    fundManagerContract: null,
+    fiberRouterContract: null,
+    weth: null,
+    type: 'cosmwasm',
+    decimals: '18'
   },
 };
 

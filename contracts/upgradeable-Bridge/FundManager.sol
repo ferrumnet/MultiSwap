@@ -40,11 +40,20 @@ contract FundManager is SigCheckable, WithAdmin {
         address targetAddrdess,
         uint256 amount
     );
+    event nonEvmBridgeSwap(
+        address from,
+        address indexed token,
+        string targetNetwork,
+        string targetToken,
+        string targetAddrdess,
+        uint256 amount
+    );
 
     mapping(address => bool) public signers;
     mapping(address => mapping(address => uint256)) private liquidities;
     mapping(address => uint256) public fees;
     mapping(address => mapping(uint256 => address)) public allowedTargets;
+    mapping(address => mapping(string => string)) public nonEvmAllowedTargets;
     address public feeDistributor;
     mapping(address => bool) public isFoundryAsset;
 
@@ -106,10 +115,24 @@ contract FundManager is SigCheckable, WithAdmin {
         allowedTargets[token][chainId] = targetToken;
     }
 
+    function nonEvmAllowTarget(
+        address token,
+        string memory chainId,
+        string memory targetToken
+    ) external onlyAdmin {
+        require(token != address(0), "Bad token");
+        nonEvmAllowedTargets[token][chainId] = targetToken;
+    }
+
     function disallowTarget(address token, uint256 chainId) external onlyAdmin {
         require(token != address(0), "Bad token");
         require(chainId != 0, "Bad chainId");
         delete allowedTargets[token][chainId];
+    }
+    
+    function nonEvmDisallowTarget(address token, string memory chainId) external onlyAdmin {
+        require(token != address(0), "Bad token");
+        delete nonEvmAllowedTargets[token][chainId];
     }
 
     function addFoundryAsset(address token) external onlyAdmin {
@@ -165,6 +188,24 @@ contract FundManager is SigCheckable, WithAdmin {
             );
     }
 
+    function nonEvmSwapToAddress(
+        address token,
+        uint256 amount,
+        string memory targetNetwork,
+        string memory targetToken,
+        string memory targetAddress
+    ) external onlyRouter returns (uint256) {
+        return
+            _nonEvmSwap(
+                msg.sender,
+                token,
+                amount,
+                targetNetwork,
+                targetToken,
+                targetAddress
+            );
+    }
+
     function _swap(
         address from,
         address token,
@@ -189,6 +230,39 @@ contract FundManager is SigCheckable, WithAdmin {
             amount
         );
         emit BridgeSwap(
+            from,
+            token,
+            targetNetwork,
+            targetToken,
+            targetAddress,
+            amount
+        );
+        return amount;
+    }
+
+    function _nonEvmSwap(
+        address from,
+        address token,
+        uint256 amount,
+        string memory targetNetwork,
+        string memory targetToken,
+        string memory targetAddress
+    ) internal returns (uint256) {
+        require(from != address(0), "BP: bad from");
+        require(token != address(0), "BP: bad token");
+        require(amount != 0, "BP: bad amount");
+        require(
+            
+            keccak256(abi.encodePacked(nonEvmAllowedTargets[token][targetNetwork])) == keccak256(abi.encodePacked(targetToken)),
+            "BP: target not allowed"
+        );
+        amount = SafeAmount.safeTransferFrom(
+            token,
+            from,
+            address(this),
+            amount
+        );
+        emit nonEvmBridgeSwap(
             from,
             token,
             targetNetwork,
