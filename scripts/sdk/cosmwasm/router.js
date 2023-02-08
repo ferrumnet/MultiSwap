@@ -299,10 +299,6 @@ class FIBERRouterContract {
       calculateFee(400000, gasPrice)
     );
     console.log("Executed withdraw router2", tx.transactionHash);
-    console.log(
-      "explorer: ",
-      "https://explorer.testnet.cudos.org/transactions/F2DED41F7B473549D37D9B0AF2516D55B26BDA479A80A01258D8CD89FD2D9F0F"
-    );
     return true;
   }
 }

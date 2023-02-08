@@ -14,6 +14,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address public pool;
     mapping(address => AggregatorV3Interface) public priceFeed; // map each token address to racle
+    mapping(address => uint256) public swapFee;
     event Swap(
         address sourceToken,
         address targetToken,
@@ -39,6 +40,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
      @param _pool The fund manager
      */
     function setPool(address _pool) external onlyOwner {
+        require(_pool != address(0), "Bad Pool");
         pool = _pool;
     }
 
@@ -51,7 +53,35 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         external
         onlyOwner
     {
+        require(_token != address(0), "Bad token");
+        require(_oracleAddress != address(0), "Bad token");
         priceFeed[_token] = AggregatorV3Interface(_oracleAddress);
+    }
+
+    /**
+     @notice Sets the fee for foundry tokens.
+     @param _token The foundry token address
+     @param _fee The swap fee of a token
+     */
+    function setFee(address _token, uint256 _fee) 
+        external
+        onlyOwner 
+    {
+        require(_token != address(0), "Bad token");
+        swapFee[_token] = _fee;
+    }
+
+    /**
+     @notice Gets the fee for foundry tokens.
+     @param _token The foundry token address
+     @param _fee The swap fee of a token
+     */
+    function getFee(address _token) 
+        public 
+        view 
+        returns (uint256 _fee)
+    {
+        return swapFee[_token];
     }
 
     function getFoundryTokenPrice(address _token)
@@ -74,6 +104,12 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         // return uint(price);
     }
 
+    function getChainId() private view returns (uint256 chainId) {
+        assembly {
+            chainId := chainid()
+        }
+    }
+
     /*
      @notice Initiate an x-chain swap.
      @param token The source token to be swaped
@@ -90,6 +126,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address targetToken,
         address targetAddress
     ) external {
+        uint256 currentChainId = getChainId();
+        require(
+            currentChainId != targetNetwork && token != targetToken,
+            "ERROR: SAME TOKEN WITH SAME NETWORK"
+        );
         IERC20Upgradeable(token).safeTransferFrom(
             msg.sender,
             address(this),
@@ -166,6 +207,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 crossTargetNetwork,
         address crossTargetToken
     ) external nonReentrant {
+        uint256 currentChainId = getChainId();
+        require(
+            currentChainId != crossTargetNetwork && path[0] != crossTargetToken,
+            "ERROR: SAME TOKEN WITH SAME NETWORK"
+        );
         amountIn = SafeAmount.safeTransferFrom(
             path[0],
             msg.sender,
@@ -250,6 +296,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 crossTargetNetwork,
         address crossTargetToken
     ) external payable {
+            uint256 currentChainId = getChainId();
+        require(
+            currentChainId != crossTargetNetwork && path[0] != crossTargetToken,
+            "ERROR: SAME TOKEN WITH SAME NETWORK"
+        );
         uint256 amountIn = msg.value;
         address weth = IUniswapV2Router01(swapRouter).WETH();
         // approveIfRequired(weth, swapRouter, amountIn);
@@ -537,6 +588,103 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         amountIn = IERC20Upgradeable(path[0]).balanceOf(address(this)); // Actual amount received
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForETHSupportingFeeOnTransferTokens(
+                amountIn,
+                amountOutMin,
+                path,
+                to,
+                deadline
+            );
+    }
+
+    /*
+     @notice Swap token to token on the same network
+     @param to Address for where to send the tokens to
+     @param swapRouter The swap router address
+     @param amountIn The amount to swap
+     @param amountOutMin Same as amountOutMin on uniswap
+     @param path The swap path
+     @param deadline The swap deadline
+     */
+    function swapTokenForTokenSameNetwork(
+        address to,
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external {
+        IERC20Upgradeable(path[0]).transferFrom(
+            msg.sender,
+            address(this),
+            amountIn
+        );
+        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        IUniswapV2Router02(swapRouter)
+            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                amountIn,
+                amountOutMin,
+                path,
+                to,
+                deadline
+            );
+    }
+
+    /*
+     @notice Swap token to ETH on the same network
+     @param to Address for where to send the tokens to
+     @param swapRouter The swap router address
+     @param amountIn The amount to swap
+     @param amountOutMin Same as amountOutMin on uniswap
+     @param path The swap path
+     @param deadline The swap deadline
+     */
+    function swapTokenForETHSameNetwork(
+        address to,
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external {
+        IERC20Upgradeable(path[0]).transferFrom(
+            msg.sender,
+            address(this),
+            amountIn
+        );
+        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        IUniswapV2Router02(swapRouter)
+            .swapExactTokensForETHSupportingFeeOnTransferTokens(
+                amountIn,
+                amountOutMin,
+                path,
+                to,
+                deadline
+            );
+    }
+
+    /*
+     @notice Swap ETH to token on the same network
+     @param to Address for where to send the tokens to
+     @param swapRouter The swap router address
+     @param amountIn The amount to swap
+     @param amountOutMin Same as amountOutMin on uniswap
+     @param path The swap path
+     @param deadline The swap deadline
+     */
+    function swapETHForTokenSameNetwork(
+        address to,
+        address swapRouter,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        uint256 deadline
+    ) external payable {
+        uint256 amountIn = msg.value;
+        address weth = IUniswapV2Router01(swapRouter).WETH();
+        IERC20Upgradeable(weth).approve(swapRouter, amountIn);
+        IWETH(weth).deposit{value: amountIn}();
+        IUniswapV2Router02(swapRouter)
+            .swapExactTokensForTokensSupportingFeeOnTransferTokens(
                 amountIn,
                 amountOutMin,
                 path,

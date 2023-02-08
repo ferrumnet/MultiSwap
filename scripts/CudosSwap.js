@@ -95,7 +95,6 @@ async function cudosSwap(
         targetFoundryTokenAddress,
         await sourceFiberRouter.getConnectedWallet()
     );
-    console.log("success", success)
     return success;
 
     // const successes = await sourceFiberRouter.withdraw(process.env.DENOM, process.env.WALLET2, "100000");

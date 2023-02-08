@@ -31,7 +31,7 @@ function produecSignaturewithdrawHash(netId,
     const structure = web3.eth.abi.encodeParameters(params, [methodHash, token, payee, amountInt, salt]);
     const structureHash = Web3.utils.keccak256(structure);
     const ds = domainSeparator(web3.eth, NAME, VERSION, netId, contractAddress);
-    console.log('DETAILS ARE:', { netId, methodHash, structureHash, ds })
+    // console.log('DETAILS ARE:', { netId, methodHash, structureHash, ds })
     return Web3.utils.soliditySha3("\x19\x01", ds, structureHash);
 }
 
