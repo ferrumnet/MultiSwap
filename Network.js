@@ -4,19 +4,30 @@ const fiberRouterAbi = require("./artifacts/contracts/upgradeable-Bridge/FiberRo
 const tokenAbi = require("./artifacts/contracts/token/Token.sol/Token.json");
 const routerAbi = require("./artifacts/contracts/common/uniswap/IUniswapV2Router02.sol/IUniswapV2Router02.json");
 
+const fundManagerAbiMainnet = require("./artifacts/contracts/upgradeable-Bridge/FundManager.sol/FundManager.json");
+const fiberRouterAbiMainnet = require("./artifacts/contracts/upgradeable-Bridge/FiberRouter.sol/FiberRouter.json");
+const routerAbiMainnet = require("./artifacts/contracts/common/uniswap/IUniswapV2Router02.sol/IUniswapV2Router02.json");
+
+/* ================================================================= */
+// TESTNET Configurations
 const bscChainId = 97;
 const goerliChainId = 5;
+const cudosChainId = 'cudos-1'
 
 const goerliRPC =
-  "https://nd-018-780-500.p2pify.com/8d55fdf55750fe8f435ef82b610d1bba";
+  `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`;
 const bscRPC =
-  "https://nd-409-138-440.p2pify.com/a2b2f87cd496703b1cc64ff8e91b7981";
+  process.env.BINANCE_TESTNET_RPC;
+
+const cudosRPC = "https://rpc.cudos.org";
 
 const goerliFundManager = "0x9B887791463cc3BfEBB04D8f54603E5E9ed81f1C"; //proxy
 const bscFundManager = "0xE450A528532FaeF1Feb1094eA2674e7A1fAA3E78"; //proxy
+const cudosFundManager = "cudos12hj0w2r7l2rr7hu56zcs7gmjdpl30ektwua0sq320p3txdcnvr6szt0wgf"
 
-const goerliFiberRouter = "0x13e6558F134a7a785A2B8CAcE3be0966161cac88"; //proxy
-const bscFiberRouter = "0xb33074D5b4E81bFa64763450BD69420976b75F39"; //proxy
+const goerliFiberRouter = "0x47C9f492c14bb23ED88Df2EE250E3baC45283019"; //proxy
+const bscFiberRouter = "0x116321eF4642518774E00528Facf8C825552cd2B"; //proxy
+const cudosFiberRouter = "cudos1c676xpc64x9lxjfsvpn7ajw2agutthe75553ws45k3ld46vy8ptsg9e9ez";
 
 const bscRouter = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1";
 const goerliRouter = "0xEfF92A263d31888d860bD50809A8D171709b7b1c";
@@ -51,7 +62,6 @@ const bscWeth = "0xae13d989dac2f0debff460ac112a837c89baa7cd";
 const goerliAave = "0xbAa54514a31F64c1eB3340789943bCc0abb29f9f";
 const bscAave = "0x8834b57Fb0162977011C9D11dFF1d24b93073DA6";
 
-//network providers
 const goerliProvider = new ethers.providers.JsonRpcProvider(goerliRPC);
 const bscProvider = new ethers.providers.JsonRpcProvider(bscRPC);
 
@@ -91,9 +101,145 @@ const bscFiberRouterContract = new ethers.Contract(
   bscProvider
 );
 
+/* =================================================================== */
+//                   Mainnet Configurations 
+
+const bscMainnetChainId = 56;
+const polygonMainnetChainId = 137;
+const optimismMainnetChainId = 10;
+
+// const bscMainnetRPC = 'https://nd-217-204-155.p2pify.com/379ccd6673575fd7a096cc3f2a87be63';
+const bscMainnetRPC = 'https://bsc-dataseed1.binance.org';
+// const polygonMainnetRPC = 'https://polygon-rpc.com';
+const polygonMainnetRPC = 'https://nd-003-843-665.p2pify.com/7af52d3a77b5d19f11de64357253ca16';
+const optimismRpc = 'https://mainnet.optimism.io'
+
+const bscMainnetProvider = new ethers.providers.JsonRpcProvider(bscMainnetRPC);
+const polygonMainnetProvider = new ethers.providers.JsonRpcProvider(polygonMainnetRPC);
+const optimismMainnetProvider = new ethers.providers.JsonRpcProvider(optimismRpc);
+
+
+const bscMainnetDEXRouter = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
+const polygonMainnetDEXRouter = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff';
+const optimismMainnetDEXRouter = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+
+
+
+// const bscMainnetFundManager = '0x42cEB2Bb4B04FC5A2D7621A382019F8E3ADB6B68';
+
+const bscMainnetFundManager = '0x9E566928AcC3594555A35d4D319f081013Ea9949'; //for non evm testin
+const polygonMainnetFundManager = '0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8';
+const optmimismMainnetFundManager = '0x2234157B16637AfA6f1A7C1C34b1b80D82b50D82';
+
+
+// const bscMainnetFiberRouter = '0x7cA60AA20761EBC81F70Bb93F5068Be4e6765E87';
+const bscMainnetFiberRouter = '0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8'; // for non evm testing
+const polygonMainnetFiberRouter = '0x72329a50E785bc1A414022D319E3a10A6f12184f';
+const optimismMainnetFiberRouter = '0x997109206Fda586882Ae5aacA74d36EFE2417cA4';
+
+
+const bscMainnetUsdc = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
+const polygonMainnetUsdc = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
+const optimismMainnetUsdc = '0x7F5c764cBc14f9669B88837ca1490cCa17c31607';
+
+const bscMainnetWeth = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
+const polygonMainnetWeth = '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270';
+const optimismMainnetWeth = '0x4200000000000000000000000000000000000006'; 
+
+// Mainnet Contract Configuration
+const bscMainnetDexContract = new ethers.Contract(
+  bscMainnetDEXRouter,
+  routerAbiMainnet.abi,
+  bscMainnetProvider
+);
+const polygonMainnetDexContract = new ethers.Contract(
+  polygonMainnetDEXRouter,
+  routerAbiMainnet.abi,
+  polygonMainnetProvider
+);
+
+const optimismMainnetDexContract = new ethers.Contract(
+  optimismMainnetDEXRouter,
+  routerAbiMainnet.abi,
+  optimismMainnetProvider
+);
+
+
+// fund manager contracts
+const bscMainnetFundMangerContract = new ethers.Contract(
+  bscMainnetFundManager,
+  fundManagerAbiMainnet.abi,
+  bscMainnetProvider
+);
+const polygonMainnetFundMangerContract = new ethers.Contract(
+  polygonMainnetFundManager,
+  fundManagerAbiMainnet.abi,
+  polygonMainnetProvider
+);
+const optimismFundMangerContract = new ethers.Contract(
+  optmimismMainnetFundManager,
+  fundManagerAbi.abi,
+  optimismMainnetProvider
+);
+
+// goerli fund manager contract
+const bscMainnetFiberRouterContract = new ethers.Contract(
+  bscMainnetFiberRouter,
+  fiberRouterAbiMainnet.abi,
+  bscMainnetProvider
+);
+const polygonMainnetFiberRouterContract = new ethers.Contract(
+  polygonMainnetFiberRouter,
+  fiberRouterAbiMainnet.abi,
+  polygonMainnetProvider
+);
+const optimismMainnetFiberRouterContract = new ethers.Contract(
+  optimismMainnetFiberRouter,
+  fiberRouterAbiMainnet.abi,
+  optimismMainnetProvider
+);
+
+
 const networks = {
+  56: {
+    name: "bscMainnet",
+    shortName: "bsc",
+    rpc: bscMainnetRPC,
+    chainId: bscMainnetChainId,
+    fundManager: bscMainnetFundManager,
+    fiberRouter: bscMainnetFiberRouter,
+    router: bscMainnetDEXRouter,
+    provider: bscMainnetProvider,
+    foundryTokenAddress: bscMainnetUsdc,
+    dexContract: bscMainnetDexContract,
+    fundManagerContract: bscMainnetFundMangerContract,
+    fiberRouterContract: bscMainnetFiberRouterContract,
+    weth: bscMainnetWeth,
+    type: 'evm',
+    decimals: null,
+    foundryTokenDecimals:18
+  },
+  137: {
+    name: "polygonMainnet",
+    shortName: "polygon",
+    rpc: polygonMainnetRPC,
+    chainId: polygonMainnetChainId,
+    fundManager: polygonMainnetFundManager,
+    fiberRouter: polygonMainnetFiberRouter,
+    router: polygonMainnetDEXRouter,
+    provider: polygonMainnetProvider,
+    foundryTokenAddress: polygonMainnetUsdc,
+    dexContract: polygonMainnetDexContract,
+    fundManagerContract: polygonMainnetFundMangerContract,
+    fiberRouterContract: polygonMainnetFiberRouterContract,
+    weth: polygonMainnetWeth,
+    type: 'evm',
+    decimals: null,
+    foundryTokenDecimals: 6
+  },
   5: {
     name: "goerli",
+    shortName: "goerliTestnet",
     rpc: goerliRPC,
     chainId: goerliChainId,
     fundManager: goerliFundManager,
@@ -105,9 +251,13 @@ const networks = {
     fundManagerContract: goerliFundMangerContract,
     fiberRouterContract: goerliFiberRouterContract,
     weth: goerliWeth,
+    type: 'evm',
+    decimals: null,
+    foundryTokenDecimals: 18
   },
   97: {
     name: "bsc",
+    shortName: "bscTestnet",
     rpc: bscRPC,
     chainId: bscChainId,
     fundManager: bscFundManager,
@@ -119,6 +269,45 @@ const networks = {
     fundManagerContract: bscFundMangerContract,
     fiberRouterContract: bscFiberRouterContract,
     weth: bscWeth,
+    type: 'evm',
+    decimals: null,
+    foundryTokenDecimals: 18
+  },
+  'cudos-1': {
+    name: "CUDOS",
+    shortName: "cudos",
+    rpc: cudosRPC,
+    chainId: cudosChainId,
+    fundManager: cudosFundManager,
+    fiberRouter: cudosFiberRouter,
+    router: null,
+    provider: null,
+    foundryTokenAddress: 'acudos',
+    dexContract: null,
+    fundManagerContract: null,
+    fiberRouterContract: null,
+    weth: null,
+    type: 'cosmwasm',
+    decimals: '18',
+    foundryTokenDecimals: 18
+  },
+  10: {
+    name: "optimism",
+    shortName: "optimism",
+    rpc: optimismRpc,
+    chainId: optimismMainnetChainId,
+    fundManager: optmimismMainnetFundManager,
+    fiberRouter: optimismMainnetFiberRouter,
+    router: optimismMainnetDEXRouter,
+    provider: optimismMainnetProvider,
+    foundryTokenAddress: optimismMainnetUsdc,
+    dexContract: optimismMainnetDexContract,
+    fundManagerContract: optimismFundMangerContract,
+    fiberRouterContract: optimismMainnetFiberRouterContract,
+    weth: optimismMainnetWeth,
+    type: 'evm',
+    decimals: null,
+    foundryTokenDecimals: 18
   },
 };
 

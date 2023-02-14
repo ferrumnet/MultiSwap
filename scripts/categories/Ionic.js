@@ -30,7 +30,7 @@ const sourceProvider = new ethers.providers.JsonRpcProvider(sourceNetwork);
 const targetProvider = new ethers.providers.JsonRpcProvider(targetNetwork);
 
 // user wallet
-const signer = new ethers.Wallet(process.env.PRI_KEY);
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY0);
 const sourceSigner = signer.connect(sourceProvider);
 const targetSigner = signer.connect(targetProvider);
 

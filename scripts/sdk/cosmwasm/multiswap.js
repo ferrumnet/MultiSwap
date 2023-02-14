@@ -33,7 +33,7 @@ class MultiswapContract {
     console.log("owner", owner);
     return owner;
   }
-
+  
   async getFee(token) {
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -50,7 +50,6 @@ class MultiswapContract {
     console.log("fee", fee);
     return fee;
   }
-
   async isFoundryAsset(asset) {
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
       prefix: "cudos",
@@ -215,6 +214,7 @@ class MultiswapContract {
     console.log("Executed transfer_ownership", tx.transactionHash);
   }
 
+  
   async setFee(token, amount) {
     let gasPrice = GasPrice.fromString(this.gasPrice);
     let wallet = await DirectSecp256k1HdWallet.fromMnemonic(this.mnemonic, {
@@ -515,6 +515,13 @@ class MultiswapContract {
       calculateFee(200000, gasPrice)
     );
     console.log("Executed withdraw multiswap", tx.transactionHash);
+  }
+  async getTx(txId) {
+    let client = await SigningCosmWasmClient.connectWithSigner(
+      this.rpcEndpoint
+    );
+    const txResp = await client.getTx(txId)
+    console.log("txResp", txResp)
   }
 }
 
