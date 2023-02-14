@@ -3,14 +3,15 @@ const { Wallet, utils, providers } = require("ethers");
 
 async function main() {
   const messageText =
-    '{"chain_id":"chain_id","payee":"payee","token":"token","amount":"10000","salt":"salt"}';
+    '{"chain_id":"test","payee":"cudos1xe5u4gpq0jesl3v4pae80t3wknhd2hf0pj857x","token":"stake","amount":"1000","salt":"0x00"}';
 
   let provider = new providers.JsonRpcProvider();
   let privKey = process.env.PRIVATE_KEY;
   const wallet = new Wallet(privKey, provider);
   const signature = await wallet.signMessage(messageText);
-  console.log("signature", signature);
-  console.log("address", wallet.address);
+  // Note: signature should not have 0x prefix when it's provided to withdraw signed command
+  console.log("signature", signature.replace(/^0x/, ""));
+  console.log("address", wallet.address.toLowerCase());
 }
 
 main();

@@ -33,6 +33,8 @@ async function main() {
   // await helper.addLiquidity(denom, "100000000000000000000"); // B58ADA4CEC2CC2949597EA58D34759844838A62DDBF528E2B701F8B236AD6FE0
   // await helper.removeLiquidity(denom, "100");
   // await helper.getTx("CB9DE8B321B1279DFC2A797876DCCBBD79D15B74B417B464B89926AAF6D50339");
+  // await helper.setFee(denom, "100000000000000000000");
+  // await helper.getFee();
 
 }
 
