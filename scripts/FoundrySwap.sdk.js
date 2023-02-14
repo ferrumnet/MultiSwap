@@ -120,7 +120,7 @@ async function swap(
 }
 
 swap(
-  "acudos",
+  process.env.SOURCE_CHAIN_TOKEN,
   process.env.DESTINATION_CHAIN_SOURCE_TOKEN,
   process.env.DESTINATION_CHAIN_TOKEN,
   "5000000000000000000"

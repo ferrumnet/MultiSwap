@@ -39,11 +39,18 @@ module.exports = {
       url: `https://polygon-rpc.com`,
       accounts: [process.env.PRIVATE_KEY_MAINNET]
     },
+    optimism: {
+      url: `https://mainnet.optimism.io`,
+      accounts: [process.env.PRIVATE_KEY_MAINNET]
+    },
   },
   etherscan: {
     apiKey: process.env.BSCSCAN_API_KEY,
   },
   etherscan: {
     apiKey: process.env.POLYGONSCAN_API_KEY,
+  },
+  etherscan: {
+    apiKey: process.env.OPTIMISM_API_KEY,
   },
 };

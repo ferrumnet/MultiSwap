@@ -106,33 +106,45 @@ const bscFiberRouterContract = new ethers.Contract(
 
 const bscMainnetChainId = 56;
 const polygonMainnetChainId = 137;
+const optimismMainnetChainId = 10;
 
 // const bscMainnetRPC = 'https://nd-217-204-155.p2pify.com/379ccd6673575fd7a096cc3f2a87be63';
 const bscMainnetRPC = 'https://bsc-dataseed1.binance.org';
 // const polygonMainnetRPC = 'https://polygon-rpc.com';
 const polygonMainnetRPC = 'https://nd-003-843-665.p2pify.com/7af52d3a77b5d19f11de64357253ca16';
+const optimismRpc = 'https://mainnet.optimism.io'
 
 const bscMainnetProvider = new ethers.providers.JsonRpcProvider(bscMainnetRPC);
 const polygonMainnetProvider = new ethers.providers.JsonRpcProvider(polygonMainnetRPC);
+const optimismMainnetProvider = new ethers.providers.JsonRpcProvider(optimismRpc);
+
 
 const bscMainnetDEXRouter = '0x10ED43C718714eb63d5aA57B78B54704E256024E';
 const polygonMainnetDEXRouter = '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff';
+const optimismMainnetDEXRouter = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+
+
 
 // const bscMainnetFundManager = '0x42cEB2Bb4B04FC5A2D7621A382019F8E3ADB6B68';
 
 const bscMainnetFundManager = '0x9E566928AcC3594555A35d4D319f081013Ea9949'; //for non evm testin
 const polygonMainnetFundManager = '0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8';
+const optmimismMainnetFundManager = '0x2234157B16637AfA6f1A7C1C34b1b80D82b50D82';
+
 
 // const bscMainnetFiberRouter = '0x7cA60AA20761EBC81F70Bb93F5068Be4e6765E87';
 const bscMainnetFiberRouter = '0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8'; // for non evm testing
-
 const polygonMainnetFiberRouter = '0x72329a50E785bc1A414022D319E3a10A6f12184f';
+const optimismMainnetFiberRouter = '0x997109206Fda586882Ae5aacA74d36EFE2417cA4';
+
 
 const bscMainnetUsdc = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
 const polygonMainnetUsdc = '0x2791bca1f2de4661ed88a30c99a7a9449aa84174';
+const optimismMainnetUsdc = '0x7F5c764cBc14f9669B88837ca1490cCa17c31607';
 
 const bscMainnetWeth = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c';
 const polygonMainnetWeth = '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270';
+const optimismMainnetWeth = '0x4200000000000000000000000000000000000006'; 
 
 // Mainnet Contract Configuration
 const bscMainnetDexContract = new ethers.Contract(
@@ -146,6 +158,13 @@ const polygonMainnetDexContract = new ethers.Contract(
   polygonMainnetProvider
 );
 
+const optimismMainnetDexContract = new ethers.Contract(
+  optimismMainnetDEXRouter,
+  routerAbiMainnet.abi,
+  optimismMainnetProvider
+);
+
+
 // fund manager contracts
 const bscMainnetFundMangerContract = new ethers.Contract(
   bscMainnetFundManager,
@@ -156,6 +175,11 @@ const polygonMainnetFundMangerContract = new ethers.Contract(
   polygonMainnetFundManager,
   fundManagerAbiMainnet.abi,
   polygonMainnetProvider
+);
+const optimismFundMangerContract = new ethers.Contract(
+  optmimismMainnetFundManager,
+  fundManagerAbi.abi,
+  optimismMainnetProvider
 );
 
 // goerli fund manager contract
@@ -168,6 +192,11 @@ const polygonMainnetFiberRouterContract = new ethers.Contract(
   polygonMainnetFiberRouter,
   fiberRouterAbiMainnet.abi,
   polygonMainnetProvider
+);
+const optimismMainnetFiberRouterContract = new ethers.Contract(
+  optimismMainnetFiberRouter,
+  fiberRouterAbiMainnet.abi,
+  optimismMainnetProvider
 );
 
 
@@ -260,6 +289,24 @@ const networks = {
     weth: null,
     type: 'cosmwasm',
     decimals: '18',
+    foundryTokenDecimals: 18
+  },
+  10: {
+    name: "optimism",
+    shortName: "optimism",
+    rpc: optimismRpc,
+    chainId: optimismMainnetChainId,
+    fundManager: optmimismMainnetFundManager,
+    fiberRouter: optimismMainnetFiberRouter,
+    router: optimismMainnetDEXRouter,
+    provider: optimismMainnetProvider,
+    foundryTokenAddress: optimismMainnetUsdc,
+    dexContract: optimismMainnetDexContract,
+    fundManagerContract: optimismFundMangerContract,
+    fiberRouterContract: optimismMainnetFiberRouterContract,
+    weth: optimismMainnetWeth,
+    type: 'evm',
+    decimals: null,
     foundryTokenDecimals: 18
   },
 };

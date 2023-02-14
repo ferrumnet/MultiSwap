@@ -2,6 +2,7 @@ require("dotenv").config();
 const { Wallet, utils, providers } = require("ethers");
 
 async function main() {
+  // Note: when generating message on ferrum node, the order of fields should be kept.
   const messageText =
     '{"chain_id":"test","payee":"cudos1xe5u4gpq0jesl3v4pae80t3wknhd2hf0pj857x","token":"stake","amount":"1000","salt":"0x00"}';
 

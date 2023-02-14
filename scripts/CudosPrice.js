@@ -1,7 +1,6 @@
 const axios = require('axios');
 
 async function getCudosPrice() {
-    console.log(1)
     try {
         response = await axios.get('https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=CUDOS', {
             headers: {
