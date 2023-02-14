@@ -21,7 +21,6 @@ async function main() {
   console.log("Contract verified successfully !");
 }
 
-// npx hardhat verify --network bscMainnet 0x37D6421b1D5724421444dD33338d3043921594dB "Constructor argument 1"
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {

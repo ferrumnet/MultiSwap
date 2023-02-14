@@ -286,7 +286,7 @@ class Fiber {
     ) {
         let receipt = {
             status: 0,
-            
+
         };
         let sourceBridgeAmount;
         let sourceBridgeToken;
@@ -309,13 +309,11 @@ class Fiber {
             );
             const sourceTokenDecimal = await sourceTokenContract.decimals();
             const amount = (inputAmount * 10 ** Number(sourceTokenDecimal)).toString();
-
             // is source token foundy asset
             const isFoundryAsset = await this.sourceFACCheck(
                 sourceNetwork,
                 sourceTokenAddress
             );
-
             //is source token refinery asset
             const isRefineryAsset = await this.isSourceRefineryAsset(
                 sourceNetwork,
@@ -323,127 +321,238 @@ class Fiber {
                 amount
             );
             if (isFoundryAsset) {
-                console.log("SN-1: Source Token is Foundry Asset");
-                console.log("SN-2: Add Foundry Asset in Source Network FundManager");
-                // approve to fiber router to transfer tokens to the fund manager contract
-                const targetFoundryTokenAddress = await sourceNetwork.fundManagerContract.nonEvmAllowedTargets(sourceTokenAddress, targetChainId);
-                await sourceTokenContract
-                    .connect(sourceSigner)
-                    .approve(sourceNetwork.fiberRouterContract.address, amount);
-                console.log(1)
-                // fiber router add foundry asset to fund manager
-                swapResult = await sourceNetwork.fiberRouterContract
-                    .connect(sourceSigner)
-                    .nonEvmSwap(
-                        sourceTokenAddress,
-                        amount,
-                        targetChainId,
-                        targetFoundryTokenAddress,
-                        sourceSigner.address,
-                        { gasLimit: 100000000 }
-                );
-                console.log("Transaction hash is: ", swapResult.hash);
-                //wait until the transaction be completed
-                sourceBridgeAmount = inputAmount;
-                receipt = await swapResult.wait();
-                receipt.status == receipt.status;
+                if (networks[targetChainId].type == 'evm') {
+                    console.log("SN-1: Source Token is Foundry Asset");
+                    console.log("SN-2: Add Foundry Asset in Source Network FundManager");
+                    // approve to fiber router to transfer tokens to the fund manager contract
+                    const targetFoundryTokenAddress = await sourceNetwork.fundManagerContract.allowedTargets(sourceTokenAddress, targetChainId);
+                    await sourceTokenContract
+                        .connect(sourceSigner)
+                        .approve(sourceNetwork.fiberRouterContract.address, amount);
+                    // fiber router add foundry asset to fund manager
+                    swapResult = await sourceNetwork.fiberRouterContract
+                        .connect(sourceSigner)
+                        .swap(
+                            sourceTokenAddress,
+                            amount,
+                            targetChainId,
+                            targetFoundryTokenAddress,
+                            targetSigner.address,
+                            gasForSwap
+                        );
+                    //wait until the transaction be completed
+                    sourceBridgeAmount = (inputAmount * 10 ** Number(targetTokenDecimal)).toString();
+                    sourceBridgeToken = sourceTokenAddress;
+                    receipt = await swapResult.wait();
+
+                }
+                else if (networks[targetChainId].type == 'cosmwasm') {
+                    console.log("SN-1: Non EVM Source Token is Foundry Asset");
+                    console.log("SN-2: Non EVM Add Foundry Asset in Source Network FundManager");
+                    // approve to fiber router to transfer tokens to the fund manager contract
+                    const targetFoundryTokenAddress = await sourceNetwork.fundManagerContract.nonEvmAllowedTargets(sourceTokenAddress, targetChainId);
+                    await sourceTokenContract
+                        .connect(sourceSigner)
+                        .approve(sourceNetwork.fiberRouterContract.address, amount);
+                    // fiber router add foundry asset to fund manager
+                    swapResult = await sourceNetwork.fiberRouterContract
+                        .connect(sourceSigner)
+                        .nonEvmSwap(
+                            sourceTokenAddress,
+                            amount,
+                            targetChainId,
+                            targetFoundryTokenAddress,
+                            sourceSigner.address,
+                            gasForSwap
+                        );
+                    console.log("Transaction hash is: ", swapResult.hash);
+                    //wait until the transaction be completed
+                    sourceBridgeAmount = (inputAmount * 10 ** Number(networks[targetChainId].foundryTokenDecimals)).toString();
+                    receipt = await swapResult.wait();
+                    receipt.status == receipt.status;
+                }
+
             } else if (isRefineryAsset) {
-                console.log("SN-1: Source Token is Refinery Asset");
-                console.log("SN-2: Swap Refinery Asset to Foundry Asset ...");
-                //swap refinery token to the foundry token
-                const amount = await (inputAmount * 10 ** Number(targetTokenDecimal)).toString();
-                let path = [sourceTokenAddress, sourceNetwork.foundryTokenAddress];
-                let amounts;
-                try {
-                    amounts = await sourceNetwork.dexContract.getAmountsOut(
-                        amount,
-                        path
-                    );
-                } catch (error) {
-                    throw "ALERT: DEX doesn't have liquidity for this pair"
+                if (networks[targetChainId].type == 'evm') {
+
+                    console.log("SN-1: Source Token is Refinery Asset");
+                    console.log("SN-2: Swap Refinery Asset to Foundry Asset ...");
+                    //swap refinery token to the foundry token
+                    const amount = await (inputAmount * 10 ** Number(targetTokenDecimal)).toString();
+                    let path = [sourceTokenAddress, sourceNetwork.foundryTokenAddress];
+                    let amounts;
+                    try {
+                        amounts = await sourceNetwork.dexContract.getAmountsOut(
+                            amount,
+                            path
+                        );
+                    } catch (error) {
+                        throw "ALERT: DEX doesn't have liquidity for this pair"
+                    }
+                    const amountsOut = amounts[1];
+                    sourceBridgeAmount = amountsOut;
+                    sourceBridgeToken = path[path.length - 1];
+                    await sourceTokenContract
+                        .connect(sourceSigner)
+                        .approve(sourceNetwork.fiberRouterContract.address, amount);
+                    swapResult = await sourceNetwork.fiberRouterContract
+                        .connect(sourceSigner)
+                        .swapAndCross(
+                            sourceNetwork.dexContract.address,
+                            amount,
+                            amountsOut,
+                            path,
+                            this.getDeadLine().toString(), // deadline
+                            targetChainId,
+                            targetNetwork.foundryTokenAddress,
+                            gasForSwap
+                        );
+                    //wait until the transaction be completed
+                    receipt = await swapResult.wait();
                 }
-                const amountsOut = amounts[1];
-                sourceBridgeAmount = amountsOut;
-                sourceBridgeToken = path[path.length - 1];
-                await sourceTokenContract
-                    .connect(sourceSigner)
-                    .approve(sourceNetwork.fiberRouterContract.address, amount);
-                swapResult = await sourceNetwork.fiberRouterContract
-                    .connect(sourceSigner)
-                    .swapAndCross(
-                        sourceNetwork.dexContract.address,
-                        amount,
-                        amountsOut,
-                        path,
-                        this.getDeadLine().toString(), // deadline
-                        targetChainId,
-                        targetNetwork.foundryTokenAddress,
-                        gasForSwap
-                    );
-                //wait until the transaction be completed
-                receipt = await swapResult.wait();
+                else if (networks[targetChainId].type == 'cosmwasm') {
+                    console.log("SN-1: Non EVM Source Token is Refinery Asset");
+                    console.log("SN-2: Non EVM Swap Refinery Asset to Foundry Asset ...");
+                    //swap refinery token to the foundry token
+                    const amount = await (inputAmount * 10 ** Number(networks[targetChainId].decimals)).toString();
+                    let path = [sourceTokenAddress, sourceNetwork.foundryTokenAddress];
+                    let amounts;
+                    try {
+                        amounts = await sourceNetwork.dexContract.getAmountsOut(
+                            amount,
+                            path
+                        );
+                    } catch (error) {
+                        throw "ALERT: DEX doesn't have liquidity for this pair"
+                    }
+                    const amountsOut = amounts[1];
+                    sourceBridgeAmount = amountsOut;
+                    sourceBridgeToken = path[path.length - 1];
+                    console.log("nonEvmSwapAndCross sourceBridgeAmount", sourceBridgeAmount)
+                    await sourceTokenContract
+                        .connect(sourceSigner)
+                        .approve(sourceNetwork.fiberRouterContract.address, amount);
+                    swapResult = await sourceNetwork.fiberRouterContract
+                        .connect(sourceSigner)
+                        .nonEvmSwapAndCross(
+                            sourceNetwork.dexContract.address,
+                            amount,
+                            amountsOut,
+                            path,
+                            this.getDeadLine().toString(), // deadline
+                            targetChainId,
+                            networks[targetChainId].foundryTokenAddress,
+                            gasForSwap
+                        );
+                    receipt = await swapResult.wait();
+                    console.log("transaction hash", swapResult.hash)
+                    receipt.status == receipt.status;
+
+                }
             } else {
-                console.log("SN-1: Source Token is Ionic Asset");
-                console.log("SN-2: Swap Ionic Asset to Foundry Asset ...");
-                //swap refinery token to the foundry token
-                let path = [
-                    sourceTokenAddress,
-                    sourceNetwork.weth,
-                    sourceNetwork.foundryTokenAddress,
-                ];
-                let amounts;
-                try {
-                    amounts = await sourceNetwork.dexContract.getAmountsOut(
-                        amount,
-                        path
-                    );
-                } catch (error) {
-                    throw "ALERT: DEX doesn't have liquidity for this pair"
+                if (networks[targetChainId].type == 'evm') {
+                    console.log("SN-1: Source Token is Ionic Asset");
+                    console.log("SN-2: Swap Ionic Asset to Foundry Asset ...");
+                    //swap refinery token to the foundry token
+                    let path = [
+                        sourceTokenAddress,
+                        sourceNetwork.weth,
+                        sourceNetwork.foundryTokenAddress,
+                    ];
+                    let amounts;
+                    try {
+                        amounts = await sourceNetwork.dexContract.getAmountsOut(
+                            amount,
+                            path
+                        );
+                    } catch (error) {
+                        throw "ALERT: DEX doesn't have liquidity for this pair"
+                    }
+                    const amountsOut = amounts[amounts.length - 1];
+                    sourceBridgeAmount = amountsOut;
+                    sourceBridgeToken = path[path.length - 1];
+                    await sourceTokenContract
+                        .connect(sourceSigner)
+                        .approve(sourceNetwork.fiberRouterContract.address, amount);
+                    swapResult = await sourceNetwork.fiberRouterContract
+                        .connect(sourceSigner)
+                        .swapAndCross(
+                            sourceNetwork.dexContract.address,
+                            amount,
+                            amountsOut,
+                            path,
+                            this.getDeadLine().toString(), // deadline
+                            targetChainId,
+                            targetNetwork.foundryTokenAddress,
+                            gasForSwap
+                        );
+                    //wait until the transaction be completed
+                    receipt = await swapResult.wait();
+                } else if (networks[targetChainId].type == 'cosmwasm') {
+                    console.log("SN-1: Non EVM Source Token is Ionic Asset");
+                    console.log("SN-2: Non EVM Swap Ionic Asset to Foundry Asset ...");
+                    //swap refinery token to the foundry token
+                    let path = [
+                        sourceTokenAddress,
+                        sourceNetwork.weth,
+                        sourceNetwork.foundryTokenAddress,
+                    ];
+                    let amounts;
+                    try {
+                        amounts = await sourceNetwork.dexContract.getAmountsOut(
+                            amount,
+                            path
+                        );
+                    } catch (error) {
+                        throw "ALERT: DEX doesn't have liquidity for this pair"
+                    }
+                    const amountsOut = amounts[amounts.length - 1];
+                    sourceBridgeAmount = amountsOut;
+                    sourceBridgeToken = path[path.length - 1];
+                    await sourceTokenContract
+                        .connect(sourceSigner)
+                        .approve(sourceNetwork.fiberRouterContract.address, amount);
+                    swapResult = await sourceNetwork.fiberRouterContract
+                        .connect(sourceSigner)
+                        .nonEvmSwapAndCross(
+                            sourceNetwork.dexContract.address,
+                            amount,
+                            amountsOut,
+                            path,
+                            this.getDeadLine().toString(), // deadline
+                            targetChainId,
+                            networks[targetChainId].foundryTokenAddress,
+                            gasForSwap
+                        );
+                    //wait until the transaction be completed
+                    receipt = await swapResult.wait();
+                    console.log("transaction hash", swapResult.hash)
+                    receipt.status == receipt.status;
                 }
-                const amountsOut = amounts[amounts.length - 1];
-                sourceBridgeAmount = amountsOut;
-                sourceBridgeToken = path[path.length - 1];
-                await sourceTokenContract
-                    .connect(sourceSigner)
-                    .approve(sourceNetwork.fiberRouterContract.address, amount);
-                swapResult = await sourceNetwork.fiberRouterContract
-                    .connect(sourceSigner)
-                    .swapAndCross(
-                        sourceNetwork.dexContract.address,
-                        amount,
-                        amountsOut,
-                        path,
-                        this.getDeadLine().toString(), // deadline
-                        targetChainId,
-                        targetNetwork.foundryTokenAddress,
-                        gasForSwap
-                    );
-                //wait until the transaction be completed
-                receipt = await swapResult.wait();
-            }
+        }
 
         }
         else if (networks[sourceChainId].type == 'cosmwasm') {
             //         const toWei = await Web3.utils.toWei('1', 'ether');
-            
-        console.log("CUDOS Network Swap initiated")
-        const amount = (inputAmount * 10 ** Number(networks[sourceChainId].decimals)).toString();
+
+            console.log("CUDOS Network Swap initiated")
+            const amount = (inputAmount * 10 ** Number(networks[sourceChainId].decimals)).toString();
             const swapResult = await cudosSwap(
-            sourceTokenAddress,
-            targetTokenAddress,
-            targetTokenAddress,
-            String(amount)
+                sourceTokenAddress,
+                targetTokenAddress,
+                targetTokenAddress,
+                String(amount)
             );
-            
+
             const recentCudosPriceInDollars = await getCudosPrice();
             console.log("recentCudosPriceInDollars", recentCudosPriceInDollars)
             console.log("inputAmount", inputAmount)
             console.log("swapResult for cudos", swapResult.transactionHash)
-            
 
-            sourceBridgeAmount = await inputAmount * recentCudosPriceInDollars;
- 
-            console.log("sourceBridgeAmount",sourceBridgeAmount)
+
+            sourceBridgeAmount = await ((inputAmount * recentCudosPriceInDollars) * 10 ** Number(networks[sourceChainId].decimals)).toString();
+
+            console.log("sourceBridgeAmount", sourceBridgeAmount)
             receipt.status = 1;
         }
         //error if source and network token and chain id are similar
@@ -469,30 +578,23 @@ class Fiber {
             );
 
             const targetTokenDecimal = await targetTokenContract.decimals();
-        // if (sourceChainId == targetChainId) {
-        //     console.log("ALERT: Swap Initiated on the Same Network");
-        //     await this.swapOnSameNetwork(sourceChainId, sourceTokenAddress, targetTokenAddress, amount);
-        //     return;
-        // }
+            // if (sourceChainId == targetChainId) {
+            //     console.log("ALERT: Swap Initiated on the Same Network");
+            //     await this.swapOnSameNetwork(sourceChainId, sourceTokenAddress, targetTokenAddress, amount);
+            //     return;
+            // }
             if (receipt.status == 1) {
                 console.log(
                     "SUCCESS: Assets are successfully Swapped in Source Network !"
                 );
                 console.log("Cheers! your bridge and swap was successful !!!");
                 let amountIn = (inputAmount * 10 ** Number(targetTokenDecimal)).toString();
-                sourceBridgeAmount = (sourceBridgeAmount * 10 ** Number(targetTokenDecimal)).toString();
-
                 const isTargetTokenFoundry = await this.targetFACCheck(
                     targetNetwork,
                     targetTokenAddress,
                     Math.floor(sourceBridgeAmount)
                 );
                 if (isTargetTokenFoundry === true) {
-                    console.log("failine4")
-
-                    // if (istargetOtherFoundry === false) {
-                    console.log("failine5")
-
                     console.log("TN-1: Target Token is Foundry Asset");
                     console.log("TN-2: Withdraw Foundry Asset...");
                     const hash = await produecSignaturewithdrawHash(
@@ -500,7 +602,7 @@ class Fiber {
                         targetNetwork.fundManager,
                         targetTokenAddress,
                         targetSigner.address,
-                        10000000000,
+                        Math.floor(sourceBridgeAmount),
                         Salt
                     );
                     const sigP2 = ecsign(
@@ -514,10 +616,10 @@ class Fiber {
                         .withdrawSigned(
                             targetTokenAddress, //token address on network 2
                             targetSigner.address, //reciver
-                            10000000000, //targetToken amount
+                            Math.floor(sourceBridgeAmount), //targetToken amount
                             Salt,
                             sig2,
-                            { gasPrice : 15000000000 }
+                            gasForWithdraw
                         );
 
                     const receipt = await swapResult.wait();
@@ -532,7 +634,7 @@ class Fiber {
                     const isTargetRefineryToken = await this.isTargetRefineryAsset(
                         targetNetwork,
                         targetTokenAddress,
-                        sourceBridgeAmount
+                        Math.floor(sourceBridgeAmount)
                     );
                     if (isTargetRefineryToken == true) {
                         console.log("TN-1: Target token is Refinery Asset");
@@ -544,7 +646,7 @@ class Fiber {
                         let amounts2;
                         try {
                             amounts2 = await targetNetwork.dexContract.getAmountsOut(
-                                sourceBridgeAmount,
+                                Math.floor(sourceBridgeAmount),
                                 path2
                             );
                         } catch (error) {
@@ -555,7 +657,7 @@ class Fiber {
                             targetNetwork.fundManager,
                             path2[0],
                             targetNetwork.fiberRouter,
-                            sourceBridgeAmount,
+                            Math.floor(sourceBridgeAmount),
                             Salt
                         );
                         const sigP2 = ecsign(
@@ -563,14 +665,13 @@ class Fiber {
                             Buffer.from(process.env.PRIVATE_KEY0.replace("0x", ""), "hex")
                         );
                         const sig2 = fixSig(toRpcSig(sigP2.v, sigP2.r, sigP2.s));
-                        console.log("Sig produced2=====================>2", sig2, sigP2, targetSigner.address);
                         const amountsOut2 = amounts2[1];
                         const swapResult2 = await targetNetwork.fiberRouterContract
                             .connect(targetSigner)
                             .withdrawSignedAndSwap(
                                 targetSigner.address,
                                 targetNetwork.router,
-                                sourceBridgeAmount,
+                                Math.floor(sourceBridgeAmount),
                                 amountsOut2,
                                 path2,
                                 this.getDeadLine().toString(),
@@ -600,7 +701,7 @@ class Fiber {
                         let amounts2;
                         try {
                             amounts2 = await targetNetwork.dexContract.getAmountsOut(
-                                sourceBridgeAmount,
+                                Math.floor(sourceBridgeAmount),
                                 path2
                             );
                         } catch (error) {
@@ -611,7 +712,7 @@ class Fiber {
                             targetNetwork.fundManager,
                             path2[0],
                             targetNetwork.fiberRouter,
-                            sourceBridgeAmount,
+                            Math.floor(sourceBridgeAmount),
                             Salt
                         );
                         const sigP2 = ecsign(
@@ -619,14 +720,13 @@ class Fiber {
                             Buffer.from(process.env.PRIVATE_KEY0.replace("0x", ""), "hex")
                         );
                         const sig2 = fixSig(toRpcSig(sigP2.v, sigP2.r, sigP2.s));
-                        console.log("Sig produced2=====================>2", sig2, sigP2, targetSigner.address);
                         const amountsOut2 = amounts2[amounts2.length - 1];
                         const swapResult3 = await targetNetwork.fiberRouterContract
                             .connect(targetSigner)
                             .withdrawSignedAndSwap(
                                 targetSigner.address,
                                 targetNetwork.router,
-                                sourceBridgeAmount,
+                                Math.floor(sourceBridgeAmount),
                                 amountsOut2,
                                 path2,
                                 this.getDeadLine().toString(), //deadline
@@ -645,16 +745,19 @@ class Fiber {
                     }
                 }
             }
-            
+
         }
         else if (networks[targetChainId].type == 'cosmwasm') {
             if (receipt.status == 1) {
                 console.log("CUDOS Network Withdraw initiated")
-                const amount = (inputAmount * 10 ** Number(networks[targetChainId].decimals)).toString();
+                console.log("sourceBridgeAmount1", sourceBridgeAmount)
+                const amount = (sourceBridgeAmount / 10 ** Number(networks[targetChainId].foundryTokenDecimals)).toString();
                 const recentCudosPriceInDollars = await getCudosPrice();
-                sourceBridgeAmount = await inputAmount / recentCudosPriceInDollars;
-                console.log("sourceBridgeAmount", sourceBridgeAmount)
+                console.log("amount 1", amount)
+                sourceBridgeAmount = await amount / recentCudosPriceInDollars;
+                console.log("sourceBridgeAmount2", sourceBridgeAmount)
                 sourceBridgeAmount = (sourceBridgeAmount * 10 ** Number(networks[targetChainId].decimals)).toString()
+                console.log("sourceBridgeAmount3", sourceBridgeAmount)
                 const swapResult = await cudosWithdraw(
                     targetTokenAddress,
                     sourceTokenAddress,
@@ -662,16 +765,16 @@ class Fiber {
                     String(Math.floor(sourceBridgeAmount))
                 );
 
-    //             const swapResult = await cudosWithdraw(
-    // "acudos",
-    // "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-    // "acudos",
-    // "100"
-    //             );
+                //             const swapResult = await cudosWithdraw(
+                // "acudos",
+                // "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+                // "acudos",
+                // "100"
+                //             );
                 console.log("CUDOS Network Withdraw happened")
                 console.log("CUDOS Network Withdraw happened params", targetTokenAddress, sourceTokenAddress, targetTokenAddress, Math.floor(sourceBridgeAmount))
 
-                console.log("swapResult",swapResult)
+                console.log("swapResult", swapResult)
             }
         }
     }
@@ -679,13 +782,13 @@ class Fiber {
 module.exports = Fiber;
 const fiber = new Fiber();
 
-fiber.SWAP(
-    'acudos',
-    '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
-    'cudos-1', // source chain id (goerli)
-    56, // target chain id (bsc)
-    0.0001 //source token amount
-);
+// fiber.SWAP(
+//     'acudos',
+//     '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+//     'cudos-1',  
+//     56,
+//     0.0001 //source token amount
+// );
 // fiber.SWAP(
 //     "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
 //     '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',

@@ -20,7 +20,6 @@
     "axios": "^1.2.4",
     "dotenv": "^16.0.0",
     "ethereumjs-util": "^7.1.5",
-    "ethers": "^5.7.2",
     "web3": "^1.8.0"
   },
   "devDependencies": {

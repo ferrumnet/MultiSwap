@@ -200,14 +200,14 @@ class Fiber {
 
     const sourceSigner = signer.connect(sourceNetwork.provider);
     let amounts;
-    try{
+    try {
       amounts = await sourceNetwork.dexContract.getAmountsOut(
         inputAmout,
         path
       );
-      } catch (error) {
-        throw "ALERT: DEX doesn't have liquidity for this pair";
-      }
+    } catch (error) {
+      throw "ALERT: DEX doesn't have liquidity for this pair";
+    }
     const amountOutMin = amounts[1];
 
     // For swapping on ETHEREUM Blockchain IF ElseIf both conditions are performed
@@ -362,14 +362,14 @@ class Fiber {
       const amount = await (inputAmount * 10 ** Number(targetTokenDecimal)).toString();
       let path = [sourceTokenAddress, sourceNetwork.foundryTokenAddress];
       let amounts;
-      try{
-       amounts = await sourceNetwork.dexContract.getAmountsOut(
-        amount,
-        path
-      );
-          } catch (error) {
-            throw "ALERT: DEX doesn't have liquidity for this pair"
-          }
+      try {
+        amounts = await sourceNetwork.dexContract.getAmountsOut(
+          amount,
+          path
+        );
+      } catch (error) {
+        throw "ALERT: DEX doesn't have liquidity for this pair"
+      }
       const amountsOut = amounts[1];
       sourceBridgeAmount = amountsOut;
       sourceBridgeToken = path[path.length - 1];

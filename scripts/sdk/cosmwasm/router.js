@@ -84,7 +84,7 @@ class FIBERRouterContract {
       ],
       calculateFee(200000, gasPrice)
     );
-    console.log("Executed transfer_ownership", tx.transactionHash);
+    console.log("Executed transfer_ownership", tx);
   }
 
   // admin function
@@ -122,7 +122,7 @@ class FIBERRouterContract {
       ],
       calculateFee(200000, gasPrice)
     );
-    console.log("Executed add_signer", tx.transactionHash);
+    console.log("Executed add_signer", tx);
   }
 
   async swap(
@@ -174,7 +174,7 @@ class FIBERRouterContract {
       ],
       calculateFee(400000, gasPrice)
     );
-    console.log("Executed swap", tx.transactionHash);
+    console.log("Executed swap", tx);
     return tx;
   }
 
@@ -216,7 +216,7 @@ class FIBERRouterContract {
       ],
       calculateFee(200000, gasPrice)
     );
-    console.log("Executed withdrawSigned", tx.transactionHash);
+    console.log("Executed withdrawSigned", tx);
   }
 
   async withdraw(token, user, amount) {
@@ -257,7 +257,7 @@ class FIBERRouterContract {
       ],
       calculateFee(500000, gasPrice)
     );
-    console.log("Executed withdraw router1", tx.transactionHash);
+    console.log("Executed withdraw router1", tx);
   }
 
   async withdrawAndSwapToFoundry(foundryToken, token, amount) {
@@ -298,7 +298,7 @@ class FIBERRouterContract {
       ],
       calculateFee(400000, gasPrice)
     );
-    console.log("Executed withdraw router2", tx.transactionHash);
+    console.log("Executed withdraw router2", tx);
     return true;
   }
 }

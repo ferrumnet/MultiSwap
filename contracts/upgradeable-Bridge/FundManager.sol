@@ -91,7 +91,6 @@ contract FundManager is SigCheckable, WithAdmin {
     }
 
     function setFeeDistributor(address _feeDistributor) external onlyOwner {
-        require(_feeDistributor != address(0), "Bad FeeDistributor");
         feeDistributor = _feeDistributor;
     }
 
