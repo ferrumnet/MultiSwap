@@ -29,6 +29,24 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address targetAddress
     );
 
+    event Withdraw(
+        address token,
+        address receiver,
+        uint256 amount,
+        bytes32 salt,
+        bytes signature
+    );
+
+    event NonEvmSwap(
+        address sourceToken,
+        string targetToken,
+        uint256 sourceChainId,
+        string targetChainId,
+        uint256 sourceAmount,
+        address sourceAddress,
+        string targetAddress
+    );
+
     /**
      @notice The payable receive method
      */
@@ -149,6 +167,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             targetToken,
             targetAddress
         );
+        NonEvmSwap(
+            token,
+            targetToken,
+            block.chainid,
+            targetNetwork,
+            amount,
+            _msgSender(),
+            targetAddress
+        );
     }
 
     /*
@@ -170,7 +197,8 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
-        address crossTargetToken
+        address crossTargetToken,
+        address crossTargetAddress
     ) external nonReentrant {
         amountIn = SafeAmount.safeTransferFrom(
             path[0],
@@ -188,8 +216,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             deadline,
             crossTargetNetwork,
             crossTargetToken
-            // crossSwapTargetTokenTo
-            // crossTargetAddress
+        );
+        Swap(
+            path[0],
+            crossTargetToken,
+            block.chainid,
+            crossTargetNetwork,
+            amountIn,
+            _msgSender(),
+            crossTargetAddress
         );
     }
 
@@ -213,7 +248,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 deadline,
         string memory crossTargetNetwork,
         string memory crossTargetToken,
-        string memory receiver
+        string memory crossTargetAddress
     ) external nonReentrant {
         amountIn = SafeAmount.safeTransferFrom(
             path[0],
@@ -223,7 +258,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         );
         IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
         _nonEvmSwapAndCross(
-            receiver,
+            crossTargetAddress,
             swapRouter,
             amountIn,
             amountCrossMin,
@@ -231,8 +266,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             deadline,
             crossTargetNetwork,
             crossTargetToken
-            // crossSwapTargetTokenTo
-            // crossTargetAddress
+        );
+        NonEvmSwap(
+            path[0],
+            crossTargetToken,
+            block.chainid,
+            crossTargetNetwork,
+            amountIn,
+            _msgSender(),
+            crossTargetAddress
         );
     }
 
@@ -253,8 +295,9 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address[] calldata path,
         uint256 deadline,
         uint256 crossTargetNetwork,
-        address crossTargetToken
-    ) external payable {
+        address crossTargetToken,
+        address crossTargetAddress
+    ) external payable nonReentrant {
         uint256 amountIn = msg.value;
         address weth = IUniswapV2Router01(swapRouter).WETH();
         // approveIfRequired(weth, swapRouter, amountIn);
@@ -269,8 +312,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             deadline,
             crossTargetNetwork,
             crossTargetToken
-            // crossSwapTargetTokenTo
-            // crossTargetAddress
+        );
+        Swap(
+            path[0],
+            crossTargetToken,
+            block.chainid,
+            crossTargetNetwork,
+            amountIn,
+            _msgSender(),
+            crossTargetAddress
         );
     }
 
@@ -298,14 +348,16 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             salt,
             multiSignature
         );
+
+        emit Withdraw(token, payee, amount, salt, multiSignature);
     }
 
     /*
-     @notice Withdraws funds based on a multisig
+     @notice Withdraw funds based on a multisig
      @dev For signature swapToToken must be the same as token
      @param token The token to withdraw
      @param payee Address for where to send the tokens to
-     @param amount The mount
+     @param amount The amount
      @param sourceChainId The source chain initiating the tx
      @param swapTxId The txId for the swap from the source chain
      @param multiSignature The multisig validator signature
@@ -317,7 +369,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 amount,
         bytes32 salt,
         bytes memory multiSignature
-    ) external {
+    ) external nonReentrant {
         uint256 bridgeFoundryPrice = getFoundryTokenPrice(bridgeFoundry);
         uint256 targetFoundryPrice = getFoundryTokenPrice(targetFoundry);
         uint256 amountOut = (amount * bridgeFoundryPrice) / targetFoundryPrice;
@@ -328,6 +380,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             salt,
             multiSignature
         );
+        emit Withdraw(targetFoundry, payee, amount, salt, multiSignature);
     }
 
     /*
@@ -370,6 +423,13 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
                 to,
                 deadline
             );
+        emit Withdraw(
+            path[path.length - 1],
+            to,
+            amountOutMin,
+            salt,
+            multiSignature
+        );
     }
 
     /*
@@ -410,6 +470,13 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
                 to,
                 deadline
             );
+        emit Withdraw(
+            path[path.length - 1],
+            to,
+            amountOutMin,
+            salt,
+            multiSignature
+        );
     }
 
     /*

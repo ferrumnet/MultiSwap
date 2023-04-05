@@ -5,13 +5,13 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../common/signature/SigCheckable.sol";
 import "../common/SafeAmount.sol";
 import "../common/WithAdmin.sol";
 import "../taxing/IGeneralTaxDistributor.sol";
-import "hardhat/console.sol";
 
-contract FundManager is SigCheckable, WithAdmin {
+contract FundManager is SigCheckable, WithAdmin, ReentrancyGuardUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     address public router;
@@ -33,13 +33,21 @@ contract FundManager is SigCheckable, WithAdmin {
 
     event TransferBySignature(
         address signer,
-        address receiver,
+        address indexed receiver,
         address token,
         uint256 amount,
         uint256 fee
     );
-    event BridgeLiquidityAdded(address actor, address token, uint256 amount);
-    event BridgeLiquidityRemoved(address actor, address token, uint256 amount);
+    event BridgeLiquidityAdded(
+        address indexed actor,
+        address token,
+        uint256 amount
+    );
+    event BridgeLiquidityRemoved(
+        address indexed actor,
+        address token,
+        uint256 amount
+    );
     event BridgeSwap(
         address from,
         address indexed token,
@@ -66,6 +74,7 @@ contract FundManager is SigCheckable, WithAdmin {
     function initialize() external initializer {
         __EIP712_init(NAME, VERSION);
         __Ownable_init();
+        __ReentrancyGuard_init();
     }
 
     /**
@@ -104,6 +113,10 @@ contract FundManager is SigCheckable, WithAdmin {
      @notice add address as an fee distributor
     */
     function setFeeDistributor(address _feeDistributor) external onlyOwner {
+        require(
+            _feeDistributor != address(0),
+            "Invalid address: address cannot be 0."
+        );
         feeDistributor = _feeDistributor;
     }
 
@@ -239,10 +252,6 @@ contract FundManager is SigCheckable, WithAdmin {
         address targetToken,
         address targetAddress
     ) external onlyRouter returns (uint256) {
-        require(
-            targetAddress != address(0),
-            "BridgePool: targetAddress is required"
-        );
         return
             _swap(
                 msg.sender,
@@ -298,18 +307,17 @@ contract FundManager is SigCheckable, WithAdmin {
     ) external onlyRouter returns (uint256) {
         require(token != address(0), "BP: bad token");
         require(payee != address(0), "BP: bad payee");
-        require(salt != 0, "BP: bad salt");
         require(amount != 0, "BP: bad amount");
+        require(salt != 0, "BP: bad salt");
         bytes32 message = withdrawSignedMessage(token, payee, amount, salt);
         address _signer = signerUnique(message, signature);
-        console.log(_signer);
         require(signers[_signer], "BridgePool: Invalid signer");
 
         uint256 fee = 0;
         address _feeDistributor = feeDistributor;
         if (_feeDistributor != address(0)) {
             fee = (amount * fees[token]) / 10000;
-            amount = amount - fee;
+            amount -= fee;
             if (fee != 0) {
                 IERC20Upgradeable(token).safeTransfer(_feeDistributor, fee);
                 IGeneralTaxDistributor(_feeDistributor).distributeTax(token);
@@ -333,15 +341,13 @@ contract FundManager is SigCheckable, WithAdmin {
             isFoundryAsset[token] == true,
             "Only foundry assets can be added"
         );
+        liquidities[token][msg.sender] += amount;
         amount = SafeAmount.safeTransferFrom(
             token,
             msg.sender,
             address(this),
             amount
         );
-        liquidities[token][msg.sender] =
-            liquidities[token][msg.sender] +
-            amount;
         emit BridgeLiquidityAdded(msg.sender, token, amount);
     }
 
@@ -365,9 +371,7 @@ contract FundManager is SigCheckable, WithAdmin {
         require(liq >= amount, "Not enough liquidity");
         uint256 balance = IERC20Upgradeable(token).balanceOf(address(this));
         uint256 actualLiq = balance > amount ? amount : balance;
-        liquidities[token][msg.sender] =
-            liquidities[token][msg.sender] -
-            actualLiq;
+        liquidities[token][msg.sender] -= actualLiq;
         if (actualLiq != 0) {
             IERC20Upgradeable(token).safeTransfer(msg.sender, actualLiq);
             emit BridgeLiquidityRemoved(msg.sender, token, amount);
@@ -376,7 +380,7 @@ contract FundManager is SigCheckable, WithAdmin {
     }
 
     /**
-     @dev callable by only router
+     @dev external used function for singnature verification
      @param token the tokens want to withdraw
      @param payee address of beneficiary
      @param amount the amount to be withdrawn
@@ -426,6 +430,10 @@ contract FundManager is SigCheckable, WithAdmin {
         address targetToken,
         address targetAddress
     ) internal returns (uint256) {
+        require(
+            targetAddress != address(0),
+            "BridgePool: targetAddress is required"
+        );
         require(from != address(0), "BP: bad from");
         require(token != address(0), "BP: bad token");
         require(targetNetwork != 0, "BP: targetNetwork is requried");
