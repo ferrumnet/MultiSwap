@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../common/signature/SigCheckable.sol";
 import "../common/SafeAmount.sol";
 import "../common/WithAdmin.sol";
 import "../taxing/IGeneralTaxDistributor.sol";
 
-contract FundManager is SigCheckable, WithAdmin, ReentrancyGuardUpgradeable {
+contract FundManager is SigCheckable, WithAdmin {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     address public router;
@@ -74,7 +71,6 @@ contract FundManager is SigCheckable, WithAdmin, ReentrancyGuardUpgradeable {
     function initialize() external initializer {
         __EIP712_init(NAME, VERSION);
         __Ownable_init();
-        __ReentrancyGuard_init();
     }
 
     /**
@@ -313,14 +309,13 @@ contract FundManager is SigCheckable, WithAdmin, ReentrancyGuardUpgradeable {
         address _signer = signerUnique(message, signature);
         require(signers[_signer], "BridgePool: Invalid signer");
 
-        uint256 fee = 0;
-        address _feeDistributor = feeDistributor;
-        if (_feeDistributor != address(0)) {
+        uint256 fee;
+        if (feeDistributor != address(0)) {
             fee = (amount * fees[token]) / 10000;
             amount -= fee;
             if (fee != 0) {
-                IERC20Upgradeable(token).safeTransfer(_feeDistributor, fee);
-                IGeneralTaxDistributor(_feeDistributor).distributeTax(token);
+                IERC20Upgradeable(token).safeTransfer(feeDistributor, fee);
+                IGeneralTaxDistributor(feeDistributor).distributeTax(token);
             }
         }
         IERC20Upgradeable(token).safeTransfer(payee, amount);
@@ -430,15 +425,15 @@ contract FundManager is SigCheckable, WithAdmin, ReentrancyGuardUpgradeable {
         address targetToken,
         address targetAddress
     ) internal returns (uint256) {
+        require(from != address(0), "BP: bad from");
+        require(token != address(0), "BP: bad token");
+        require(amount != 0, "BP: bad amount");
+        require(targetNetwork != 0, "BP: targetNetwork is requried");
+        require(targetToken != address(0), "BP: bad target token");
         require(
             targetAddress != address(0),
             "BridgePool: targetAddress is required"
         );
-        require(from != address(0), "BP: bad from");
-        require(token != address(0), "BP: bad token");
-        require(targetNetwork != 0, "BP: targetNetwork is requried");
-        require(targetToken != address(0), "BP: bad target token");
-        require(amount != 0, "BP: bad amount");
         require(
             allowedTargets[token][targetNetwork] == targetToken,
             "BP: target not allowed"
