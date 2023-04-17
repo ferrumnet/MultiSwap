@@ -4,7 +4,6 @@ pragma solidity 0.8.2;
 import "./FundManager.sol";
 import "../common/uniswap/IUniswapV2Router02.sol";
 import "../common/uniswap/IWETH.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -73,11 +72,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
      @param _token The foundry token address
      @param _oracleAddress The oracle address for price feed
      */
-    function setOracle(address _token, address _oracleAddress)
+    function setOracle(address _token, AggregatorV3Interface _oracleAddress)
         external
         onlyOwner
     {
-        priceFeed[_token] = AggregatorV3Interface(_oracleAddress);
+        priceFeed[_token] = _oracleAddress;
     }
 
     function getFoundryTokenPrice(address _token)
@@ -86,12 +85,11 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         returns (uint256)
     {
         (
-            ,
-            /*uint80 roundID*/
-            int256 price, /*uint startedAt*/ /*uint timeStamp*/ /*uint80 answeredInRound*/
-            ,
-            ,
-
+            /*uint80 roundID*/,
+            int256 price,
+            /*uint startedAt*/,
+            /*uint timeStamp*/,
+        /*uint80 answeredInRound*/
         ) = priceFeed[_token].latestRoundData();
         uint8 baseDecimals = priceFeed[_token].decimals();
         return uint256(price) * 10**(18 - baseDecimals);
@@ -127,7 +125,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             targetToken,
             targetAddress
         );
-        Swap(
+        emit Swap(
             token,
             targetToken,
             block.chainid,
@@ -217,7 +215,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             crossTargetNetwork,
             crossTargetToken
         );
-        Swap(
+        emit Swap(
             path[0],
             crossTargetToken,
             block.chainid,
@@ -313,7 +311,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             crossTargetNetwork,
             crossTargetToken
         );
-        Swap(
+        emit Swap(
             path[0],
             crossTargetToken,
             block.chainid,
