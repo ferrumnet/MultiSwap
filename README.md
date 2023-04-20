@@ -32,7 +32,7 @@ MultiSwap Overview: >-
     - Answer: No -> Initiates RIAC check
     - Destination Network: Can I swap to a foundry asset in a single transaction through ecosystem DEX or aggregators?
         - Answer: Yes -> Categorized as Refinery Asset
-    - Destination Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap. -> Quote Received
+    - Destination Network: ABQC (Asset Best Quote Check) determines which ecosystem DEX or aggregator will give the best rate for this swap -> Quote Received
 
 ### Flow of Ionic Swap
 
