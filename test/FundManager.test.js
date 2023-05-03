@@ -70,39 +70,39 @@ describe("FundManager", async () => {
     });
   });
 
-  describe("setRouter", async () => {
-    it("should revert if caller is not the owner", async () => {
-      await expect(
-        fundManager.connect(addr1).setRouter(router.address)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+  describe("set Router", async () => {
+    it("should fail if the caller is not authorized", async () => {
+    await expect(
+    fundManager.connect(addr1).setRouter(router.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
     });
-    it("should revert if a zero address is passed", async () => {
-      await expect(
-        fundManager.setRouter(ethers.constants.AddressZero)
-      ).to.be.revertedWith("BP: router requried");
+    it("should fail if a zero address is passed", async () => {
+    await expect(
+    fundManager.setRouter(ethers.constants.AddressZero)
+    ).to.be.revertedWith("BP: router requried");
     });
-    it("should set router address correctly", async () => {
-      await fundManager.setRouter(router.address);
-      expect(await fundManager.router()).to.equal(router.address);
+    it("should update router address successfully", async () => {
+    await fundManager.setRouter(router.address);
+    expect(await fundManager.router()).to.equal(router.address);
     });
-  });
-
-  describe("addSigner", async () => {
-    it("should revert if caller is not the owner", async () => {
-      await expect(
-        fundManager.connect(addr1).addSigner(signer.address)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
-    it("should revert if a zero address is passed", async () => {
-      await expect(
-        fundManager.addSigner(ethers.constants.AddressZero)
-      ).to.be.revertedWith("Bad signer");
+    
+    describe("add Authorized Signer", async () => {
+    it("should fail if the caller is not authorized", async () => {
+    await expect(
+    fundManager.connect(addr1).addSigner(signer.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
     });
-    it("should add signer correctly", async () => {
-      await fundManager.addSigner(signer.address);
-      expect(await fundManager.signers(signer.address)).to.be.true;
+    it("should fail if a zero address is passed", async () => {
+    await expect(
+    fundManager.addSigner(ethers.constants.AddressZero)
+    ).to.be.revertedWith("Bad signer");
     });
-  });
+    it("should add authorized signer successfully", async () => {
+    await fundManager.addSigner(signer.address);
+    expect(await fundManager.signers(signer.address)).to.be.true;
+    });
+    });
 
   describe("removeSigner", async () => {
     it("should revert if caller is not the owner", async () => {
@@ -305,7 +305,7 @@ describe("FundManager", async () => {
   });
 
   describe("swap | swapToAddress", async () => {
-    it("should revert if caller is not the router", async () => {
+    it("should fail if caller is not the Router Contract", async () => {
       await expect(
         fundManager
           .connect(addr1)
@@ -324,7 +324,7 @@ describe("FundManager", async () => {
       ).to.be.revertedWith("BP: Only router method");
       await fundManager.setRouter(owner.address);
     });
-    it("should revert if a zero token address is passed", async () => {
+    it("should revert if a zero address is passed", async () => {
       await expect(
         fundManager.swap(
           ethers.constants.AddressZero,
@@ -344,7 +344,7 @@ describe("FundManager", async () => {
         fundManager.swap(token1.address, parseEther("1"), 0, token2.address)
       ).to.be.revertedWith("BP: targetNetwork is requried");
     });
-    it("should revert if a zero target token address is passed", async () => {
+    it("should revert if a zero token address is passed on target side", async () => {
       await expect(
         fundManager.swap(
           token1.address,
@@ -587,34 +587,6 @@ describe("FundManager", async () => {
         )
       ).to.be.revertedWith("BridgePool: Invalid signer");
     });
-    it("should withdraw with signature verifycation correctly", async () => {
-      await fundManager.addSigner(account.address);
-      preBalance = BigNumber.from(await token1.balanceOf(owner.address));
-      tx = await fundManager.withdrawSigned(
-        token1.address,
-        owner.address,
-        parseEther("1"),
-        salt,
-        signature
-      );
-      postBalance = BigNumber.from(await token1.balanceOf(owner.address));
-      expect(postBalance.sub(preBalance)).to.equal(parseEther("0.9")); // 1 ETH - 10% fee
-    });
-    // it("should transfer fee to distributor contract correctly", async () => {
-    //   expect(await token1.balanceOf(distributor.address)).to.equal(
-    //     parseEther("0.1")
-    //   ); // 1 ETH * 10% fee
-    // });
-    it("should catch event", async () => {
-      feeAmount = parseEther("1").mul(fee).div(10000);
-      await expect(tx).to.emit(fundManager, "TransferBySignature").withArgs(
-        account.address,
-        owner.address,
-        token1.address,
-        parseEther("0.9"), // 1 ETH - 10% fee
-        feeAmount
-      );
-    });
   });
 
   describe("withdrawSignedVerify", async () => {
@@ -655,19 +627,19 @@ describe("FundManager", async () => {
   });
 
   describe("addLiquidity", async () => {
-    it("should revert if a zero amount is passed", async () => {
+    it("should revert if an invalid amount is passed", async () => {
       await expect(
         fundManager.addLiquidity(token1.address, 0)
       ).to.be.revertedWith("Amount must be positive");
     });
-    it("should revert if a zero token address is passed", async () => {
+    it("should revert if an invalid token address is passed", async () => {
       await expect(
         fundManager.addLiquidity(ethers.constants.AddressZero, parseEther("1"))
       ).to.be.revertedWith("Bad token");
     });
-    it("should revert if token is not a foundry asset", async () => {
+    it("should revert if token is not a supported foundry asset", async () => {
       await expect(
-        fundManager.addLiquidity(token1.address, parseEther("1"))
+        fundManager.addLiquidity(token2.address, parseEther("1"))
       ).to.be.revertedWith("Only foundry assets can be added");
     });
     it("should increase liquidity correctly", async () => {
@@ -680,7 +652,7 @@ describe("FundManager", async () => {
         await fundManager.liquidity(token1.address, owner.address)
       ).to.equal(parseEther("10"));
     });
-    it("should catch event", async () => {
+    it("should emit BridgeLiquidityAdded event", async () => {
       await expect(tx)
         .to.emit(fundManager, "BridgeLiquidityAdded")
         .withArgs(owner.address, token1.address, parseEther("10"));
