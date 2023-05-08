@@ -1,12 +1,49 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@nomiclabs/hardhat-ethers");
 require("@openzeppelin/hardhat-upgrades");
+require('solidity-coverage')
 const { ethers } = require("ethers");
 require("dotenv").config();
 
 module.exports = {
   solidity: {
     compilers: [
+      {
+        version: "0.6.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 20,
+          },
+        },
+      },
+      {
+        version: "0.5.16",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 20,
+          },
+        },
+      },
+      {
+        version: "0.7.3",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 20,
+          },
+        },
+      },
+      {
+        version: "0.8.0",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 20,
+          },
+        },
+      },
       {
         version: "0.8.2",
         settings: {
@@ -16,10 +53,23 @@ module.exports = {
           },
         },
       },
-    ],
+      {
+        version: "0.4.18",
+        settings: {
+          optimizer: {
+            // enabled: true,
+            // runs: 200,
+          },
+        },
+      },
+    ]
   },
   networks: {
     hardhat: {
+      forking: {
+        url: `https://goerli.blockpi.network/v1/rpc/public`,
+
+      },
       // url: "http://localhost:8545", // default Hardhat Network URL
       chainId: 31337,
     },

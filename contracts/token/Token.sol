@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-contract MockToken is ERC20Upgradeable {
+contract token is ERC20Upgradeable {
 
     //initialize function is constructor for upgradeable smart contract 
     function initialize(string memory _name, string memory _symbol, uint256 initialSupply) public initializer {
