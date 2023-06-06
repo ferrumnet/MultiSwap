@@ -119,10 +119,10 @@ async function cudosWithdraw(
 
 // cudosWithdraw(
 //   "acudos",
-//   "cudos1uc2lvphjnxrkarpfa9w7m33hctynusswy8m44y",
-//   "1000",
-//   "0x10a7c04c194d6dc48fc4e5c0ccaad3f6611659bc00bf602d3538b7d45640c720",
-//   "346ed3c395451d31d65788291acad06f4ac3b20f1e90f377b46037baaed7a24f57aac57498e2ccdf32ae254583055bd0950f814f49259a4d650ce6854ce33f3a1c"
+//   "cudos1zkza44q7wjge42f8n5dazchzf0lej9x5ldqhku",
+//   "10000000000000000",
+//   "0x283317f64c7cd5a5b5fd8bdd4eb25fc74175b58a9a7a15d63d0dbaedf8de6f75",
+//   "ecd21da2b9ef1bb86daa1f80edfdb6ee98910c14aec355b6265b7502b9e1e86625468fdd5328ad9598ebc3612c483e199fe1a40380f6175fb7522e11d3eb08041c"
 // );
 
 module.exports = cudosWithdraw;

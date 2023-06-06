@@ -109,9 +109,8 @@ const bscMainnetChainId = 56;
 const polygonMainnetChainId = 137;
 const ftmMainnetChainId = 250;
 
-// const bscMainnetRPC = 'https://nd-217-204-155.p2pify.com/379ccd6673575fd7a096cc3f2a87be63';
+
 const bscMainnetRPC = process.env.BSCMAINNETRPC;
-// const polygonMainnetRPC = 'https://polygon-rpc.com';
 const polygonMainnetRPC = process.env.POLYGONRPC;
 const ftmMainnetRPC = process.env.FTMRPC;
 
@@ -128,17 +127,17 @@ const ftmMainnetDEXRouter = "0xF491e7B69E4244ad4002BC14e878a34207E38c29";
 // const bscMainnetFundManager = '0x42cEB2Bb4B04FC5A2D7621A382019F8E3ADB6B68';
 
 // const bscMainnetFundManager = '0x9E566928AcC3594555A35d4D319f081013Ea9949'; //for non evm testin
-const bscMainnetFundManager = "0x6c94d367CbAC6B8F9879EDDc54eAE9B9762f1e6E"; //for non evm testin
+const bscMainnetFundManager = "0x6ebed6276033a33b6c6d60e515bf18e979976668"; //for non evm testin
 
-const polygonMainnetFundManager = "0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8";
-const ftmMainnetFundManager = "0xF87d78C41D01660082DE1A4aC3CAc3dd211CaCCf";
+const polygonMainnetFundManager = "0xe54b5835e8aba22d52bf892b23bb491e0bb1b579";
+const ftmMainnetFundManager = "0x354cbfc2894d45a584a9fd0223cf58495ce3cf7";
 
 // const bscMainnetFiberRouter = '0x7cA60AA20761EBC81F70Bb93F5068Be4e6765E87';
 // const bscMainnetFiberRouter = '0xd695Ecd3D8A824D0D8Cb5f8aeBD59fAEC2d37Bf8'; // for non evm testing
-const bscMainnetFiberRouter = "0xcf40780AbBb8BB83f8748Fd377Ef779B19a011e8"; // for non evm testing
+const bscMainnetFiberRouter = "0xd66C6a8277B4E258b4B6023F5B4085af00AfA9bB"; // for non evm testing
 
-const polygonMainnetFiberRouter = "0x72329a50E785bc1A414022D319E3a10A6f12184f";
-const ftmMainnetFiberRouter = "0xb014edCb84b89480Ac21F36837B62Fa75a5BFf8a";
+const polygonMainnetFiberRouter = "0x704d29c86fd1347446c5f30f80e77b31dc67539f";
+const ftmMainnetFiberRouter = "0xaa209557b51c28a8d050fb500e67498eb3d1d92b";
 
 const bscMainnetUsdc = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
 const polygonMainnetUsdc = "0x2791bca1f2de4661ed88a30c99a7a9449aa84174";

@@ -47,6 +47,7 @@ require("dotenv").config();
 const cudosSwap = require("./CudosSwap.js");
 const cudosWithdraw = require("./CudosWithdraw.js");
 const getCudosPrice = require("./CudosPrice");
+const slippageCalculation = require("./SettlementEngine")
 
 const MAX_FEE_PER_GAS = '60';
 const MAX_PRIORITY_FEE_PER_GAS = '60';
@@ -211,7 +212,7 @@ class Fiber {
         } catch (error) {
             throw "ALERT: DEX doesn't have liquidity for this pair";
         }
-        const amountOutMin = amounts[1];
+        const amountOutMin = slippageCalculation(amounts[1], sourceSlippage);
 
         // For swapping on ETHEREUM Blockchain IF ElseIf both conditions are performed
         // IF SourceToken(Eth) <> TargetToken on Same Network 
@@ -282,7 +283,9 @@ class Fiber {
         targetTokenAddress,
         sourceChainId,
         targetChainId,
-        inputAmount
+        inputAmount,
+        sourceSlippage,
+        targetSlippage
     ) {
         let receipt = {
             status: 0,
@@ -295,8 +298,6 @@ class Fiber {
         const gasForSwap = await estimateGasForWithdraw(sourceChainId, "0x0Bdb79846e8331A19A65430363f240Ec8aCC2A52");
 
         console.log("sourceChainId type", networks[sourceChainId].type)
-        const isSourceTokenEvm = ethers.utils.isAddress(sourceTokenAddress);
-        const isTargetTokenEvm = ethers.utils.isAddress(targetTokenAddress);
         if (networks[sourceChainId].type == 'evm') {
             console.log("INIT: Swap Initiated for this Amount: ", inputAmount);
             const sourceNetwork = networks[sourceChainId];
@@ -337,11 +338,11 @@ class Fiber {
                             amount,
                             targetChainId,
                             targetFoundryTokenAddress,
-                            targetSigner.address,
+                            sourceSigner.address,
                             gasForSwap
                         );
                     //wait until the transaction be completed
-                    sourceBridgeAmount = (inputAmount * 10 ** Number(targetTokenDecimal)).toString();
+                    sourceBridgeAmount = (inputAmount * 10 ** Number(networks[targetChainId].foundryTokenDecimals)).toString();
                     sourceBridgeToken = sourceTokenAddress;
                     receipt = await swapResult.wait();
 
@@ -378,7 +379,7 @@ class Fiber {
                     console.log("SN-1: Source Token is Refinery Asset");
                     console.log("SN-2: Swap Refinery Asset to Foundry Asset ...");
                     //swap refinery token to the foundry token
-                    const amount = await (inputAmount * 10 ** Number(targetTokenDecimal)).toString();
+                    const amount = await (inputAmount * 10 ** Number(sourceTokenDecimal)).toString();
                     let path = [sourceTokenAddress, sourceNetwork.foundryTokenAddress];
                     let amounts;
                     try {
@@ -389,7 +390,7 @@ class Fiber {
                     } catch (error) {
                         throw "ALERT: DEX doesn't have liquidity for this pair"
                     }
-                    const amountsOut = amounts[1];
+                    const amountsOut = slippageCalculation(amounts[1], sourceSlippage);
                     sourceBridgeAmount = amountsOut;
                     sourceBridgeToken = path[path.length - 1];
                     await sourceTokenContract
@@ -404,7 +405,8 @@ class Fiber {
                             path,
                             this.getDeadLine().toString(), // deadline
                             targetChainId,
-                            targetNetwork.foundryTokenAddress,
+                            networks[targetChainId].foundryTokenAddress,
+                            sourceSigner.address,
                             gasForSwap
                         );
                     //wait until the transaction be completed
@@ -425,7 +427,7 @@ class Fiber {
                     } catch (error) {
                         throw "ALERT: DEX doesn't have liquidity for this pair"
                     }
-                    const amountsOut = amounts[1];
+                    const amountsOut = await slippageCalculation(amounts[1], sourceSlippage);
                     sourceBridgeAmount = amountsOut;
                     sourceBridgeToken = path[path.length - 1];
                     console.log("nonEvmSwapAndCross sourceBridgeAmount", sourceBridgeAmount)
@@ -442,6 +444,7 @@ class Fiber {
                             this.getDeadLine().toString(), // deadline
                             targetChainId,
                             networks[targetChainId].foundryTokenAddress,
+                            sourceSigner.address,
                             gasForSwap
                         );
                     receipt = await swapResult.wait();
@@ -467,7 +470,7 @@ class Fiber {
                     } catch (error) {
                         throw "ALERT: DEX doesn't have liquidity for this pair"
                     }
-                    const amountsOut = amounts[amounts.length - 1];
+                    const amountsOut = slippageCalculation(amounts[amounts.length - 1], sourceSlippage);
                     sourceBridgeAmount = amountsOut;
                     sourceBridgeToken = path[path.length - 1];
                     await sourceTokenContract
@@ -482,7 +485,8 @@ class Fiber {
                             path,
                             this.getDeadLine().toString(), // deadline
                             targetChainId,
-                            targetNetwork.foundryTokenAddress,
+                            networks[targetChainId].foundryTokenAddress,
+                            sourceSigner.address,
                             gasForSwap
                         );
                     //wait until the transaction be completed
@@ -505,7 +509,7 @@ class Fiber {
                     } catch (error) {
                         throw "ALERT: DEX doesn't have liquidity for this pair"
                     }
-                    const amountsOut = amounts[amounts.length - 1];
+                    const amountsOut = slippageCalculation(amounts[amounts.length - 1], sourceSlippage);
                     sourceBridgeAmount = amountsOut;
                     sourceBridgeToken = path[path.length - 1];
                     await sourceTokenContract
@@ -521,13 +525,14 @@ class Fiber {
                             this.getDeadLine().toString(), // deadline
                             targetChainId,
                             networks[targetChainId].foundryTokenAddress,
+                            sourceSigner.address,
                             gasForSwap
                         );
                     //wait until the transaction be completed
                     receipt = await swapResult.wait();
                     receipt.status == receipt.status;
                 }
-        }
+            }
 
         }
         else if (networks[sourceChainId].type == 'cosmwasm') {
@@ -553,12 +558,6 @@ class Fiber {
             console.log("sourceBridgeAmount", sourceBridgeAmount)
             receipt.status = 1;
         }
-        //error if source and network token and chain id are similar
-        // if (sourceTokenAddress == targetTokenAddress && sourceChainId == targetChainId) {
-        //     console.error("ERROR: SAME TOKEN ADDRESS AND CHAIN ID");
-        //     return;
-        // }
-
 
         if (networks[targetChainId].type == 'evm') {
 
@@ -665,7 +664,7 @@ class Fiber {
                         );
                         const sig2 = fixSig(toRpcSig(sigP2.v, sigP2.r, sigP2.s));
                         console.log("Sig produced2=====================>2", sig2, sigP2, targetSigner.address);
-                        const amountsOut2 = amounts2[1];
+                        const amountsOut2 = slippageCalculation(amounts2[1], targetSlippage);
                         const swapResult2 = await targetNetwork.fiberRouterContract
                             .connect(targetSigner)
                             .withdrawSignedAndSwap(
@@ -721,7 +720,7 @@ class Fiber {
                         );
                         const sig2 = fixSig(toRpcSig(sigP2.v, sigP2.r, sigP2.s));
                         console.log("Sig produced2=====================>2", sig2, sigP2, targetSigner.address);
-                        const amountsOut2 = amounts2[amounts2.length - 1];
+                        const amountsOut2 = slippageCalculation(amounts2[amounts2.length - 1], targetSlippage);
                         const swapResult3 = await targetNetwork.fiberRouterContract
                             .connect(targetSigner)
                             .withdrawSignedAndSwap(
@@ -765,13 +764,6 @@ class Fiber {
                     targetTokenAddress,
                     String(Math.floor(sourceBridgeAmount))
                 );
-
-                //             const swapResult = await cudosWithdraw(
-                // "acudos",
-                // "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-                // "acudos",
-                // "100"
-                //             );
                 console.log("CUDOS Network Withdraw happened")
                 console.log("CUDOS Network Withdraw happened params", targetTokenAddress, sourceTokenAddress, targetTokenAddress, Math.floor(sourceBridgeAmount))
 
@@ -784,18 +776,22 @@ module.exports = Fiber;
 const fiber = new Fiber();
 
 fiber.SWAP(
-    '0xA719b8aB7EA7AF0DDb4358719a34631bb79d15Dc',
     'acudos',
-    56,
+    '0x55d398326f99059fF775485246999027B3197955',
     'cudos-1',
-    0.0001 //source token amount
+    56,
+    0.0001, //source token amount
+    2,
+    2
 );
 // fiber.SWAP(
-//     "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-//     '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
-//     56, // source chain id (goerli)
-//     137, // target chain id (bsc)
-//     0.001 //source token amount
+//     '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+//     "0x55d398326f99059fF775485246999027B3197955",
+//     137, // source chain id (goerli)
+//     56, // target chain id (bsc)
+//     0.00001,
+//     2,
+//     2//source token amount
 // );
 
 
