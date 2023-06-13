@@ -214,7 +214,7 @@ class FIBERRouterContract {
           },
         },
       ],
-      calculateFee(200000, gasPrice)
+      calculateFee(400000, gasPrice)
     );
     console.log("Executed withdrawSigned", tx.transactionHash);
   }
