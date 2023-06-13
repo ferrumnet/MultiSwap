@@ -85,6 +85,10 @@ module.exports = {
       url: `https://nd-409-138-440.p2pify.com/a2b2f87cd496703b1cc64ff8e91b7981`,
       accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
     },
+    neonTestnet: {
+      url: `https://devnet.neonevm.org`,
+      accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
+    },
   },
   etherscan: {
     apiKey: process.env.BSCSCAN_API_KEY,
