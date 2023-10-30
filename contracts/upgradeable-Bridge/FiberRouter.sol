@@ -4,17 +4,16 @@ pragma solidity 0.8.2;
 import "./FundManager.sol";
 import "../common/uniswap/IUniswapV2Router02.sol";
 import "../common/uniswap/IWETH.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /**
  @author The ferrum network.
  @title This is a vesting contract named as FiberRouter.
 */
-contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
+contract FiberRouter is ReentrancyGuard, Ownable {
+    using SafeERC20 for IERC20;
     address public pool;
     mapping(address => AggregatorV3Interface) public priceFeed;
 
@@ -51,13 +50,13 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
      */
     receive() external payable {}
 
-    /**
-     @notice Initialization of contract 
-    */
-    function initialize() external initializer {
-        __Ownable_init();
-        __ReentrancyGuard_init();
-    }
+    // /**
+    //  @notice Initialization of contract 
+    // */
+    // function initialize() external initializer {
+    //     // __Ownable_init();
+    //     // __ReentrancyGuard_init();
+    // }
 
     /**
      @notice Sets the fund manager contract.
@@ -112,12 +111,12 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         address targetToken,
         address targetAddress
     ) external {
-        IERC20Upgradeable(token).safeTransferFrom(
+        IERC20(token).safeTransferFrom(
             msg.sender,
             address(this),
             amount
         );
-        IERC20Upgradeable(token).approve(pool, amount);
+        IERC20(token).approve(pool, amount);
         FundManager(pool).swapToAddress(
             token,
             amount,
@@ -152,12 +151,12 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         string memory targetToken,
         string memory targetAddress
     ) external {
-        IERC20Upgradeable(token).safeTransferFrom(
+        IERC20(token).safeTransferFrom(
             msg.sender,
             address(this),
             amount
         );
-        IERC20Upgradeable(token).approve(pool, amount);
+        IERC20(token).approve(pool, amount);
         FundManager(pool).nonEvmSwapToAddress(
             token,
             amount,
@@ -204,7 +203,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             address(this),
             amountIn
         );
-        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        IERC20(path[0]).approve(swapRouter, amountIn);
         _swapAndCross(
             msg.sender,
             swapRouter,
@@ -254,7 +253,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             address(this),
             amountIn
         );
-        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        IERC20(path[0]).approve(swapRouter, amountIn);
         _nonEvmSwapAndCross(
             crossTargetAddress,
             swapRouter,
@@ -299,7 +298,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 amountIn = msg.value;
         address weth = IUniswapV2Router01(swapRouter).WETH();
         // approveIfRequired(weth, swapRouter, amountIn);
-        IERC20Upgradeable(weth).approve(swapRouter, amountIn);
+        IERC20(weth).approve(swapRouter, amountIn);
         IWETH(weth).deposit{value: amountIn}();
         _swapAndCross(
             msg.sender,
@@ -411,8 +410,8 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             salt,
             multiSignature
         );
-        amountIn = IERC20Upgradeable(path[0]).balanceOf(address(this)); // Actual amount received
-        IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
+        amountIn = IERC20(path[0]).balanceOf(address(this)); // Actual amount received
+        IERC20(path[0]).approve(swapRouter, amountIn);
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForTokensSupportingFeeOnTransferTokens(
                 amountIn,
@@ -459,7 +458,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             salt,
             multiSignature
         );
-        amountIn = IERC20Upgradeable(path[0]).balanceOf(address(this)); // Actual amount received
+        amountIn = IERC20(path[0]).balanceOf(address(this)); // Actual amount received
         IUniswapV2Router02(swapRouter)
             .swapExactTokensForETHSupportingFeeOnTransferTokens(
                 amountIn,
@@ -509,7 +508,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
                 deadline
             );
         address crossToken = path[path.length - 1];
-        IERC20Upgradeable(crossToken).approve(pool, amountCrossMin);
+        IERC20(crossToken).approve(pool, amountCrossMin);
         FundManager(pool).swapToAddress(
             crossToken,
             amountCrossMin,
@@ -551,7 +550,7 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
                 deadline
             );
         address crossToken = path[path.length - 1];
-        IERC20Upgradeable(crossToken).approve(pool, amountCrossMin);
+        IERC20(crossToken).approve(pool, amountCrossMin);
         FundManager(pool).nonEvmSwapToAddress(
             crossToken,
             amountCrossMin,

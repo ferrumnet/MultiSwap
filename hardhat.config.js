@@ -54,6 +54,24 @@ module.exports = {
         },
       },
       {
+        version: "0.8.18",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
+        version: "0.8.17",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
         version: "0.4.18",
         settings: {
           optimizer: {
@@ -82,18 +100,36 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
     },
     binance: {
-      url: `https://nd-409-138-440.p2pify.com/a2b2f87cd496703b1cc64ff8e91b7981`,
+      url: `https://bsc-mainnet.rpcfast.com?api_key=xbhWBI1Wkguk8SNMu1bvvLurPGLXmgwYeC4S6g2H7WdwFigZSmPWVZRxrskEQwIf`,
       accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
     },
     neonTestnet: {
-      url: `https://devnet.neonevm.org`,
+      url: `https://proxy.devnet.neonlabs.org/solana`,
+      accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
+    },
+    polygon: {
+      url: `https://nd-003-843-665.p2pify.com/7af52d3a77b5d19f11de64357253ca16`,
+      accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
+      networkCheckTimeout: 999999,
+      timeoutBlocks: 200,
+      gas: 12400000,
+      gasPrice: 1110000000,
+    },
+    ethereum: {
+      url: `https://nd-611-696-948.p2pify.com/8a54d0bc389e645253087fd1a6c5fe3a`,
+      accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
+      networkCheckTimeout: 999999,
+      timeoutBlocks: 200,
+      // gas: 12400000,
+      // gasPrice: 1110000000,
+    },
+    arbitrum: {
+      url: `https://nd-827-555-321.p2pify.com/fc3eea1a96148177e332fff558188fa9`,
       accounts: [process.env.PRIVATE_KEY0, process.env.PRIVATE_KEY1],
     },
   },
+  // ...rest of the config...
   etherscan: {
-    apiKey: process.env.BSCSCAN_API_KEY,
+    apiKey: "4UAT5873ISJN624VKTNNN5YFSQD2BECEEQ",
   },
-  etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY,
-  },
-};
+}
