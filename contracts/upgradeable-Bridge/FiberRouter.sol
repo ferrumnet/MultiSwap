@@ -2,11 +2,10 @@
 pragma solidity 0.8.2;
 
 import "./FundManager.sol";
+import "./FeeManager.sol";
 import "../common/uniswap/IUniswapV2Router02.sol";
 import "../common/uniswap/IWETH.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 /**
@@ -16,6 +15,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     address public pool;
+    address payable public feeManager;
     mapping(address => AggregatorV3Interface) public priceFeed;
 
     event Swap(
@@ -68,6 +68,14 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
     }
 
     /**
+     @notice Sets the fee manager contract.
+     @param _feeManager The fee manager
+     */
+    function setFeeManager(address _feeManager) external onlyOwner {
+        feeManager = payable(_feeManager);
+    }
+
+    /**
      @notice Sets the oracle for foundry tokens.
      @param _token The foundry token address
      @param _oracleAddress The oracle address for price feed
@@ -85,12 +93,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         returns (uint256)
     {
         (
-            /*uint80 roundID*/,
-            int256 price,
-            /*uint startedAt*/,
-            /*uint timeStamp*/,
-        /*uint80 answeredInRound*/
-        ) = priceFeed[_token].latestRoundData();
+            ,
+            /*uint80 roundID*/
+            int256 price, /*uint startedAt*/
+            ,
+            ,
+
+        ) = /*uint timeStamp*/
+            /*uint80 answeredInRound*/
+            priceFeed[_token].latestRoundData();
         uint8 baseDecimals = priceFeed[_token].decimals();
         return uint256(price) * 10**(18 - baseDecimals);
         // return uint(price);
@@ -110,13 +121,16 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 amount,
         uint256 targetNetwork,
         address targetToken,
-        address targetAddress
-    ) external {
+        address targetAddress,
+        bytes memory data,
+        uint256 feeAmount
+    ) external payable {
         IERC20Upgradeable(token).safeTransferFrom(
             msg.sender,
             address(this),
-            amount
+            amount + feeAmount
         );
+        
         IERC20Upgradeable(token).approve(pool, amount);
         FundManager(pool).swapToAddress(
             token,
@@ -125,6 +139,8 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             targetToken,
             targetAddress
         );
+        IERC20Upgradeable(token).approve(feeManager, feeAmount);
+        FeeManager(feeManager).receiveFee{value: msg.value}(data);
         emit Swap(
             token,
             targetToken,
@@ -150,12 +166,14 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 amount,
         string memory targetNetwork,
         string memory targetToken,
-        string memory targetAddress
-    ) external {
+        string memory targetAddress,
+        bytes memory data,
+        uint256 feeAmount
+    ) external payable {
         IERC20Upgradeable(token).safeTransferFrom(
             msg.sender,
             address(this),
-            amount
+            amount + feeAmount
         );
         IERC20Upgradeable(token).approve(pool, amount);
         FundManager(pool).nonEvmSwapToAddress(
@@ -165,6 +183,8 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             targetToken,
             targetAddress
         );
+        IERC20Upgradeable(token).approve(feeManager, feeAmount);
+        FeeManager(feeManager).receiveFee{value: msg.value}(data);
         NonEvmSwap(
             token,
             targetToken,
@@ -196,13 +216,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 deadline,
         uint256 crossTargetNetwork,
         address crossTargetToken,
-        address crossTargetAddress
-    ) external nonReentrant {
+        address crossTargetAddress,
+        bytes memory data,
+        uint256 feeAmount
+    ) external payable nonReentrant {
         amountIn = SafeAmount.safeTransferFrom(
             path[0],
             msg.sender,
             address(this),
-            amountIn
+            amountIn + feeAmount
         );
         IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
         _swapAndCross(
@@ -215,6 +237,9 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             crossTargetNetwork,
             crossTargetToken
         );
+        IERC20Upgradeable(path[0]).approve(feeManager, feeAmount);
+        FeeManager(feeManager).receiveFee{value: msg.value}(data);
+
         emit Swap(
             path[0],
             crossTargetToken,
@@ -246,13 +271,15 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
         uint256 deadline,
         string memory crossTargetNetwork,
         string memory crossTargetToken,
-        string memory crossTargetAddress
-    ) external nonReentrant {
+        string memory crossTargetAddress,
+        bytes memory data,
+        uint256 feeAmount
+    ) external payable nonReentrant {
         amountIn = SafeAmount.safeTransferFrom(
             path[0],
             msg.sender,
             address(this),
-            amountIn
+            amountIn + feeAmount
         );
         IERC20Upgradeable(path[0]).approve(swapRouter, amountIn);
         _nonEvmSwapAndCross(
@@ -265,6 +292,9 @@ contract FiberRouter is ReentrancyGuardUpgradeable, OwnableUpgradeable {
             crossTargetNetwork,
             crossTargetToken
         );
+        IERC20Upgradeable(path[0]).approve(feeManager, feeAmount);
+        FeeManager(feeManager).receiveFee{value: msg.value}(data);
+
         NonEvmSwap(
             path[0],
             crossTargetToken,

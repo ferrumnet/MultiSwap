@@ -376,8 +376,8 @@ class Fiber {
                             targetChainId,
                             targetFoundryTokenAddress,
                             sourceSigner.address,
-                            sourceAmountInFee,
                             encoding,
+                            sourceAmountInFee,
                             gasForSwap
                             
                         );
@@ -409,13 +409,13 @@ class Fiber {
                     swapResult = await sourceNetwork.fiberRouterContract
                         .connect(sourceSigner)
                         .nonEvmSwap(
-                            "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-                            String(10000000),
-                            "cudos-1",
-                            "acudos",
-                            "cudos1q82hgcy5sdcn3xlqvlq96urn72pap8ph6vcmpl",
-                            "0x0000000000000000000000008ac76a51cc950d9822d68b83fe1ad97b32cd580d000000000000000000000000000000000000000000000000000000000000271000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000640000000000000000000000000000000000000000000000000000000000000002000000000000000000000000b66a66a7ee31e3ae640c618c19e2ecb9c8423fd3000000000000000000000000b66a66a7ee31e3ae640c618c19e2ecb9c8423fd3000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000013880000000000000000000000000000000000000000000000000000000000001388",
-                            String(10000),
+                            sourceTokenAddress,
+                            amount,
+                            targetChainId,
+                            targetFoundryTokenAddress,
+                            sourceSigner.address,
+                            encoding,
+                            sourceAmountInFee,
                             {
                                 gasPrice: 15000000000,
                                 value : networkFeeAmount
