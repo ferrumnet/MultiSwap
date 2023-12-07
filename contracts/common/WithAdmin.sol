@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract WithAdmin is OwnableUpgradeable {
+contract WithAdmin is Ownable {
 	address public admin;
 	event AdminSet(address admin);
 

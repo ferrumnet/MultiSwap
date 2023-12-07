@@ -170,7 +170,7 @@ const neonEvmMainnetDEXRouter = "0x3CC4E4Ce67a6908CA5EA74d73d6c9482ec90e573";
 // const bscMainnetFundManager = '0x9E566928AcC3594555A35d4D319f081013Ea9949'; //for non evm testin
 const bscMainnetFundManager = "0xAA34B90cb58431bdBb97039A0cC1831094036d9b"; //for non evm testin
 
-const polygonMainnetFundManager = "0xe54b5835e8aba22d52bf892b23bb491e0bb1b579";
+const polygonMainnetFundManager = "0x59730bF8cb1D2a42Ac0dc88F7eD38E7eFF009B7c";
 const ftmMainnetFundManager = "0x354cbfc2894d45a584a9fd0223cf58495ce3cf7";
 const kavaMainnetFundManager = "0x2de94E021C23933E18fbFa01437d0BC14D8aCd3A"
 const avalancheMainnetFundManager = "0x81A536479Af0FE02Ec2aC6BB59Db305aa72a774f";
