@@ -359,6 +359,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin, TokenReceivabl
             address(this),
             amount
         );
+        amount = TokenReceivable.sync(token);
         emit BridgeLiquidityAdded(msg.sender, token, amount);
     }
 

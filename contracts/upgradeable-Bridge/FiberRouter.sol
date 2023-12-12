@@ -83,6 +83,10 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
      @param _pool The fund manager
      */
     function setPool(address _pool) external onlyOwner {
+        require(
+            _pool != address(0),
+            "Swap router address cannot be zero"
+        );
         pool = _pool;
     }
 
