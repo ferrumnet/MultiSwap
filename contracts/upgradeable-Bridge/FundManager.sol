@@ -4,9 +4,11 @@ pragma solidity 0.8.2;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../common/signature/SigCheckable.sol";
 import "../common/WithAdmin.sol";
+import "../common/SafeAmount.sol";
+import "../common/tokenReceiveable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
+contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin, TokenReceivable {
     using SafeERC20 for IERC20;
 
     address public router;
@@ -14,11 +16,11 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
     string public constant VERSION = "000.004";
     bytes32 constant WITHDRAW_SIGNED_METHOD =
         keccak256(
-            "WithdrawSigned(address token,address payee,uint256 amount,bytes32 salt)"
+            "WithdrawSigned(address token,address payee,uint256 amount,bytes32 salt,uint256 expiry)"
         );
     bytes32 constant WITHDRAW_SIGNED_ONEINCH__METHOD =
         keccak256(
-            "WithdrawSigned(address to,address swapRouter,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,bytes32 salt)"
+            "WithdrawSignedOneInch(address to,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -51,6 +53,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
     mapping(address => mapping(uint256 => address)) public allowedTargets;
     mapping(address => mapping(string => string)) public nonEvmAllowedTargets;
     mapping(address => bool) public isFoundryAsset;
+    mapping(bytes32=>bool) public usedSalt;
 
     modifier onlyRouter() {
         require(msg.sender == router, "FM: Only router method");
@@ -99,8 +102,8 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         string memory targetToken
     ) external onlyAdmin {
         require(token != address(0), "Bad token");
-        require(bytes(chainId).length > 0, "Chain ID cannot be empty");
-        require(bytes(targetToken).length > 0, "Target token cannot be empty");
+        require(bytes(chainId).length != 0, "Chain ID cannot be empty");
+        require(bytes(targetToken).length != 0, "Target token cannot be empty");
 
         nonEvmAllowedTargets[token][chainId] = targetToken;
     }
@@ -116,7 +119,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         onlyAdmin
     {
         require(token != address(0), "Bad token");
-        require(bytes(chainId).length > 0, "Chain ID cannot be empty");
+        require(bytes(chainId).length != 0, "Chain ID cannot be empty");
         delete nonEvmAllowedTargets[token][chainId];
     }
 
@@ -136,20 +139,18 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         uint256 targetNetwork,
         address targetToken,
         address targetAddress
-    ) external onlyRouter {
+    ) external onlyRouter returns(uint256) {
         require(msg.sender != address(0), "FM: bad from");
         require(token != address(0), "FM: bad token");
         require(targetNetwork != 0, "FM: targetNetwork is requried");
         require(targetToken != address(0), "FM: bad target token");
-        require(
-            targetAddress != address(0),
-            "FM: targetAddress is required"
-        );
+        require(targetAddress != address(0), "FM: targetAddress is required");
         require(amount != 0, "FM: bad amount");
         require(
             allowedTargets[token][targetNetwork] == targetToken,
             "FM: target not allowed"
         );
+        amount = TokenReceivable.sync(token);
         emit BridgeSwap(
             msg.sender,
             token,
@@ -158,6 +159,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
             targetAddress,
             amount
         );
+        return amount;
     }
 
     function nonEvmSwapToAddress(
@@ -166,19 +168,20 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         string memory targetNetwork,
         string memory targetToken,
         string memory targetAddress
-    ) external onlyRouter nonReentrant {
+    ) external onlyRouter returns (uint256) {
         require(msg.sender != address(0), "FM: bad from");
         require(token != address(0), "FM: bad token");
-        require(amount > 0, "FM: bad amount");
-        require(bytes(targetNetwork).length > 0, "FM: empty target network");
-        require(bytes(targetToken).length > 0, "FM: empty target token");
-        require(bytes(targetAddress).length > 0, "FM: empty target address");
+        require(amount != 0, "FM: bad amount");
+        require(bytes(targetNetwork).length != 0, "FM: empty target network");
+        require(bytes(targetToken).length != 0, "FM: empty target token");
+        require(bytes(targetAddress).length != 0, "FM: empty target address");
         require(
             keccak256(
                 abi.encodePacked(nonEvmAllowedTargets[token][targetNetwork])
             ) == keccak256(abi.encodePacked(targetToken)),
             "FM: target not allowed"
         );
+        amount = TokenReceivable.sync(token);
         emit nonEvmBridgeSwap(
             msg.sender,
             token,
@@ -187,6 +190,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
             targetAddress,
             amount
         );
+        return amount;
     }
 
     function withdrawSigned(
@@ -194,29 +198,32 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         address payee,
         uint256 amount,
         bytes32 salt,
+        uint256 expiry,
         bytes memory signature
-    ) external onlyRouter nonReentrant returns (uint256) {
+    ) external onlyRouter returns (uint256) {
         require(token != address(0), "FM: bad token");
         require(payee != address(0), "FM: bad payee");
         require(salt != 0, "FM: bad salt");
         require(amount != 0, "FM: bad amount");
-        bytes32 message = withdrawSignedMessage(token, payee, amount, salt);
+        bytes32 message = withdrawSignedMessage(token, payee, amount, salt, expiry);
         address _signer = signerUnique(message, signature);
-        require(signers[_signer], "FM: Invalid signer");
-        IERC20(token).safeTransfer(router, amount);
+        // require(signers[_signer], "FM: Invalid signer");
+        require(!usedSalt[salt], "Message already used");
+        TokenReceivable.sendToken(token, router, amount);
         emit TransferBySignature(_signer, router, token, amount);
+        usedSalt[salt] = true;
         return amount;
     }
 
     function withdrawSignedOneInch(
         address to,
-        address swapRouter,
         uint256 amountIn,
-        uint256 amountOut, 
+        uint256 amountOut,
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
         bytes32 salt,
+        uint256 expiry,
         bytes memory signature
     ) external onlyRouter returns (uint256) {
         require(targetToken != address(0), "FM: bad token");
@@ -225,20 +232,23 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         require(salt != 0, "FM: bad salt");
         require(amountIn != 0, "FM: bad amount");
         require(amountOut != 0, "FM: bad amount");
+        require(!usedSalt[salt], "FM: Sal already used");
+        require(expiry >= block.timestamp, "FM: Expiry time must be greater than or equal to the current time");
 
         bytes32 message = withdrawSignedMessageOneInch(
             to,
-            swapRouter,
             amountIn,
-            amountOut, 
+            amountOut,
             foundryToken,
             targetToken,
             oneInchData,
-            salt
+            salt,
+            expiry
         );
         address _signer = signerUnique(message, signature);
-        require(signers[_signer], "FM: Invalid signer");
-        IERC20(foundryToken).safeTransfer(router, amountIn);
+        // require(signers[_signer], "FM: Invalid signer");
+        TokenReceivable.sendToken(foundryToken, router, amountIn);
+        usedSalt[salt] = true;
         emit TransferBySignature(_signer, router, foundryToken, amountIn);
         return amountIn;
     }
@@ -247,13 +257,13 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         address token,
         address payee,
         uint256 amount
-    ) external onlyAdmin nonReentrant returns (uint256) {
+    ) external onlyAdmin returns (uint256) {
         require(token != address(0), "FM: bad token");
         require(payee != address(0), "FM: bad payee");
         require(amount != 0, "FM: bad amount");
         uint256 contractBalance = IERC20(token).balanceOf(address(this));
         require(contractBalance >= amount, "insufficient Balance");
-        IERC20(token).safeTransfer(payee, amount);
+        TokenReceivable.sendToken(token, payee, amount);
         return amount;
     }
 
@@ -262,9 +272,10 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         address payee,
         uint256 amount,
         bytes32 salt,
+        uint256 expiry,
         bytes calldata signature
     ) external view returns (bytes32, address) {
-        bytes32 message = withdrawSignedMessage(token, payee, amount, salt);
+        bytes32 message = withdrawSignedMessage(token, payee, amount, salt, expiry);
         (bytes32 digest, address _signer) = signer(message, signature);
         return (digest, _signer);
     }
@@ -273,22 +284,23 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         address to,
         address swapRouter,
         uint256 amountIn,
-        uint256 amountOut, 
+        uint256 amountOut,
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
         bytes32 salt,
+        uint256 expiry,
         bytes calldata signature
     ) external view returns (bytes32, address) {
         bytes32 message = withdrawSignedMessageOneInch(
             to,
-            swapRouter,
             amountIn,
-            amountOut, 
+            amountOut,
             foundryToken,
             targetToken,
             oneInchData,
-            salt
+            salt,
+            expiry
         );
         (bytes32 digest, address _signer) = signer(message, signature);
         return (digest, _signer);
@@ -298,36 +310,37 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
         address token,
         address payee,
         uint256 amount,
-        bytes32 salt
+        bytes32 salt,
+        uint256 expiry
     ) internal pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt)
+                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
             );
     }
 
     function withdrawSignedMessageOneInch(
         address to,
-        address swapRouter,
         uint256 amountIn,
-        uint256 amountOut, 
+        uint256 amountOut,
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
-        bytes32 salt
+        bytes32 salt,
+        uint256 expiry
     ) internal pure returns (bytes32) {
         return
             keccak256(
                 abi.encode(
                     WITHDRAW_SIGNED_ONEINCH__METHOD,
                     to,
-                    swapRouter,
                     amountIn,
                     amountOut,
                     foundryToken,
                     targetToken,
                     oneInchData,
-                    salt
+                    salt,
+                    expiry
                 )
             );
     }
@@ -340,13 +353,17 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
             "Only foundry assets can be added"
         );
         liquidities[token][msg.sender] += amount;
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        amount = SafeAmount.safeTransferFrom(
+            token,
+            msg.sender,
+            address(this),
+            amount
+        );
         emit BridgeLiquidityAdded(msg.sender, token, amount);
     }
 
     function removeLiquidityIfPossible(address token, uint256 amount)
         external
-        nonReentrant
         returns (uint256)
     {
         require(amount != 0, "Amount must be positive");
@@ -362,7 +379,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin {
 
         if (actualLiq != 0) {
             liquidities[token][msg.sender] -= actualLiq;
-            IERC20(token).safeTransfer(msg.sender, actualLiq);
+            TokenReceivable.sendToken(token, msg.sender, actualLiq);
             emit BridgeLiquidityRemoved(msg.sender, token, amount);
         }
         return actualLiq;

@@ -8,15 +8,12 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
  @dev Make sure to define method signatures
  */
 abstract contract SigCheckable is EIP712 {
-    mapping(bytes32=>bool) public usedHashes;
 
     function signerUnique(
         bytes32 message,
-        bytes memory signature) internal returns (address _signer) {
+        bytes memory signature) internal view returns (address _signer) {
         bytes32 digest;
         (digest, _signer) = signer(message, signature);
-        // require(!usedHashes[digest], "Message already used");
-        usedHashes[digest] = true;
     }
 
     /*
