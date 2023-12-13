@@ -1,6 +1,6 @@
 pragma solidity ^0.8.2;
 
-library Decoder {
+library OneInchDecoder {
 struct SwapDescription {
         address srcToken;
         address dstToken;

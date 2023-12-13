@@ -8,7 +8,7 @@ import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin, TokenReceivable {
+contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     using SafeERC20 for IERC20;
 
     address public router;
@@ -207,10 +207,10 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin, TokenReceivabl
         require(amount != 0, "FM: bad amount");
         bytes32 message = withdrawSignedMessage(token, payee, amount, salt, expiry);
         address _signer = signerUnique(message, signature);
-        // require(signers[_signer], "FM: Invalid signer");
+        require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "Message already used");
-        TokenReceivable.sendToken(token, router, amount);
-        emit TransferBySignature(_signer, router, token, amount);
+        TokenReceivable.sendToken(token, payee, amount);
+        emit TransferBySignature(_signer, payee, token, amount);
         usedSalt[salt] = true;
         return amount;
     }
@@ -232,7 +232,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin, TokenReceivabl
         require(salt != 0, "FM: bad salt");
         require(amountIn != 0, "FM: bad amount");
         require(amountOut != 0, "FM: bad amount");
-        require(!usedSalt[salt], "FM: Sal already used");
+        require(!usedSalt[salt], "FM: Salt already used");
         require(expiry >= block.timestamp, "FM: Expiry time must be greater than or equal to the current time");
 
         bytes32 message = withdrawSignedMessageOneInch(
@@ -246,7 +246,7 @@ contract FundManager is SigCheckable, ReentrancyGuard, WithAdmin, TokenReceivabl
             expiry
         );
         address _signer = signerUnique(message, signature);
-        // require(signers[_signer], "FM: Invalid signer");
+        require(signers[_signer], "FM: Invalid signer");
         TokenReceivable.sendToken(foundryToken, router, amountIn);
         usedSalt[salt] = true;
         emit TransferBySignature(_signer, router, foundryToken, amountIn);
