@@ -282,7 +282,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
 
     function withdrawSignedOneInchVerify(
         address to,
-        address swapRouter,
         uint256 amountIn,
         uint256 amountOut,
         address foundryToken,
