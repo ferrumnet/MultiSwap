@@ -144,7 +144,6 @@ contract FiberRouter is Ownable, TokenReceivable {
             token,
             amount,
             targetNetwork,
-            targetToken,
             targetAddress
         );
         emit Swap(
@@ -276,7 +275,6 @@ contract FiberRouter is Ownable, TokenReceivable {
             foundryToken,
             amountOut,
             crossTargetNetwork,
-            crossTargetToken,
             crossTargetAddress
         );
         require(FMAmountOut >= oneInchAmountOut,"FR: Bad FM or OneInch Amount Out");
@@ -439,7 +437,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         require(amountIn != 0, "Amount in must be greater than zero");
         require(amountOut != 0, "Amount out minimum must be greater than zero");
         require(foundryToken != address(0), "Bad Token Address");
-        amountIn = FundManager(pool).withdrawSignedOneInch(
+        FundManager(pool).withdrawSignedOneInch(
             to,
             amountIn,
             amountOut,
@@ -450,6 +448,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             expiry,
             multiSignature
         );
+        amountIn = IERC20(foundryToken).balanceOf(address(this));
         IERC20(foundryToken).safeApprove(oneInchAggregatorRouter, amountIn);
         uint256 amountOutOneInch = swapHelperForOneInch(
             to,
@@ -471,19 +470,6 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
     }
 
-    function emergencyWithdraw(
-        address token,
-        address payee,
-        uint256 amount
-    ) external onlyOwner returns (uint256) {
-        require(token != address(0), "FR: bad token");
-        require(payee != address(0), "FR: bad payee");
-        require(amount != 0, "FR: bad amount");
-        uint256 contractBalance = IERC20(token).balanceOf(address(this));
-        require(contractBalance >= amount, "FR: insufficient Balance");
-        TokenReceivable.sendToken(token, payee, amount);
-        return amount;
-    }
 
     function swapHelperForOneInch(
         address payable to,
