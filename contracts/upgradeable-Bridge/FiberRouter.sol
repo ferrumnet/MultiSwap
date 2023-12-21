@@ -140,7 +140,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             "FR: Swap bridge amount must be greater than zero"
         );
         require(
-            bytes32(withdrawlData) != 0,
+            withdrawlData != 0,
             "FR: withdraw data cannot be empty"
         );
 
@@ -202,7 +202,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             "FR: Target address cannot be empty"
         );
         require(
-            bytes32(withdrawlData) != 0,
+            withdrawlData != 0,
             "FR: withdraw data cannot be empty"
         );
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), pool, amount);
@@ -274,7 +274,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             "FR: Swap bridge amount must be greater than zero"
         );
         require(
-            bytes32(withdrawlData) != 0,
+            withdrawlData != 0,
             "FR: withdraw data cannot be empty"
         );
         amountIn = SafeAmount.safeTransferFrom(
@@ -358,7 +358,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             "FR: Swap bridge amount must be greater than zero"
         );
         require(
-            bytes32(withdrawlData) != 0,
+            withdrawlData != 0,
             "FR: withdraw data cannot be empty"
         );
         amountIn = SafeAmount.safeTransferFrom(
