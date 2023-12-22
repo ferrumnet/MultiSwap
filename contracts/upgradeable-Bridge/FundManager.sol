@@ -17,11 +17,11 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     string public constant VERSION = "000.004";
     bytes32 constant WITHDRAW_SIGNED_METHOD =
         keccak256(
-            "WithdrawSigned(address token,address payee,uint256 amount,bytes32 salt,uint256 expiry,bytes32 validatedSignatureChainHash)"
+            "WithdrawSigned(address token,address payee,uint256 amount,bytes32 validatedSignatureChainHash,bytes32 salt,uint256 expiry)"
         );
     bytes32 constant WITHDRAW_SIGNED_ONEINCH__METHOD =
         keccak256(
-            "WithdrawSignedOneInch(address to,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,bytes32 salt,uint256 expiry,bytes32 validatedSignatureChainHash)"
+            "WithdrawSignedOneInch(address to,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,bytes32 validatedSignatureChainHash,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -195,21 +195,21 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address token,
         address payee,
         uint256 amount,
+        bytes32 validatedSignatureChainHash,
         bytes32 salt,
         uint256 expiry,
-        bytes32 validatedSignatureChainHash,
         bytes memory signature
     ) external onlyRouter returns (uint256) {
         require(token != address(0), "FM: bad token");
         require(payee != address(0), "FM: bad payee");
         require(salt != 0, "FM: bad salt");
         require(amount != 0, "FM: bad amount");
+        require(validatedSignatureChainHash != 0, "FM: invalid signature chain hash");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
         bytes32 message =  keccak256(
-                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry, validatedSignatureChainHash)
+                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, validatedSignatureChainHash, salt, expiry)
             );
-        require(validatedSignatureChainHash != 0, "FM: Invalid Hash");
         address _signer = signerUnique(message, signature);
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
@@ -226,9 +226,9 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
+        bytes32 validatedSignatureChainHash,
         bytes32 salt,
         uint256 expiry,
-        bytes32 validatedSignatureChainHash,
         bytes memory signature
     ) external onlyRouter returns (uint256) {
         require(targetToken != address(0), "FM: bad token");
@@ -237,9 +237,9 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         require(salt != 0, "FM: bad salt");
         require(amountIn != 0, "FM: bad amount");
         require(amountOut != 0, "FM: bad amount");
+        require(validatedSignatureChainHash != 0, "FM: invalid signature chain hash");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
-        require(validatedSignatureChainHash != 0, "FM: Invalid Hash");
 
         bytes32 message =  keccak256(
                 abi.encode(
@@ -250,9 +250,9 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
                     foundryToken,
                     targetToken,
                     oneInchData,
+                    validatedSignatureChainHash,
                     salt,
-                    expiry,
-                    validatedSignatureChainHash
+                    expiry
                 )
             );
         address _signer = signerUnique(message, signature);
@@ -268,13 +268,13 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address token,
         address payee,
         uint256 amount,
+        bytes32 validatedSignatureChainHash,
         bytes32 salt,
         uint256 expiry,
-        bytes32 validatedSignatureChainHash,
         bytes calldata signature
     ) external view returns (bytes32, address) {
         bytes32 message = keccak256(
-                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry, validatedSignatureChainHash)
+                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, validatedSignatureChainHash, salt, expiry)
             );
         (bytes32 digest, address _signer) = signer(message, signature);
         return (digest, _signer);
@@ -287,9 +287,9 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
+        bytes32 validatedSignatureChainHash,
         bytes32 salt,
         uint256 expiry,
-        bytes32 validatedSignatureChainHash,
         bytes calldata signature
     ) external view returns (bytes32, address) {
         bytes32 message =  keccak256(
@@ -301,9 +301,9 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
                     foundryToken,
                     targetToken,
                     oneInchData,
+                    validatedSignatureChainHash,
                     salt,
-                    expiry,
-                    validatedSignatureChainHash
+                    expiry
                 )
             );
         (bytes32 digest, address _signer) = signer(message, signature);
