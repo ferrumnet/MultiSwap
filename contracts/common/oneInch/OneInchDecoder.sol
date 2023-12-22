@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.2;
 
 library OneInchDecoder {
-struct SwapDescription {
+    struct SwapDescription {
         address srcToken;
         address dstToken;
         address payable srcReceiver;
@@ -23,44 +24,16 @@ struct SwapDescription {
                 "swap(address,(address,address,address,address,uint256,uint256,uint256),bytes,bytes)"
             )
         );
-
-    // Function to identify which function is being called
-    function identifyFunction(bytes memory data)
-        public
-        pure
-        returns (string memory)
-    {
-        require(data.length >= 4, "Data too short for valid call");
-
-        // Extract the first 4 bytes from data
-        bytes4 receivedSelector;
-        assembly {
-            // Extract the first 4 bytes directly from the data
-            // Assuming 'data' starts with the 4-byte function selector
-            receivedSelector := mload(add(data, 32))
-        }
-
-        if (receivedSelector == selectorUnoswap) {
-            return "decodeUnoswap";
-        } else if (receivedSelector == selectorUniswapV3Swap) {
-            return "decodeUniswapV3Swap";
-        } else if (receivedSelector == selectorSwap) {
-            return "decodeSwap";
-        } else {
-            return "Unknown function";
-        }
-    }
-
+                
     function decodeUnoswap(bytes memory data)
         public
         pure
         returns (
             address payable recipient,
-        address srcToken,
+            address srcToken,
             uint256 amount,
             uint256 minReturn,
             uint256[] memory pools
-
         )
     {
         require(data.length >= 4, "Data too short");
@@ -82,10 +55,10 @@ struct SwapDescription {
             address payable recipient,
             uint256 amount,
             uint256 minReturn,
-        uint256[] memory pools
+            uint256[] memory pools
         )
     {
-                require(data.length >= 4, "Data too short");
+        require(data.length >= 4, "Data too short");
 
         // Skip the first 4 bytes (function signature)
         bytes memory params = slice(data, 4, data.length - 4);
@@ -149,41 +122,4 @@ struct SwapDescription {
         }
         return part;
     }
-
-    // function decodedInputs(bytes memory data)
-    //     public
-    //     pure
-    //     returns (
-    //         address payable recipient,
-    //         uint256 amount,
-    //         uint256 minReturn,
-    //     uint256[] memory pools
-    //     )
-    // {
-    //     require(data.length >= 4, "Data too short for valid call");
-
-    //     // Extract the first 4 bytes from data
-    //     bytes4 receivedSelector;
-    //     assembly {
-    //         // Extract the first 4 bytes directly from the data
-    //         // Assuming 'data' starts with the 4-byte function selector
-    //         receivedSelector := mload(add(data, 32))
-    //     }
-
-    //     if (receivedSelector == selectorUnoswap) {
-    //         // Call decodeUnoswap and return its values
-    //         (recipient, amount, minReturn, pools) = decodeUnoswap(data);
-    //     } else if (receivedSelector == selectorUniswapV3Swap) {
-    //         // Call decodeUniswapV3Swap and return its values
-    //         (recipient, amount, minReturn, pools) = decodeUniswapV3Swap(data);
-    //     } else if (receivedSelector == selectorSwap) {
-    //         (recipient, amount, minReturn) = decodeSwap2(data);
-
-    //     }
-        // Assuming decodeSwap is not needed as per your comment
-        // else {
-        //     revert("Unknown function selector");
-        // }
-        // Implicitly returns recipient, amount, minReturn
-    // }
 }

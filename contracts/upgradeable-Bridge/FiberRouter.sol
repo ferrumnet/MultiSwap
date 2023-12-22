@@ -4,15 +4,15 @@ pragma solidity 0.8.2;
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
-import "../common/oneInch/oneInch.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../common/oneInch/OneInchDecoder.sol";
 import "../common/oneInch/IOneInchSwap.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  @author The ferrum network.
  @title This is a routing contract named as FiberRouter.
 */
-contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
+contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
     address public pool;
     address public oneInchAggregatorRouter;
@@ -25,7 +25,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 sourceAmount,
         address sourceAddress,
         address targetAddress,
-        uint256 swapBridgeAmount
+        uint256 swapBridgeAmount,
+        bytes32 withdrawlData
     );
 
     event Withdraw(
@@ -55,7 +56,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 sourceAmount,
         address sourceAddress,
         string targetAddress,
-        uint256 swapBridgeAmount
+        uint256 swapBridgeAmount,
+        bytes32 withdrawlData
     );
     event UnoSwapHandled(
         address indexed swapRouter,
@@ -83,6 +85,10 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
      @param _pool The fund manager
      */
     function setPool(address _pool) external onlyOwner {
+        require(
+            _pool != address(0),
+            "Swap router address cannot be zero"
+        );
         pool = _pool;
     }
 
@@ -114,7 +120,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 targetNetwork,
         address targetToken,
         address targetAddress,
-        uint256 swapBridgeAmount
+        uint256 swapBridgeAmount,
+        bytes32 withdrawlData
     ) external nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -132,13 +139,16 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             swapBridgeAmount != 0,
             "FR: Swap bridge amount must be greater than zero"
         );
+        require(
+            withdrawlData != 0,
+            "FR: withdraw data cannot be empty"
+        );
 
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), pool, amount);
         amount = FundManager(pool).swapToAddress(
             token,
             amount,
             targetNetwork,
-            targetToken,
             targetAddress
         );
         emit Swap(
@@ -149,7 +159,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             amount,
             _msgSender(),
             targetAddress,
-            swapBridgeAmount
+            swapBridgeAmount,
+            withdrawlData
         );
     }
 
@@ -168,7 +179,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         string memory targetNetwork,
         string memory targetToken,
         string memory targetAddress,
-        uint256 swapBridgeAmount
+        uint256 swapBridgeAmount,
+        bytes32 withdrawlData
     ) external nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -189,7 +201,10 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             bytes(targetAddress).length != 0,
             "FR: Target address cannot be empty"
         );
-
+        require(
+            withdrawlData != 0,
+            "FR: withdraw data cannot be empty"
+        );
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), pool, amount);
         amount = FundManager(pool).nonEvmSwapToAddress(
             token,
@@ -206,7 +221,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             amount,
             _msgSender(),
             targetAddress,
-            swapBridgeAmount
+            swapBridgeAmount,
+            withdrawlData
         );
     }
 
@@ -231,8 +247,9 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 swapBridgeAmount,
         bytes memory oneInchData,
         address fromToken,
-        address foundryToken
-    ) external nonReentrant{
+        address foundryToken,
+        bytes32 withdrawlData
+    ) external nonReentrant {
         // Validation checks
         require(
             fromToken != address(0),
@@ -252,25 +269,27 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             bytes(oneInchData).length != 0,
             "FR: 1inch data cannot be empty"
         );
+        require(
+            swapBridgeAmount != 0,
+            "FR: Swap bridge amount must be greater than zero"
+        );
+        require(
+            withdrawlData != 0,
+            "FR: withdraw data cannot be empty"
+        );
         amountIn = SafeAmount.safeTransferFrom(
             fromToken,
             _msgSender(),
             address(this),
             amountIn
         );
-        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
-        swapHelperForOneInch(
-            payable(pool),
-            fromToken,
+        _swapAndCrossOneInch(
             amountIn,
             amountOut,
-            oneInchData
-        );
-        _swapAndCrossOneInch(
-            crossTargetAddress,
-            amountOut,
             crossTargetNetwork,
-            crossTargetToken,
+            crossTargetAddress,
+            oneInchData,
+            fromToken,
             foundryToken
         );
         emit Swap(
@@ -281,7 +300,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             amountIn,
             _msgSender(),
             crossTargetAddress,
-            swapBridgeAmount
+            swapBridgeAmount,
+            withdrawlData
         );
     }
 
@@ -306,8 +326,9 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         bytes memory oneInchData,
         address fromToken,
         address foundryToken,
-        uint256 swapBridgeAmount
-    ) external nonReentrant{
+        uint256 swapBridgeAmount,
+        bytes32 withdrawlData
+    ) external nonReentrant {
         // Validation checks
         require(fromToken != address(0), "From token address cannot be zero");
         require(
@@ -332,25 +353,28 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             bytes(crossTargetAddress).length != 0,
             "Cross target address cannot be empty"
         );
+        require(
+            swapBridgeAmount != 0,
+            "FR: Swap bridge amount must be greater than zero"
+        );
+        require(
+            withdrawlData != 0,
+            "FR: withdraw data cannot be empty"
+        );
         amountIn = SafeAmount.safeTransferFrom(
             fromToken,
             _msgSender(),
             address(this),
             amountIn
         );
-        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
-        swapHelperForOneInch(
-            payable(pool),
-            fromToken,
-            amountIn,
-            amountOut,
-            oneInchData
-        );
         _nonEvmSwapAndCrossOneInch(
-            crossTargetAddress,
+            amountIn,
             amountOut,
             crossTargetNetwork,
             crossTargetToken,
+            crossTargetAddress,
+            oneInchData,
+            fromToken,
             foundryToken
         );
         NonEvmSwap(
@@ -361,7 +385,8 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             amountIn,
             _msgSender(),
             crossTargetAddress,
-            swapBridgeAmount
+            swapBridgeAmount,
+            withdrawlData
         );
     }
 
@@ -397,7 +422,6 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             expiry,
             multiSignature
         );
-        TokenReceivable.sendToken(token, payee, amount);
         emit Withdraw(token, payee, amount, salt, multiSignature);
     }
 
@@ -432,7 +456,7 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         require(amountIn != 0, "Amount in must be greater than zero");
         require(amountOut != 0, "Amount out minimum must be greater than zero");
         require(foundryToken != address(0), "Bad Token Address");
-        amountIn = FundManager(pool).withdrawSignedOneInch(
+        FundManager(pool).withdrawSignedOneInch(
             to,
             amountIn,
             amountOut,
@@ -443,19 +467,20 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             expiry,
             multiSignature
         );
-        IERC20(foundryToken).approve(oneInchAggregatorRouter, amountIn);
-        swapHelperForOneInch(
+        amountIn = IERC20(foundryToken).balanceOf(address(this));
+        IERC20(foundryToken).safeApprove(oneInchAggregatorRouter, amountIn);
+        uint256 amountOutOneInch = swapHelperForOneInch(
             to,
             foundryToken,
             amountIn,
             amountOut,
             oneInchData
         );
-
+        require(amountOutOneInch != 0, "FR: Bad amount out from oneInch");
         emit WithdrawOneInch(
             to,
             amountIn,
-            amountOut,
+            amountOutOneInch,
             foundryToken,
             targetToken,
             oneInchData,
@@ -464,77 +489,6 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         );
     }
 
-    function emergencyWithdraw(
-        address token,
-        address payee,
-        uint256 amount
-    ) external onlyOwner nonReentrant returns (uint256) {
-        require(token != address(0), "FR: bad token");
-        require(payee != address(0), "FR: bad payee");
-        require(amount != 0, "FR: bad amount");
-        uint256 contractBalance = IERC20(token).balanceOf(address(this));
-        require(contractBalance >= amount, "FR: insufficient Balance");
-        TokenReceivable.sendToken(token, payee, amount);
-        return amount;
-    }
-
-    /*
-    @notice Runs a local swap and then a cross chain swap
-    @param to The receiver
-    @param swapRouter the swap router
-    @param amountIn The amount in
-    @param amountOut Equivalent to amountOut on oneInch 
-    @param path The swap path
-    @param deadline The swap deadline
-    @param crossTargetNetwork The target chain ID
-    @param crossTargetToken The target network token
-    @param crossSwapTargetTokenTo The target network token after swap
-    @param crossTargetAddress The receiver of tokens on the target network
-    */
-    function _swapAndCrossOneInch(
-        address to,
-        uint256 amountOut,
-        uint256 crossTargetNetwork,
-        address crossTargetToken, // address crossSwapTargetTokenTo // address crossTargetAddress
-        address foundryToken
-    ) internal {
-        FundManager(pool).swapToAddress(
-            foundryToken,
-            amountOut,
-            crossTargetNetwork,
-            crossTargetToken,
-            to
-        );
-    }
-
-    /*
-    @notice Runs a local swap and then a cross chain swap
-    @param to The receiver
-    @param swapRouter the swap router
-    @param amountIn The amount in
-    @param amountOut Equivalent to amountOut on oneInch 
-    @param path The swap path
-    @param deadline The swap deadline
-    @param crossTargetNetwork The target chain ID
-    @param crossTargetToken The target network token
-    @param crossSwapTargetTokenTo The target network token after swap
-    @param crossTargetAddress The receiver of tokens on the target network
-    */
-    function _nonEvmSwapAndCrossOneInch(
-        string memory to,
-        uint256 amountOut,
-        string memory crossTargetNetwork,
-        string memory crossTargetToken, // address crossSwapTargetTokenTo // address crossTargetAddress
-        address foundryToken
-    ) internal {
-        FundManager(pool).nonEvmSwapToAddress(
-            foundryToken,
-            amountOut,
-            crossTargetNetwork,
-            crossTargetToken,
-            to
-        );
-    }
 
     function swapHelperForOneInch(
         address payable to,
@@ -542,7 +496,7 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 amountIn,
         uint256 amountOut,
         bytes memory oneInchData
-    ) internal {
+    ) internal returns (uint256 returnAmount) {
         // Extract the first 4 bytes from data
         bytes4 receivedSelector;
         assembly {
@@ -552,11 +506,11 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         }
 
         // checking the function signature accoridng to oneInchData
-        if (receivedSelector == Decoder.selectorUnoswap) {
-            handleUnoSwap(to, srcToken, amountIn, amountOut, oneInchData);
-        } else if (receivedSelector == Decoder.selectorUniswapV3Swap) {
+        if (receivedSelector == OneInchDecoder.selectorUnoswap) {
+            returnAmount = handleUnoSwap(to, srcToken, amountIn, amountOut, oneInchData);
+        } else if (receivedSelector == OneInchDecoder.selectorUniswapV3Swap) {
             handleUniswapV3Swap(to, amountIn, amountOut, oneInchData);
-        } else if (receivedSelector == Decoder.selectorSwap) {
+        } else if (receivedSelector == OneInchDecoder.selectorSwap) {
             handleSwap(to, srcToken, amountIn, amountOut, oneInchData);
         } else {
             revert("FR: incorrect oneInchData");
@@ -569,20 +523,20 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 amountIn,
         uint256 amountOut,
         bytes memory oneInchData
-    ) public {
+    ) internal returns (uint256 returnAmount) {
         (
             address payable recipient,
             address srcToken,
             uint256 amount,
             uint256 minReturn,
             uint256[] memory poolsOneInch
-        ) = Decoder.decodeUnoswap(oneInchData);
+        ) = OneInchDecoder.decodeUnoswap(oneInchData);
         require(to == recipient, "FR: recipient address bad oneInch Data");
+        require(fromToken == srcToken, "FR: srcToken bad oneInch Data");
         require(amountIn == amount, "FR: inputAmount bad oneInch Data");
         require(amountOut == minReturn, "FR: outAmount bad oneInch Data");
-        require(fromToken == srcToken, "FR: srcToken bad oneInch Data");
         require(oneInchData.length >= 4, "Data too short for valid call");
-        IOneInchSwap(oneInchAggregatorRouter).unoswapTo(
+        returnAmount = IOneInchSwap(oneInchAggregatorRouter).unoswapTo(
             recipient,
             srcToken,
             amount,
@@ -594,7 +548,7 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             to,
             fromToken,
             amountIn,
-            amountOut
+            returnAmount //should return by the unoSwap
         );
     }
 
@@ -603,18 +557,18 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 amountIn,
         uint256 amountOut,
         bytes memory oneInchData
-    ) public {
+    ) internal returns (uint256 returnAmount) {
         (
             address payable recipient,
             uint256 amount,
             uint256 minReturn,
             uint256[] memory poolsOneInch
-        ) = Decoder.decodeUniswapV3Swap(oneInchData);
+        ) = OneInchDecoder.decodeUniswapV3Swap(oneInchData);
         require(to == recipient, "FR: recipient address bad oneInch Data");
         require(amountIn == amount, "FR: inputAmount bad oneInch Data");
         require(amountOut == minReturn, "FR: outAmount bad oneInch Data");
         require(oneInchData.length >= 4, "Data too short for valid call");
-        IOneInchSwap(oneInchAggregatorRouter).uniswapV3SwapTo(
+        returnAmount = IOneInchSwap(oneInchAggregatorRouter).uniswapV3SwapTo(
             recipient,
             amount,
             minReturn,
@@ -624,7 +578,7 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             oneInchAggregatorRouter,
             to,
             amountIn,
-            amountOut
+            returnAmount //should be returned by uniswapV3SwapTo
         );
     }
 
@@ -634,14 +588,14 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         uint256 amountIn,
         uint256 amountOut,
         bytes memory oneInchData
-    ) public {
+    ) internal returns (uint256 returnAmount) {
         // Decoding oneInchData to get the required parameters
         (
             address executor,
-            Decoder.SwapDescription memory desc,
+            OneInchDecoder.SwapDescription memory desc,
             bytes memory permit,
             bytes memory swapData
-        ) = Decoder.decodeSwap(oneInchData);
+        ) = OneInchDecoder.decodeSwap(oneInchData);
         // Manually create a new SwapDescription for IOneInchSwap
         IOneInchSwap.SwapDescription memory oneInchDesc = IOneInchSwap
             .SwapDescription({
@@ -670,7 +624,7 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
         require(oneInchData.length >= 4, "Data too short for valid call");
 
         // Performing the swap
-        IOneInchSwap(oneInchAggregatorRouter).swap(
+        ( returnAmount,) = IOneInchSwap(oneInchAggregatorRouter).swap(
             executor,
             oneInchDesc,
             permit,
@@ -681,7 +635,67 @@ contract FiberRouter is ReentrancyGuard, Ownable, TokenReceivable {
             to,
             fromToken,
             amountIn,
-            amountOut
+            returnAmount // should be returned 
+        );
+    }
+
+    function _swapAndCrossOneInch(
+        uint256 amountIn,
+        uint256 amountOut, // amountOut on oneInch
+        uint256 crossTargetNetwork,
+        address crossTargetAddress,
+        bytes memory oneInchData,
+        address fromToken,
+        address foundryToken
+    ) internal {
+        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
+        uint256 oneInchAmountOut = swapHelperForOneInch(
+            payable(pool),
+            fromToken,
+            amountIn,
+            amountOut,
+            oneInchData
+        );
+        uint256 FMAmountOut = FundManager(pool).swapToAddress(
+            foundryToken,
+            amountOut,
+            crossTargetNetwork,
+            crossTargetAddress
+        );
+        require(
+            FMAmountOut >= oneInchAmountOut,
+            "FR: Bad FM or OneInch Amount Out"
+        );
+    }
+
+    function _nonEvmSwapAndCrossOneInch(
+        uint256 amountIn,
+        uint256 amountOut, // amountOut on oneInch
+        string memory crossTargetNetwork, //cudos-1
+        string memory crossTargetToken, //acudos
+        string memory crossTargetAddress, //acudosXYZ
+        bytes memory oneInchData,
+        address fromToken,
+        address foundryToken
+    ) internal {
+        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
+        uint256 oneInchAmountOut = swapHelperForOneInch(
+            payable(pool),
+            fromToken,
+            amountIn,
+            amountOut,
+            oneInchData
+        );
+        uint256 FMAmountOut = FundManager(pool).nonEvmSwapToAddress(
+            foundryToken,
+            amountOut,
+            crossTargetNetwork,
+            crossTargetToken,
+            crossTargetAddress
+        );
+        require(
+            FMAmountOut >= oneInchAmountOut,
+            "FR: Bad FM or OneInch Amount Out"
         );
     }
 }
