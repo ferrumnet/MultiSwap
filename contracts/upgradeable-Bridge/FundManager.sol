@@ -301,7 +301,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return (digest, _signer);
     }
 
-    function addLiquidity(address token, uint256 amount) external nonReentrant {
+    function addLiquidity(address token, uint256 amount) external {
         require(amount != 0, "Amount must be positive");
         require(token != address(0), "Bad token");
         require(

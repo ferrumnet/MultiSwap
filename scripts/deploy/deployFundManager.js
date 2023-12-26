@@ -1,15 +1,12 @@
 const { ethers, upgrades } = require("hardhat");
 
 async function main() {
-  const FundManager = await ethers.getContractFactory("FundManager");
-  console.log("Deploying FundManager...");
+  const FiberRouter = await hre.ethers.getContractFactory("FiberRouter");
+  const fiberRouter = await FiberRouter.deploy();
 
-  const fundManager = await upgrades.deployProxy(FundManager, {
-    initializer: "initialize",
-  });
-  await fundManager.deployed();
+  await fiberRouter.deployed();
 
-  console.log(`FundManager deployed to ${fundManager.address}`);
+  console.log("FiberRouter deployed to:", fiberRouter.address);
 
   if (network.name == "hardhat") return;
   await fundManager.deployTransaction.wait(6);
