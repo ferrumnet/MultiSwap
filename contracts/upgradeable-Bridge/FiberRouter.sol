@@ -26,7 +26,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         address sourceAddress,
         address targetAddress,
         uint256 settledAmount,
-        bytes32 withdrawlData
+        bytes32 withdrawalData
     );
 
     event Withdraw(
@@ -57,7 +57,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         address sourceAddress,
         string targetAddress,
         uint256 settledAmount,
-        bytes32 withdrawlData
+        bytes32 withdrawalData
     );
     event UnoSwapHandled(
         address indexed swapRouter,
@@ -120,7 +120,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 targetNetwork,
         address targetToken,
         address targetAddress,
-        bytes32 withdrawlData
+        bytes32 withdrawalData
     ) external nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -135,7 +135,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
         require(amount != 0, "FR: Amount must be greater than zero");
         require(
-            withdrawlData != 0,
+            withdrawalData != 0,
             "FR: withdraw data cannot be empty"
         );
 
@@ -155,7 +155,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             _msgSender(),
             targetAddress,
             amount,
-            withdrawlData
+            withdrawalData
         );
     }
 
@@ -174,7 +174,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         string memory targetNetwork,
         string memory targetToken,
         string memory targetAddress,
-        bytes32 withdrawlData
+        bytes32 withdrawalData
     ) external nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -192,7 +192,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             "FR: Target address cannot be empty"
         );
         require(
-            withdrawlData != 0,
+            withdrawalData != 0,
             "FR: withdraw data cannot be empty"
         );
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), pool, amount);
@@ -212,7 +212,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             _msgSender(),
             targetAddress,
             amount,
-            withdrawlData
+            withdrawalData
         );
     }
 
@@ -237,7 +237,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         bytes memory oneInchData,
         address fromToken,
         address foundryToken,
-        bytes32 withdrawlData
+        bytes32 withdrawalData
     ) external nonReentrant {
         // Validation checks
         require(
@@ -259,7 +259,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             "FR: 1inch data cannot be empty"
         );
         require(
-            withdrawlData != 0,
+            withdrawalData != 0,
             "FR: withdraw data cannot be empty"
         );
         amountIn = SafeAmount.safeTransferFrom(
@@ -286,7 +286,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             _msgSender(),
             crossTargetAddress,
             settledAmount,
-            withdrawlData
+            withdrawalData
         );
     }
 
@@ -311,7 +311,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         bytes memory oneInchData,
         address fromToken,
         address foundryToken,
-        bytes32 withdrawlData
+        bytes32 withdrawalData
     ) external nonReentrant {
         // Validation checks
         require(fromToken != address(0), "From token address cannot be zero");
@@ -338,7 +338,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             "Cross target address cannot be empty"
         );
         require(
-            withdrawlData != 0,
+            withdrawalData != 0,
             "FR: withdraw data cannot be empty"
         );
         amountIn = SafeAmount.safeTransferFrom(
@@ -366,7 +366,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             _msgSender(),
             crossTargetAddress,
             settledAmount,
-            withdrawlData
+            withdrawalData
         );
     }
 
