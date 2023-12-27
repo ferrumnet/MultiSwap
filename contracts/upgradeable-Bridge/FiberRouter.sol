@@ -489,9 +489,9 @@ contract FiberRouter is Ownable, TokenReceivable {
         if (receivedSelector == OneInchDecoder.selectorUnoswap) {
             returnAmount = handleUnoSwap(to, srcToken, amountIn, amountOut, oneInchData);
         } else if (receivedSelector == OneInchDecoder.selectorUniswapV3Swap) {
-            handleUniswapV3Swap(to, amountIn, amountOut, oneInchData);
+            returnAmount = handleUniswapV3Swap(to, amountIn, amountOut, oneInchData);
         } else if (receivedSelector == OneInchDecoder.selectorSwap) {
-            handleSwap(to, srcToken, amountIn, amountOut, oneInchData);
+            returnAmount = handleSwap(to, srcToken, amountIn, amountOut, oneInchData);
         } else {
             revert("FR: incorrect oneInchData");
         }
