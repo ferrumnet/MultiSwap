@@ -8,7 +8,7 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.2",
+        version: "0.8.12",
         settings: {
           optimizer: {
             enabled: true,
@@ -67,6 +67,7 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY,
+    apiKey: process.env.BINANCE_API_KEY,
+    // apiKey: process.env.ARBITRUM_API_KEY
   },
 };

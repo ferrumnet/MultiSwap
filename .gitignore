@@ -6,6 +6,7 @@ typechain
 typechain-types
 .openzeppelin
 Network
+package-lock.json
 #Hardhat files
 cache
 artifacts
