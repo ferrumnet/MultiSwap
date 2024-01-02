@@ -402,7 +402,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
 
         // Deposit ETH and get WETH
-        IWETH(weth).deposit{value: amountIn}();
+        IWETH(WETH).deposit{value: amountIn}();
 
         // Execute swap and cross-chain operation
         uint256 settledAmount = _swapAndCrossOneInch(
@@ -411,13 +411,13 @@ contract FiberRouter is Ownable, TokenReceivable {
             crossTargetNetwork,
             crossTargetAddress,
             oneInchData,
-            weth,
+            WETH,
             foundryToken
         );
 
         // Emit Swap event
         emit Swap(
-            weth,
+            WETH,
             crossTargetToken,
             block.chainid,
             crossTargetNetwork,
