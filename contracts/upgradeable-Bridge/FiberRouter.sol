@@ -17,8 +17,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
     address public pool;
     address public oneInchAggregatorRouter;
-    address public weth;
-
+    address public constant WETH = 0xc778417E063141139Fce010982780140Aa0cD5Ab; //need to change for every blockchain
 
     event Swap(
         address sourceToken,
@@ -105,18 +104,6 @@ contract FiberRouter is Ownable, TokenReceivable {
             "Swap router address cannot be zero"
         );
         oneInchAggregatorRouter = _newRouterAddress;
-    }
-
-    // Function to set the weth address
-    function setWeth(address _weth)
-        external
-        onlyOwner
-    {
-        require(
-            _weth != address(0),
-            "weth address cannot be zero"
-        );
-        weth = _weth;
     }
 
     /*
