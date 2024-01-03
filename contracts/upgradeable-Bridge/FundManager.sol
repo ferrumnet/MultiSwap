@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../common/signature/SigCheckable.sol";
 import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
+import "../common/IFerrumDeployer.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
@@ -62,7 +63,10 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     }
 
     //initialize function is constructor for upgradeable smart contract
-    constructor() EIP712(NAME, VERSION) {}
+    constructor() EIP712(NAME, VERSION) {
+        bytes memory initData = IFerrumDeployer(msg.sender).initData();
+
+    }
 
     /**
      *************** Owner only operations ***************
