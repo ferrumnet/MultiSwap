@@ -17,7 +17,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
     address public pool;
     address public oneInchAggregatorRouter;
-    address public constant WETH = 0xc778417E063141139Fce010982780140Aa0cD5Ab; //need to change for every blockchain
+    address public WETH; //need to change for every blockchain
 
     event Swap(
         address sourceToken,
@@ -81,6 +81,23 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amountIn,
         uint256 amountOut
     );
+
+
+    /**
+     * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
+     * @param _wethAddress Address of the WETH token contract.
+     * @param _oneInchAggregator Address of the oneInchAggregator.
+     * @param _poolAddress Address of the pool.
+     */
+    constructor(address _wethAddress, address _oneInchAggregator, address _poolAddress) {
+        require(_wethAddress != address(0), "WETH address cannot be the zero address");
+        require(_oneInchAggregator != address(0), "oneInchAggregator address cannot be the zero address");
+        require(_poolAddress != address(0), "Pool address cannot be the zero address");
+
+        WETH = _wethAddress;
+        oneInchAggregatorRouter = _oneInchAggregator;
+        pool = _poolAddress;
+    }
 
     /**
      @notice Sets the fund manager contract.
