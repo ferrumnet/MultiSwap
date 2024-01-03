@@ -6,6 +6,7 @@ import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
 import "../common/oneInch/OneInchDecoder.sol";
 import "../common/oneInch/IOneInchSwap.sol";
+import "../common/IWETH.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -16,6 +17,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
     address public pool;
     address public oneInchAggregatorRouter;
+    address public WETH;
 
     event Swap(
         address sourceToken,
@@ -79,6 +81,23 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amountIn,
         uint256 amountOut
     );
+
+
+    /**
+     * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
+     * @param _wethAddress Address of the WETH token contract.
+     * @param _oneInchAggregator Address of the oneInchAggregator.
+     * @param _poolAddress Address of the pool.
+     */
+    constructor(address _wethAddress, address _oneInchAggregator, address _poolAddress) {
+        require(_wethAddress != address(0), "WETH address cannot be the zero address");
+        require(_oneInchAggregator != address(0), "oneInchAggregator address cannot be the zero address");
+        require(_poolAddress != address(0), "Pool address cannot be the zero address");
+
+        WETH = _wethAddress;
+        oneInchAggregatorRouter = _oneInchAggregator;
+        pool = _poolAddress;
+    }
 
     /**
      @notice Sets the fund manager contract.
@@ -359,6 +378,63 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
         emit NonEvmSwap(
             fromToken,
+            crossTargetToken,
+            block.chainid,
+            crossTargetNetwork,
+            amountIn,
+            _msgSender(),
+            crossTargetAddress,
+            settledAmount,
+            withdrawalData
+        );
+    }
+
+        /**
+     @notice Performs a local ETH swap and generates a cross-chain swap
+     @param amountOut Expected output amount on oneInch
+     @param crossTargetNetwork Target network for the cross-chain swap
+     @param crossTargetToken Token address on the target network
+     @param crossTargetAddress Address receiving the tokens on the target network
+     @param oneInchData Encoded data for oneInch swap
+     @param foundryToken Foundry token address involved in the swap
+     @param withdrawalData Data related to withdrawal in the swap process
+     */
+    function swapAndCrossOneInchETH(
+        uint256 amountOut, // amountOut on oneInch
+        uint256 crossTargetNetwork,
+        address crossTargetToken,
+        address crossTargetAddress,
+        bytes memory oneInchData,
+        address foundryToken,
+        bytes32 withdrawalData
+    ) external payable {
+        uint256 amountIn = msg.value;
+
+        // Validation checks
+        require(amountIn != 0, "FR: Amount in must be greater than zero");
+        require(amountOut != 0, "FR: Amount out must be greater than zero");
+        require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
+        require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
+        require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
+        require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
+
+        // Deposit ETH and get WETH
+        IWETH(WETH).deposit{value: amountIn}();
+
+        // Execute swap and cross-chain operation
+        uint256 settledAmount = _swapAndCrossOneInch(
+            amountIn,
+            amountOut,
+            crossTargetNetwork,
+            crossTargetAddress,
+            oneInchData,
+            WETH,
+            foundryToken
+        );
+
+        // Emit Swap event
+        emit Swap(
+            WETH,
             crossTargetToken,
             block.chainid,
             crossTargetNetwork,
