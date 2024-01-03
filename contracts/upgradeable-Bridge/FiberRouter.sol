@@ -17,7 +17,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
     address public pool;
     address public oneInchAggregatorRouter;
-    address public WETH; //need to change for every blockchain
+    address public WETH;
 
     event Swap(
         address sourceToken,
