@@ -41,14 +41,14 @@ contract FiberRouter is Ownable, TokenReceivable {
     );
 
     event WithdrawOneInch(
-        address,
-        uint256,
-        uint256,
-        address,
-        address,
-        bytes,
-        bytes32,
-        bytes
+        address to,
+        uint256 amountIn,
+        uint256 amountOutOneInch,
+        address foundryToken,
+        address targetToken,
+        bytes oneInchData,
+        bytes32 salt,
+        bytes multiSignature
     );
 
     event NonEvmSwap(
@@ -89,10 +89,16 @@ contract FiberRouter is Ownable, TokenReceivable {
      */
     constructor() {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
-        (WETH, oneInchAggregatorRouter, pool) = abi.decode(initData, (address, address, address));
-        require(_wethAddress != address(0), "WETH address cannot be the zero address");
-        require(_oneInchAggregator != address(0), "oneInchAggregator address cannot be the zero address");
-        require(_poolAddress != address(0), "Pool address cannot be the zero address");
+        (WETH, oneInchAggregatorRouter, pool) = abi.decode(
+            initData,
+            (address, address, address)
+        );
+        require(WETH != address(0), "WETH address cannot be the zero address");
+        require(
+            oneInchAggregatorRouter != address(0),
+            "oneInchAggregator address cannot be the zero address"
+        );
+        require(pool != address(0), "Pool address cannot be the zero address");
     }
 
     /**
