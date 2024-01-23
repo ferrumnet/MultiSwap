@@ -1,28 +1,46 @@
-const { ethers, upgrades } = require("hardhat");
+const { ethers } = require("hardhat");
 
 async function main() {
-  const FiberRouter = await hre.ethers.getContractFactory("FiberRouter");
-  const fiberRouter = await FiberRouter.deploy();
+    // Compile the contracts
+    await hre.run('compile');
 
-  await fiberRouter.deployed();
+    // Attach to the already deployed FerrumDeployer contract
+    const ferrumDeployerAddress = "ferrumDeployerAddress";
+    const FerrumDeployer = await ethers.getContractFactory("FerrumDeployer");
+    const ferrumDeployer = await FerrumDeployer.attach(ferrumDeployerAddress);
 
-  console.log("FiberRouter deployed to:", fiberRouter.address);
+    // Get the contract factory for FundManager
+    const FundManager = await ethers.getContractFactory("FundManager");
 
-  if (network.name == "hardhat") return;
-  await fundManager.deployTransaction.wait(6);
+    // Prepare the initialization data for FundManager
+    // Replace these addresses with the actual configuration data needed for FundManager
+    const initData = '0x';
+
+
+    // Compute the bytecode of FundManager
+    const bytecode = FundManager.bytecode;
+
+    // Compute a unique salt for deployment
+    const salt = ethers.utils.formatBytes32String(new Date().getTime().toString());
+
+    // Specify the owner address to which the ownership of the contract will be transferred
+    const ownerAddress = "0x466B45AF0B58eAF2B98Bed61E07a423ba7828E44"; // Replace with the desired owner address
+
+    // Deploy FundManager using FerrumDeployer's deployOwnable
+    const deploymentTx = await ferrumDeployer.deployOwnable(salt, ownerAddress, initData, bytecode);
+    const receipt = await deploymentTx.wait();
+
+    const fundManagerAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
+  console.log("FundManager deployed to:", fundManagerAddress);
   console.log("Verifing...");
   await hre.run("verify:verify", {
-    address: fundManager.address,
+    address: fundManagerAddress,
     constructorArguments: [],
   });
   console.log("Contract verified successfully !");
 }
 
-// npx hardhat verify --network bscMainnet 0x37D6421b1D5724421444dD33338d3043921594dB "Constructor argument 1"
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+    console.error(error);
+    process.exitCode = 1;
 });
-//npx hardhat run --network sepolia scripts/deploy.js
