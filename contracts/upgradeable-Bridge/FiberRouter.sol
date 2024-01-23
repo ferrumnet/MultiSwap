@@ -7,7 +7,7 @@ import "../common/SafeAmount.sol";
 import "../common/oneInch/OneInchDecoder.sol";
 import "../common/oneInch/IOneInchSwap.sol";
 import "../common/IWETH.sol";
-import "../common/IFerrumDeployer.sol";
+import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**

@@ -7,6 +7,6 @@
 
 pragma solidity ^0.8.0;
 
-import "./FerrumDeployer.sol";
+import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 
 contract FerrumDeployer_ is FerrumDeployer {}

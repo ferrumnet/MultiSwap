@@ -6,7 +6,7 @@ import "../common/signature/SigCheckable.sol";
 import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
-import "../common/IFerrumDeployer.sol";
+import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
