@@ -24,7 +24,7 @@ async function main() {
     const salt = ethers.utils.formatBytes32String(new Date().getTime().toString());
 
     // Specify the owner address to which the ownership of the contract will be transferred
-    const ownerAddress = "0x466B45AF0B58eAF2B98Bed61E07a423ba7828E44"; // Replace with the desired owner address
+    const ownerAddress = "0x"; // Replace with the desired owner address
 
     // Deploy FundManager using FerrumDeployer's deployOwnable
     const deploymentTx = await ferrumDeployer.deployOwnable(salt, ownerAddress, initData, bytecode);

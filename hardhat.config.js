@@ -25,16 +25,6 @@ module.exports = {
           },
         },
       },
-      {
-        version: "0.8.17",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
-
     ],
   },
   networks: {
@@ -51,7 +41,7 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY0]
     },
     binance: {
-      url: "https://nd-200-273-656.p2pify.com/3e83315b2e4a4b3d7bd838f8a89ca96c",
+      url: "https://bsc.meowrpc.com",
       accounts: [process.env.PRIVATE_KEY0]
     },
     kava: {
@@ -76,6 +66,7 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY,
+    apiKey: process.env.ARBITRUM_API_KEY,
+    // apiKey: process.env.BINANCE_API_KEY,
   },
 };

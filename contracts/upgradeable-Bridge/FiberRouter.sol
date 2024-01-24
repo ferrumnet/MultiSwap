@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+ pragma solidity 0.8.2;
 
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
@@ -17,6 +17,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
     address public pool;
+    address payable public gasWallet;
     address public oneInchAggregatorRouter;
     address public WETH;
 
@@ -29,7 +30,8 @@ contract FiberRouter is Ownable, TokenReceivable {
         address sourceAddress,
         address targetAddress,
         uint256 settledAmount,
-        bytes32 withdrawalData
+        bytes32 withdrawalData,
+        uint256 gasAmount
     );
 
     event Withdraw(
@@ -113,7 +115,22 @@ contract FiberRouter is Ownable, TokenReceivable {
         pool = _pool;
     }
 
-    // Function to set the 1inch Aggregator Router address
+    /**
+     @notice Sets the gas wallet address.
+     @param _gasWallet The wallet which pays for the funds on withdrawal
+     */
+    function setGasWallet(address payable _gasWallet) external onlyOwner {
+        require(
+            _gasWallet != address(0),
+            "Gas Wallet address cannot be zero"
+        );
+        gasWallet = _gasWallet;
+    }
+
+    /*
+     @notice Sets the 1inch Aggregator Router address
+     @param _newRouterAddress The new Router Address of oneInch
+     */
     function setOneInchAggregatorRouter(address _newRouterAddress)
         external
         onlyOwner
@@ -135,50 +152,49 @@ contract FiberRouter is Ownable, TokenReceivable {
      @param targetAddress Final destination on target
      @note asset is direclty transfering from user to our fundManager through fiberRouter
      */
-    function swap(
-        address token,
-        uint256 amount,
-        uint256 targetNetwork,
-        address targetToken,
-        address targetAddress,
-        bytes32 withdrawalData
-    ) external nonReentrant {
-        // Validation checks
-        require(token != address(0), "FR: Token address cannot be zero");
-        require(
-            targetToken != address(0),
-            "FR: Target token address cannot be zero"
-        );
-        require(targetNetwork != 0, "FR: targetNetwork is requried");
-        require(
-            targetAddress != address(0),
-            "FR: Target address cannot be zero"
-        );
-        require(amount != 0, "FR: Amount must be greater than zero");
-        require(
-            withdrawalData != 0,
-            "FR: withdraw data cannot be empty"
-        );
+function swap(
+    address token,
+    uint256 amount,
+    uint256 targetNetwork,
+    address targetToken,
+    address targetAddress,
+    bytes32 withdrawalData
+) external payable nonReentrant {
+    // Validation checks
+    require(token != address(0), "FR: Token address cannot be zero");
+    require(targetToken != address(0), "FR: Target token address cannot be zero");
+    require(targetNetwork != 0, "FR: targetNetwork is required");
+    require(targetAddress != address(0), "FR: Target address cannot be zero");
+    require(amount != 0, "FR: Amount must be greater than zero");
+    require(withdrawalData != 0, "FR: withdraw data cannot be empty");
+    require(msg.value != 0, "FR: Gas Amount must be greater than zero");
 
-        amount = SafeAmount.safeTransferFrom(token, _msgSender(), pool, amount);
-        amount = FundManager(pool).swapToAddress(
-            token,
-            amount,
-            targetNetwork,
-            targetAddress
-        );
-        emit Swap(
-            token,
-            targetToken,
-            block.chainid,
-            targetNetwork,
-            amount,
-            _msgSender(),
-            targetAddress,
-            amount,
-            withdrawalData
-        );
-    }
+    // Proceed with the swap logic
+    amount = SafeAmount.safeTransferFrom(token, _msgSender(), pool, amount);
+    amount = FundManager(pool).swapToAddress(
+        token,
+        amount,
+        targetNetwork,
+        targetAddress
+    );
+
+    // Transfer the gas fee to the gasWallet
+    payable(gasWallet).transfer(msg.value);
+
+    // Emit Swap event
+    emit Swap(
+        token,
+        targetToken,
+        block.chainid,
+        targetNetwork,
+        amount,
+        _msgSender(),
+        targetAddress,
+        amount,
+        withdrawalData,
+        msg.value
+    );
+}
 
     /*
      @notice Initiate an x-chain swap.
@@ -249,7 +265,7 @@ contract FiberRouter is Ownable, TokenReceivable {
        will also be required on the other end
      @param crossTargetAddress The target address for the swap
      */
-    function swapAndCrossOneInch(
+function swapAndCrossOneInch(
         uint256 amountIn,
         uint256 amountOut, // amountOut on oneInch
         uint256 crossTargetNetwork,
@@ -259,7 +275,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         address fromToken,
         address foundryToken,
         bytes32 withdrawalData
-    ) external nonReentrant {
+    ) external payable nonReentrant {
         // Validation checks
         require(
             fromToken != address(0),
@@ -283,6 +299,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             withdrawalData != 0,
             "FR: withdraw data cannot be empty"
         );
+        require(msg.value != 0, "FR: Gas Amount must be greater than zero");
         amountIn = SafeAmount.safeTransferFrom(
             fromToken,
             _msgSender(),
@@ -298,6 +315,9 @@ contract FiberRouter is Ownable, TokenReceivable {
             fromToken,
             foundryToken
         );
+        // Transfer the gas fee to the gasWallet
+        payable(gasWallet).transfer(msg.value);
+        // Emit Swap event
         emit Swap(
             fromToken,
             crossTargetToken,
@@ -307,7 +327,8 @@ contract FiberRouter is Ownable, TokenReceivable {
             _msgSender(),
             crossTargetAddress,
             settledAmount,
-            withdrawalData
+            withdrawalData,
+            msg.value
         );
     }
 
@@ -322,131 +343,57 @@ contract FiberRouter is Ownable, TokenReceivable {
      @param crossSwapTargetTokenTo If different than crossTargetToken, a swap
        will also be required on the other end
      @param crossTargetAddress The target address for the swap
+     @param gasFee The gasFee being charged on withdrawal
      */
-    function nonEvmSwapAndCrossOneInch(
-        uint256 amountIn,
-        uint256 amountOut, // amountOut on oneInch
-        string memory crossTargetNetwork, //cudos-1
-        string memory crossTargetToken, //acudos
-        string memory crossTargetAddress, //acudosXYZ
-        bytes memory oneInchData,
-        address fromToken,
-        address foundryToken,
-        bytes32 withdrawalData
-    ) external nonReentrant {
-        // Validation checks
-        require(fromToken != address(0), "From token address cannot be zero");
-        require(
-            foundryToken != address(0),
-            "Foundry token address cannot be zero"
-        );
-        require(amountIn != 0, "Amount in must be greater than zero");
-        require(
-            amountOut != 0,
-            "Amount cross minimum must be greater than zero"
-        );
-        require(bytes(oneInchData).length != 0, "1inch data cannot be empty");
-        require(
-            bytes(crossTargetNetwork).length != 0,
-            "Cross target network cannot be empty"
-        );
-        require(
-            bytes(crossTargetToken).length != 0,
-            "Cross target token cannot be empty"
-        );
-        require(
-            bytes(crossTargetAddress).length != 0,
-            "Cross target address cannot be empty"
-        );
-        require(
-            withdrawalData != 0,
-            "FR: withdraw data cannot be empty"
-        );
-        amountIn = SafeAmount.safeTransferFrom(
-            fromToken,
-            _msgSender(),
-            address(this),
-            amountIn
-        );
-        uint256 settledAmount = _nonEvmSwapAndCrossOneInch(
-            amountIn,
-            amountOut,
-            crossTargetNetwork,
-            crossTargetToken,
-            crossTargetAddress,
-            oneInchData,
-            fromToken,
-            foundryToken
-        );
-        emit NonEvmSwap(
-            fromToken,
-            crossTargetToken,
-            block.chainid,
-            crossTargetNetwork,
-            amountIn,
-            _msgSender(),
-            crossTargetAddress,
-            settledAmount,
-            withdrawalData
-        );
-    }
-
-        /**
-     @notice Performs a local ETH swap and generates a cross-chain swap
-     @param amountOut Expected output amount on oneInch
-     @param crossTargetNetwork Target network for the cross-chain swap
-     @param crossTargetToken Token address on the target network
-     @param crossTargetAddress Address receiving the tokens on the target network
-     @param oneInchData Encoded data for oneInch swap
-     @param foundryToken Foundry token address involved in the swap
-     @param withdrawalData Data related to withdrawal in the swap process
-     */
-    function swapAndCrossOneInchETH(
-        uint256 amountOut, // amountOut on oneInch
-        uint256 crossTargetNetwork,
-        address crossTargetToken,
-        address crossTargetAddress,
-        bytes memory oneInchData,
-        address foundryToken,
-        bytes32 withdrawalData
-    ) external payable {
-        uint256 amountIn = msg.value;
-
-        // Validation checks
-        require(amountIn != 0, "FR: Amount in must be greater than zero");
-        require(amountOut != 0, "FR: Amount out must be greater than zero");
-        require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
-        require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
-        require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
-        require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
-
-        // Deposit ETH and get WETH
-        IWETH(WETH).deposit{value: amountIn}();
-
-        // Execute swap and cross-chain operation
-        uint256 settledAmount = _swapAndCrossOneInch(
-            amountIn,
-            amountOut,
-            crossTargetNetwork,
-            crossTargetAddress,
-            oneInchData,
-            WETH,
-            foundryToken
-        );
-
-        // Emit Swap event
-        emit Swap(
-            WETH,
-            crossTargetToken,
-            block.chainid,
-            crossTargetNetwork,
-            amountIn,
-            _msgSender(),
-            crossTargetAddress,
-            settledAmount,
-            withdrawalData
-        );
-    }
+ function swapAndCrossOneInchETH(
+    uint256 amountOut, // amountOut on oneInch
+    uint256 crossTargetNetwork,
+    address crossTargetToken,
+    address crossTargetAddress,
+    bytes memory oneInchData,
+    address foundryToken,
+    bytes32 withdrawalData,
+    uint256 gasFee
+) external payable {
+    uint256 amountIn = msg.value - gasFee;
+    // Validation checks
+    require(amountIn != 0, "FR: Amount in must be greater than zero");
+    require(gasFee != 0, "FR: Gas fee must be greater than zero");
+    require(msg.value == amountIn + gasFee, "FR: msg.value must equal amountIn plus gasFee");
+    require(amountOut != 0, "FR: Amount out must be greater than zero");
+    require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
+    require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
+    require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
+    require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
+    require(msg.value != 0, "FR: Gas Amount must be greater than zero");
+    // Deposit ETH (excluding gas fee) and get WETH
+    IWETH(WETH).deposit{value: amountIn}();
+    // Execute swap and cross-chain operation
+    uint256 settledAmount = _swapAndCrossOneInch(
+        amountIn,
+        amountOut,
+        crossTargetNetwork,
+        crossTargetAddress,
+        oneInchData,
+        WETH,
+        foundryToken
+    );
+    // Transfer the gas fee to the gasWallet
+    payable(gasWallet).transfer(gasFee);
+    // Emit Swap event
+    emit Swap(
+        WETH,
+        crossTargetToken,
+        block.chainid,
+        crossTargetNetwork,
+        amountIn,
+        _msgSender(),
+        crossTargetAddress,
+        settledAmount,
+        withdrawalData,
+        gasFee
+    );
+}
 
     /*
      @notice Withdraws funds based on a multisig
