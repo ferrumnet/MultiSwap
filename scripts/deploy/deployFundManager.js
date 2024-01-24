@@ -1,7 +1,10 @@
 const { ethers, upgrades } = require("hardhat");
 async function main() {
   const FundManager = await hre.ethers.getContractFactory("FundManager");
-  const fundManager = await FundManager.deploy();
+  const forgeAddress = "0x"; // Router Address
+  const fundManager = await FundManager.deploy(
+    forgeAddress
+  );
   await fundManager.deployed();
   console.log("FundManager deployed to:", fundManager.address);
   if (network.name == "hardhat") return;
@@ -9,7 +12,7 @@ async function main() {
   console.log("Verifing...");
   await hre.run("verify:verify", {
     address: fundManager.address,
-    constructorArguments: [],
+    constructorArguments: [forgeAddress],
   });
   console.log("Contract verified successfully !");
 }

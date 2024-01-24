@@ -8,24 +8,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  @author The ferrum network.
  @title This is a gasEstimation contract named as MultiswapForge.
 */
+
+
+
 contract MultiswapForge is Ownable {
     address public router;
 
-    /* // Ferrum deployer implementation
-    constructor() {
-        bytes memory initData = IFerrumDeployer(msg.sender).initData();
-        // Decode initData to extract router
-        (router) = abi.decode(initData, (address));
-
-        // Validation checks
-        require(
-            router != address(0),
-            "Router address cannot be the zero address"
-        );
-    }
-    */
-
-        /**
+    /**
      * @dev Constructor that sets the router address.
      * @param _router Address of the Fiber Router contract.
      */
@@ -42,6 +31,8 @@ contract MultiswapForge is Ownable {
         require(_router != address(0), "Swap router address cannot be zero");
         router = _router;
     }
+
+    // SetSigner --> Signer for forge 
 
     /**
      * @notice Estimates gas for the withdrawal transaction and reverts
@@ -68,11 +59,11 @@ contract MultiswapForge is Ownable {
         require(salt > bytes32(0), "Salt must be greater than zero bytes");
 
         // Create a copy of the current context
-        uint256 initialGas = gasleft();
+        uint256 initialGas = gasleft();  // 1$
 
         // Simulate the withdrawal transaction
-        IFiberRouter(router).withdrawSigned{gas: gasleft()}(
-            token,
+        IFiberRouter(router).withdrawSigned{gas: gasleft()}(  // 5$
+            token,  
             payee,
             amount,
             salt,
