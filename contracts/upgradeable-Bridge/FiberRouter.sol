@@ -7,6 +7,7 @@ import "../common/SafeAmount.sol";
 import "../common/oneInch/OneInchDecoder.sol";
 import "../common/oneInch/IOneInchSwap.sol";
 import "../common/IWETH.sol";
+import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -85,20 +86,21 @@ contract FiberRouter is Ownable, TokenReceivable {
     );
 
 
-    /**
+   /**
      * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
-     * @param _wethAddress Address of the WETH token contract.
-     * @param _oneInchAggregator Address of the oneInchAggregator.
-     * @param _poolAddress Address of the pool.
      */
-    constructor(address _wethAddress, address _oneInchAggregator, address _poolAddress) {
-        require(_wethAddress != address(0), "WETH address cannot be the zero address");
-        require(_oneInchAggregator != address(0), "oneInchAggregator address cannot be the zero address");
-        require(_poolAddress != address(0), "Pool address cannot be the zero address");
-
-        WETH = _wethAddress;
-        oneInchAggregatorRouter = _oneInchAggregator;
-        pool = _poolAddress;
+    constructor() {
+        bytes memory initData = IFerrumDeployer(msg.sender).initData();
+        (WETH, oneInchAggregatorRouter, pool) = abi.decode(
+            initData,
+            (address, address, address)
+        );
+        require(WETH != address(0), "WETH address cannot be the zero address");
+        require(
+            oneInchAggregatorRouter != address(0),
+            "oneInchAggregator address cannot be the zero address"
+        );
+        require(pool != address(0), "Pool address cannot be the zero address");
     }
 
     /**

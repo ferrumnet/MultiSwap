@@ -6,6 +6,7 @@ import "../common/signature/SigCheckable.sol";
 import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
+import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
@@ -63,7 +64,10 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     }
 
     //initialize function is constructor for upgradeable smart contract
-    constructor() EIP712(NAME, VERSION) {}
+    constructor() EIP712(NAME, VERSION) {
+        bytes memory initData = IFerrumDeployer(msg.sender).initData();
+
+    }
 
     /**
      *************** Owner only operations ***************
