@@ -1,47 +1,65 @@
 const { ethers } = require("hardhat");
+
 async function main() {
-    // Deploy the library
-    const Library = await hre.ethers.getContractFactory("OneInchDecoder");
-    const library = await Library.deploy();
-    await library.deployed();
-  const FiberRouter = await hre.ethers.getContractFactory("FiberRouter", {
-    libraries: {
-      OneInchDecoder : library.address,
-    },
-  });
+    // Compile the contracts and libraries
+    await hre.run('compile');
 
-  const wethAddress = "0x"; // WETH Arbitrum
-  const oneInchAggregator = "0x";
-  const poolAddress = "0x"; // Pool Address
+    // Deploy the OneInchDecoder library
+    const OneInchDecoder = await ethers.getContractFactory("OneInchDecoder");
+    const oneInchDecoder = await OneInchDecoder.deploy();
+    await oneInchDecoder.deployed();
+    console.log("OneInchDecoder library deployed to:", oneInchDecoder.address);
 
-  // Deploy the contract
-  const fiberRouter = await FiberRouter.deploy(
-    wethAddress,
-    oneInchAggregator,
-    poolAddress
-  );
+    // Attach to the already deployed FerrumDeployer contract
+    const ferrumDeployerAddress = "ferrumDeployerAddress";
+    const FerrumDeployer = await ethers.getContractFactory("FerrumDeployer");
+    const ferrumDeployer = await FerrumDeployer.attach(ferrumDeployerAddress);
 
-  await fiberRouter.deployed();
-  console.log("FiberRouter deployed to:", fiberRouter.address);
-  if (network.name == "hardhat") return;
-  await fiberRouter.deployTransaction.wait(21);
+    // Prepare the initialization data for FiberRouter
+    const initData = ethers.utils.defaultAbiCoder.encode(
+        ["address", "address", "address"],
+        ["WETH", "oneInchAggregator", "poolAddress"]
+    );
+
+    // Get the contract factory for FiberRouter, linking the OneInchDecoder library
+    const FiberRouter = await ethers.getContractFactory("FiberRouter", {
+        libraries: {
+            "contracts/common/oneInch/OneInchDecoder.sol:OneInchDecoder": oneInchDecoder.address
+        }
+    });
+
+    // Compute the bytecode of FiberRouter with initData
+    const bytecodeWithInitData = FiberRouter.bytecode + initData.slice(2);
+
+    // Compute a unique salt for deployment
+    const salt = ethers.utils.formatBytes32String(new Date().getTime().toString());
+
+    // Deploy FiberRouter using FerrumDeployer's deployOwnable function
+    const ownerAddress = "ownerAdddress"; // Replace with the desired owner address
+    const deploymentTx = await ferrumDeployer.deployOwnable(salt, ownerAddress, initData, bytecodeWithInitData);
+    const receipt = await deploymentTx.wait();
+
+  const fiberRouterAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
+  console.log("FiberRouter deployed to:", fiberRouterAddress);
   console.log("Verifing...");
   await hre.run("verify:verify", {
-    address: library.address,
+    address: oneInchDecoder.address,
     constructorArguments: [],
   });
   await hre.run("verify:verify", {
-    address: fiberRouter.address,
-    constructorArguments: [wethAddress, oneInchAggregator, poolAddress],
+    address: fiberRouterAddress,
+    constructorArguments: [],
     libraries: {
-      OneInchDecoder : library.address,
+      OneInchDecoder : oneInchDecoder.address,
     },
   });
   console.log("Contract verified successfully !");
 }
+
+
 main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+    console.error(error);
+    process.exitCode = 1;
 });
 
 
