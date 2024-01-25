@@ -8,9 +8,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  @author The ferrum network.
  @title This is a gasEstimation contract named as MultiswapForge.
 */
-
-
-
 contract MultiswapForge is Ownable {
     address public router;
 
@@ -31,8 +28,6 @@ contract MultiswapForge is Ownable {
         require(_router != address(0), "Swap router address cannot be zero");
         router = _router;
     }
-
-    // SetSigner --> Signer for forge 
 
     /**
      * @notice Estimates gas for the withdrawal transaction and reverts
@@ -59,10 +54,10 @@ contract MultiswapForge is Ownable {
         require(salt > bytes32(0), "Salt must be greater than zero bytes");
 
         // Create a copy of the current context
-        uint256 initialGas = gasleft();  // 1$
+        uint256 initialGas = gasleft();
 
         // Simulate the withdrawal transaction
-        IFiberRouter(router).withdrawSigned{gas: gasleft()}(  // 5$
+        IFiberRouter(router).withdrawSigned{gas: gasleft()}(
             token,  
             payee,
             amount,
