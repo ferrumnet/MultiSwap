@@ -25,13 +25,15 @@ async function main() {
   //   "0x0"
   // );
   // await helper.owner();
-  // await helper.addFoundryAsset(denom); // 1661E4E9462BB700159948B5409F0EA84A3836E2F8E45032AEC69E55CDFB02AA
+  await helper.addFoundryAsset(denom); // 1661E4E9462BB700159948B5409F0EA84A3836E2F8E45032AEC69E55CDFB02AA
   // await helper.removeFoundryAsset(denom);
   // await helper.transferOwnership(wallet2);
   // await helper.addSigner(wallet2);
   // await helper.removeSigner(wallet2);
   // await helper.addLiquidity(denom, "100000000000000000000"); // B58ADA4CEC2CC2949597EA58D34759844838A62DDBF528E2B701F8B236AD6FE0
   // await helper.removeLiquidity(denom, "100");
+  // await helper.setFee(denom, "100000000000000000000");
+  // await helper.getFee();
 }
 
 main();
