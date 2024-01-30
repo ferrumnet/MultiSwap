@@ -13,17 +13,16 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     using SafeERC20 for IERC20;
 
     address public router;
-    address public forge;
     uint32 constant WEEK = 3600 * 24 * 7;
     string public constant NAME = "FUND_MANAGER";
     string public constant VERSION = "000.004";
     bytes32 constant WITHDRAW_SIGNED_METHOD =
         keccak256(
-            "WithdrawSigned(address token,address payee,uint256 amount,address originalCaller,bytes32 salt,uint256 expiry)"
+            "WithdrawSigned(address token,address payee,uint256 amount,bytes32 salt,uint256 expiry)"
         );
     bytes32 constant WITHDRAW_SIGNED_ONEINCH__METHOD =
         keccak256(
-            "WithdrawSignedOneInch(address to,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,address originalCaller,bytes32 salt,uint256 expiry)"
+            "WithdrawSignedOneInch(address to,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -84,11 +83,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     function addSigner(address _signer) external onlyOwner {
         require(_signer != address(0), "Bad signer");
         signers[_signer] = true;
-    }
-
-    function setForge(address _forge) external onlyOwner {
-        require(_forge != address(0), "FM: forge requried");
-        forge = _forge;
     }
 
     function removeSigner(address _signer) external onlyOwner {
@@ -204,7 +198,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address token,
         address payee,
         uint256 amount,
-        address originalCaller,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -216,15 +209,12 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
         bytes32 message =  keccak256(
-                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, originalCaller, salt, expiry)
+                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
             );
         address _signer = signerUnique(message, signature);
         
-        // Bypass signer check for the gas estimation
-        if (originalCaller != forge) {
-            require(signers[_signer], "FM: Invalid signer");
-            require(!usedSalt[salt], "FM: salt already used");
-        }
+        require(signers[_signer], "FM: Invalid signer");
+        require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
         TokenReceivable.sendToken(token, payee, amount);
         emit TransferBySignature(_signer, payee, token, amount);
@@ -238,7 +228,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
-        address originalCaller,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -261,17 +250,13 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
                     foundryToken,
                     targetToken,
                     oneInchData,
-                    originalCaller,
                     salt,
                     expiry
                 )
             );
         address _signer = signerUnique(message, signature);
-        // Bypass signer check for the gas estimation
-        if (originalCaller != forge) {
-            require(signers[_signer], "FM: Invalid signer");
-            require(!usedSalt[salt], "FM: salt already used");
-        }
+        require(signers[_signer], "FM: Invalid signer");
+        require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
         TokenReceivable.sendToken(foundryToken, router, amountIn);
         emit TransferBySignature(_signer, router, foundryToken, amountIn);
@@ -282,13 +267,12 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address token,
         address payee,
         uint256 amount,
-        address originalCaller,
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
     ) external view returns (bytes32, address) {
         bytes32 message = keccak256(
-                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, originalCaller, salt, expiry)
+                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
             );
         (bytes32 digest, address _signer) = signer(message, signature);
         return (digest, _signer);
@@ -301,7 +285,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
-        address originalCaller,
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
@@ -315,7 +298,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
                     foundryToken,
                     targetToken,
                     oneInchData,
-                    originalCaller,
                     salt,
                     expiry
                 )

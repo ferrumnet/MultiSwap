@@ -85,7 +85,6 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amountOut
     );
 
-
    /**
      * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
      */
@@ -424,7 +423,6 @@ function swapAndCrossOneInch(
             token,
             payee,
             amount,
-            msg.sender,
             salt,
             expiry,
             multiSignature
@@ -470,7 +468,6 @@ function swapAndCrossOneInch(
             foundryToken,
             targetToken,
             oneInchData,
-            msg.sender,
             salt,
             expiry,
             multiSignature
