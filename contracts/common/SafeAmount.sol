@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+// import "@openzeppelin//contracts/token/ERC20/IERC20.sol";
 
 library SafeAmount {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeERC20 for IERC20;
 
     /**
      @notice transfer tokens from. Incorporate fee on transfer tokens
@@ -20,9 +20,9 @@ library SafeAmount {
         address from,
         address to,
         uint256 amount) internal returns (uint256 result) {
-        uint256 preBalance = IERC20Upgradeable(token).balanceOf(to);
-        IERC20Upgradeable(token).safeTransferFrom(from, to, amount);
-        uint256 postBalance = IERC20Upgradeable(token).balanceOf(to);
+        uint256 preBalance = IERC20(token).balanceOf(to);
+        IERC20(token).safeTransferFrom(from, to, amount);
+        uint256 postBalance = IERC20(token).balanceOf(to);
         result = postBalance - preBalance;
         require(result <= amount, "SA: actual amount larger than transfer amount");
     }
