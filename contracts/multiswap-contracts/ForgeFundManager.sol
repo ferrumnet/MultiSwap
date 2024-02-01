@@ -14,7 +14,7 @@ contract ForgeFundManager is SigCheckable, WithAdmin, TokenReceivable {
 
     address public forge;
     uint32 constant WEEK = 3600 * 24 * 7;
-    string public constant NAME = "FUND_MANAGER";
+    string public constant NAME = "FORGE_FUND_MANAGER";
     string public constant VERSION = "000.004";
     bytes32 constant WITHDRAW_SIGNED_METHOD =
         keccak256(
@@ -47,7 +47,6 @@ contract ForgeFundManager is SigCheckable, WithAdmin, TokenReceivable {
     //initialize function is constructor for upgradeable smart contract
     constructor() EIP712(NAME, VERSION) {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
-
     }
 
     /**

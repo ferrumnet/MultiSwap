@@ -106,7 +106,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      @notice Sets the fund manager contract.
      @param _pool The fund manager
      */
-    function setPool(address _pool) external onlyOwner {
+    function setPool(address _pool) public virtual onlyOwner {
         require(
             _pool != address(0),
             "Swap router address cannot be zero"
@@ -118,7 +118,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      @notice Sets the gas wallet address.
      @param _gasWallet The wallet which pays for the funds on withdrawal
      */
-    function setGasWallet(address payable _gasWallet) external onlyOwner {
+    function setGasWallet(address payable _gasWallet) external virtual onlyOwner {
         require(
             _gasWallet != address(0),
             "Gas Wallet address cannot be zero"
@@ -131,7 +131,8 @@ contract FiberRouter is Ownable, TokenReceivable {
      @param _newRouterAddress The new Router Address of oneInch
      */
     function setOneInchAggregatorRouter(address _newRouterAddress)
-        external
+        public
+        virtual
         onlyOwner
     {
         require(
@@ -158,7 +159,7 @@ function swap(
     address targetToken,
     address targetAddress,
     bytes32 withdrawalData
-) external payable nonReentrant {
+) external virtual payable nonReentrant {
     // Validation checks
     require(token != address(0), "FR: Token address cannot be zero");
     require(targetToken != address(0), "FR: Target token address cannot be zero");
@@ -211,7 +212,7 @@ function swap(
         string memory targetToken,
         string memory targetAddress,
         bytes32 withdrawalData
-    ) external nonReentrant {
+    ) external virtual nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
         require(amount != 0, "Amount must be greater than zero");
@@ -274,7 +275,7 @@ function swapAndCrossOneInch(
         address fromToken,
         address foundryToken,
         bytes32 withdrawalData
-    ) external payable nonReentrant {
+    ) external virtual payable nonReentrant {
         // Validation checks
         require(
             fromToken != address(0),
@@ -353,7 +354,7 @@ function swapAndCrossOneInch(
     address foundryToken,
     bytes32 withdrawalData,
     uint256 gasFee
-) external payable {
+) external virtual payable {
     uint256 amountIn = msg.value - gasFee;
     // Validation checks
     require(amountIn != 0, "FR: Amount in must be greater than zero");
@@ -412,7 +413,7 @@ function swapAndCrossOneInch(
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
-    ) external nonReentrant {
+    ) public virtual nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
         require(payee != address(0), "Payee address cannot be zero");
@@ -452,7 +453,7 @@ function swapAndCrossOneInch(
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
-    ) external nonReentrant {
+    ) public virtual nonReentrant {
         require(foundryToken != address(0), "Bad Token Address");
         require(
             targetToken != address(0),
@@ -665,37 +666,6 @@ function swapAndCrossOneInch(
             foundryToken,
             amountOut,
             crossTargetNetwork,
-            crossTargetAddress
-        );
-        require(
-            FMAmountOut >= oneInchAmountOut,
-            "FR: Bad FM or OneInch Amount Out"
-        );
-    }
-
-    function _nonEvmSwapAndCrossOneInch(
-        uint256 amountIn,
-        uint256 amountOut, // amountOut on oneInch
-        string memory crossTargetNetwork, //cudos-1
-        string memory crossTargetToken, //acudos
-        string memory crossTargetAddress, //acudosXYZ
-        bytes memory oneInchData,
-        address fromToken,
-        address foundryToken
-    ) internal returns (uint256 FMAmountOut){
-        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
-        uint256 oneInchAmountOut = swapHelperForOneInch(
-            payable(pool),
-            fromToken,
-            amountIn,
-            amountOut,
-            oneInchData
-        );
-        FMAmountOut = FundManager(pool).nonEvmSwapToAddress(
-            foundryToken,
-            amountOut,
-            crossTargetNetwork,
-            crossTargetToken,
             crossTargetAddress
         );
         require(
