@@ -3,29 +3,28 @@ pragma solidity 0.8.2;
 
 import "./FiberRouter.sol";
 
-contract MultiswapForge is FiberRouter {
-
-    // set ForgeFundManager address
-    function setPool(address _pool) public override onlyOwner {
-        super.setPool(_pool);
-    }
-
-    // setOneInchRouter address for testing
-    function setOneInchAggregatorRouter(address _newRouterAddress)
-        public
-        override
-        onlyOwner
-    {
-        super.setOneInchAggregatorRouter(_newRouterAddress);
-    }
-
+contract MultiSwapForge is FiberRouter {
     constructor() FiberRouter() {
     }
 
-    // Override and revert the 'setGasWallet' function
+    // Override and revert the 'setPool' function
+    function setPool(address _pool) external override onlyOwner {
+        revert("Not Supported");
+    }
+
+    // Override and revert the 'setOneInchAggregatorRouter' function
+    function setOneInchAggregatorRouter(address _newRouterAddress)
+        external
+        override
+        onlyOwner
+    {
+        revert("Not Supported");
+    }
+
+     // Override and revert the 'setGasWallet' function
     function setGasWallet(address payable _gasWallet) external override onlyOwner 
     {
-        revert("Function is reverted");
+        revert("Not Supported");
     }
 
     // Override and revert the 'swap' function
@@ -36,8 +35,8 @@ contract MultiswapForge is FiberRouter {
         address targetToken,
         address targetAddress,
         bytes32 withdrawalData
-    ) external override payable nonReentrant {
-        revert("Function is reverted");
+    ) external payable override nonReentrant {
+        revert("Not Supported");
     }
 
     // Override and revert the 'nonEvmSwap' function
@@ -49,7 +48,7 @@ contract MultiswapForge is FiberRouter {
         string memory targetAddress,
         bytes32 withdrawalData
     ) external override nonReentrant {
-        revert("Function is reverted");
+        revert("Not Supported");
     }
 
     // Override and revert the 'swapAndCrossOneInch' function
@@ -63,8 +62,8 @@ contract MultiswapForge is FiberRouter {
         address fromToken,
         address foundryToken,
         bytes32 withdrawalData
-    ) external override payable nonReentrant {
-        revert("Function is reverted");
+    ) external payable override nonReentrant {
+        revert("Not Supported");
     }
 
     // Override and revert the 'swapAndCrossOneInchETH' function
@@ -78,10 +77,10 @@ contract MultiswapForge is FiberRouter {
         bytes32 withdrawalData,
         uint256 gasFee
     ) external payable override {
-        revert("Function is reverted");
+        revert("Not Supported");
     }
 
-    // Inherit withdrawSigned function
+    // Override and revert the 'withdrawSigned' function
     function withdrawSigned(
         address token,
         address payee,
@@ -90,10 +89,17 @@ contract MultiswapForge is FiberRouter {
         uint256 expiry,
         bytes memory multiSignature
     ) public override {
-        // Create a copy of the current context
-        uint256 initialGas = gasleft();
-
-        // Call the original function from FiberRouter
+        revert("Not Supported");
+    }
+    // This function is only used specifically for GasEstimation & Simulation of withdrawSigned
+    function withdrawSignedForGasEstimation(
+        address token,
+        address payee,
+        uint256 amount,
+        bytes32 salt,
+        uint256 expiry,
+        bytes memory multiSignature
+    ) external {
         super.withdrawSigned(
             token,
             payee,
@@ -102,22 +108,37 @@ contract MultiswapForge is FiberRouter {
             expiry,
             multiSignature
         );
-
-        // Calculate the gas used during the execution
-        uint256 gasUsed = initialGas - gasleft();
-
-        // Revert with a message indicating gas usage
-        revert(
-            string(
-                abi.encodePacked(
-                    "Estimation completed; gas used: ",
-                    uintToString(gasUsed)
-                )
-            )
-        );
+        revert("Not Supported");
     }
 
-    // Inherit withdrawSignedAndSwapOneInch function
+    // Function that returns the gas estimation from backend using estimateGas()
+    function estimateGasForWithdrawSigned(
+        address token,
+        address payee,
+        uint256 amount,
+        bytes32 salt,
+        uint256 expiry,
+        bytes memory multiSignature
+    ) external {
+        // Encode the function call data with selector only
+        bytes4 selector = bytes4(
+            keccak256(
+                "withdrawSignedForGasEstimation(address,address,uint256,bytes32,uint256,bytes)"
+            )
+        );
+        bytes memory data = abi.encodeWithSelector(
+            selector,
+            token,
+            payee,
+            amount,
+            salt,
+            expiry,
+            multiSignature
+        );
+        address(this).call(data);
+    }
+
+    // Override and revert the 'withdrawSignedAndSwapOneInch' function
     function withdrawSignedAndSwapOneInch(
         address payable to,
         uint256 amountIn,
@@ -128,10 +149,21 @@ contract MultiswapForge is FiberRouter {
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
-    ) public override nonReentrant {
-        // Create a copy of the current context
-        uint256 initialGas = gasleft();
-
+    ) public override {
+       revert("Not Supported");
+    }
+    // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
+    function withdrawSignedAndSwapOneInchForGasEstimation(
+        address payable to,
+        uint256 amountIn,
+        uint256 amountOut,
+        address foundryToken,
+        address targetToken,
+        bytes memory oneInchData,
+        bytes32 salt,
+        uint256 expiry,
+        bytes memory multiSignature
+    ) external {
         // Call the original function from FiberRouter
         super.withdrawSignedAndSwapOneInch(
             to,
@@ -145,18 +177,40 @@ contract MultiswapForge is FiberRouter {
             multiSignature
         );
 
-        // Calculate the gas used during the execution
-        uint256 gasUsed = initialGas - gasleft();
+       revert("Not Supported");
+    }
 
-        // Revert with a message indicating gas usage
-        revert(
-            string(
-                abi.encodePacked(
-                    "Estimation completed; gas used: ",
-                    uintToString(gasUsed)
-                )
+    // Function that returns the gas estimation from backend using estimateGas()
+    function estimateGasForWithdrawSignedAndSwapOneInch(
+        address payable to,
+        uint256 amountIn,
+        uint256 amountOut,
+        address foundryToken,
+        address targetToken,
+        bytes memory oneInchData,
+        bytes32 salt,
+        uint256 expiry,
+        bytes memory multiSignature
+    ) external {
+        // Encode the function call data with selector only
+        bytes4 selector = bytes4(
+            keccak256(
+                "withdrawSignedAndSwapOneInchForGasEstimation(address,uint256,uint256,address,address,bytes,bytes32,uint256,bytes)"
             )
         );
+        bytes memory data = abi.encodeWithSelector(
+            selector,
+            to,
+            amountIn,
+            amountOut,
+            foundryToken,
+            targetToken,
+            oneInchData,
+            salt,
+            expiry,
+            multiSignature
+        );
+        address(this).call(data);
     }
 
     // Helper function to convert a uint256 to a string

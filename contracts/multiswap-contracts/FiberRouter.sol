@@ -85,7 +85,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amountOut
     );
 
-   /**
+  /**
      * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
      */
     constructor() {
@@ -106,10 +106,10 @@ contract FiberRouter is Ownable, TokenReceivable {
      @notice Sets the fund manager contract.
      @param _pool The fund manager
      */
-    function setPool(address _pool) public virtual onlyOwner {
+    function setPool(address _pool) external virtual onlyOwner {
         require(
             _pool != address(0),
-            "Swap router address cannot be zero"
+            "Swap pool address cannot be zero"
         );
         pool = _pool;
     }
@@ -131,7 +131,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      @param _newRouterAddress The new Router Address of oneInch
      */
     function setOneInchAggregatorRouter(address _newRouterAddress)
-        public
+        external
         virtual
         onlyOwner
     {
