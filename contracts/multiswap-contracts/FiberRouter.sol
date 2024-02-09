@@ -85,7 +85,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amountOut
     );
 
-  /**
+    /**
      * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
      */
     constructor() {
@@ -106,7 +106,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      @notice Sets the fund manager contract.
      @param _pool The fund manager
      */
-    function setPool(address _pool) external virtual onlyOwner {
+    function setPool(address _pool) external onlyOwner {
         require(
             _pool != address(0),
             "Swap pool address cannot be zero"
@@ -118,7 +118,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      @notice Sets the gas wallet address.
      @param _gasWallet The wallet which pays for the funds on withdrawal
      */
-    function setGasWallet(address payable _gasWallet) external virtual onlyOwner {
+    function setGasWallet(address payable _gasWallet) external onlyOwner {
         require(
             _gasWallet != address(0),
             "Gas Wallet address cannot be zero"
@@ -132,7 +132,6 @@ contract FiberRouter is Ownable, TokenReceivable {
      */
     function setOneInchAggregatorRouter(address _newRouterAddress)
         external
-        virtual
         onlyOwner
     {
         require(
@@ -159,7 +158,7 @@ function swap(
     address targetToken,
     address targetAddress,
     bytes32 withdrawalData
-) external virtual payable nonReentrant {
+) external payable nonReentrant {
     // Validation checks
     require(token != address(0), "FR: Token address cannot be zero");
     require(targetToken != address(0), "FR: Target token address cannot be zero");
@@ -212,7 +211,7 @@ function swap(
         string memory targetToken,
         string memory targetAddress,
         bytes32 withdrawalData
-    ) external virtual nonReentrant {
+    ) external nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
         require(amount != 0, "Amount must be greater than zero");
@@ -275,7 +274,7 @@ function swapAndCrossOneInch(
         address fromToken,
         address foundryToken,
         bytes32 withdrawalData
-    ) external virtual payable nonReentrant {
+    ) external payable nonReentrant {
         // Validation checks
         require(
             fromToken != address(0),
@@ -354,7 +353,7 @@ function swapAndCrossOneInch(
     address foundryToken,
     bytes32 withdrawalData,
     uint256 gasFee
-) external virtual payable {
+) external payable {
     uint256 amountIn = msg.value - gasFee;
     // Validation checks
     require(amountIn != 0, "FR: Amount in must be greater than zero");

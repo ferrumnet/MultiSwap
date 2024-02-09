@@ -62,12 +62,11 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         _;
     }
 
-    //initialize function is constructor for upgradeable smart contract
     constructor() EIP712(NAME, VERSION) {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
 
     }
-    
+
     /**
      *************** Owner only operations ***************
      */
@@ -75,17 +74,17 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     /*
      @notice sets the router
      */
-    function setRouter(address _router) external virtual onlyOwner {
+    function setRouter(address _router) external onlyOwner {
         require(_router != address(0), "FM: router requried");
         router = _router;
     }
 
-    function addSigner(address _signer) external virtual onlyOwner {
+    function addSigner(address _signer) public onlyOwner {
         require(_signer != address(0), "Bad signer");
         signers[_signer] = true;
     }
 
-    function removeSigner(address _signer) external virtual onlyOwner {
+    function removeSigner(address _signer) external onlyOwner {
         require(_signer != address(0), "Bad signer");
         delete signers[_signer];
     }
@@ -94,7 +93,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address token,
         uint256 chainId,
         address targetToken
-    ) external virtual onlyAdmin {
+    ) external onlyAdmin {
         require(token != address(0), "Bad token");
         require(targetToken != address(0), "Bad targetToken");
         require(chainId != 0, "Bad chainId");
@@ -105,7 +104,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address token,
         string memory chainId,
         string memory targetToken
-    ) external virtual onlyAdmin {
+    ) external onlyAdmin {
         require(token != address(0), "Bad token");
         require(bytes(chainId).length != 0, "Chain ID cannot be empty");
         require(bytes(targetToken).length != 0, "Target token cannot be empty");
@@ -113,14 +112,14 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         nonEvmAllowedTargets[token][chainId] = targetToken;
     }
 
-    function disallowTarget(address token, uint256 chainId) external virtual onlyAdmin {
+    function disallowTarget(address token, uint256 chainId) external onlyAdmin {
         require(token != address(0), "Bad token");
         require(chainId != 0, "Bad chainId");
         delete allowedTargets[token][chainId];
     }
 
     function nonEvmDisallowTarget(address token, string memory chainId)
-        external virtual
+        external
         onlyAdmin
     {
         require(token != address(0), "Bad token");
@@ -128,12 +127,12 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         delete nonEvmAllowedTargets[token][chainId];
     }
 
-    function addFoundryAsset(address token) external virtual onlyAdmin {
+    function addFoundryAsset(address token) external onlyAdmin {
         require(token != address(0), "Bad token");
         isFoundryAsset[token] = true;
     }
 
-    function removeFoundryAsset(address token) external virtual onlyAdmin {
+    function removeFoundryAsset(address token) external onlyAdmin {
         require(token != address(0), "Bad token");
         isFoundryAsset[token] = false;
     }
@@ -143,7 +142,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         uint256 amount,
         uint256 targetNetwork,
         address targetAddress
-    ) external virtual onlyRouter returns(uint256) {
+    ) external onlyRouter returns(uint256) {
         address targetToken = allowedTargets[token][targetNetwork];
         require(msg.sender != address(0), "FM: bad from");
         require(token != address(0), "FM: bad token");
@@ -169,7 +168,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         string memory targetNetwork,
         string memory targetToken,
         string memory targetAddress
-    ) external virtual onlyRouter returns (uint256) {
+    ) external onlyRouter returns (uint256) {
         require(msg.sender != address(0), "FM: bad from");
         require(token != address(0), "FM: bad token");
         require(amount != 0, "FM: bad amount");
@@ -201,7 +200,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
-    ) external virtual onlyRouter returns (uint256) {
+    ) external onlyRouter returns (uint256) {
         require(token != address(0), "FM: bad token");
         require(payee != address(0), "FM: bad payee");
         require(salt != 0, "FM: bad salt");
@@ -231,7 +230,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
-    ) external virtual onlyRouter returns (uint256) {
+    ) external onlyRouter returns (uint256) {
         require(targetToken != address(0), "FM: bad token");
         require(foundryToken != address(0), "FM: bad token");
         require(to != address(0), "FM: bad payee");
@@ -270,7 +269,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
-    ) external virtual view returns (bytes32, address) {
+    ) external view returns (bytes32, address) {
         bytes32 message = keccak256(
                 abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
             );
@@ -288,7 +287,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
-    ) external virtual view returns (bytes32, address) {
+    ) external view returns (bytes32, address) {
         bytes32 message =  keccak256(
                 abi.encode(
                     WITHDRAW_SIGNED_ONEINCH__METHOD,
@@ -306,7 +305,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return (digest, _signer);
     }
 
-    function addLiquidity(address token, uint256 amount) external virtual {
+    function addLiquidity(address token, uint256 amount) external {
         require(amount != 0, "Amount must be positive");
         require(token != address(0), "Bad token");
         require(
@@ -325,7 +324,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     }
 
     function removeLiquidityIfPossible(address token, uint256 amount)
-        external virtual
+        external
         returns (uint256)
     {
         require(amount != 0, "Amount must be positive");
@@ -348,7 +347,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     }
 
     function liquidity(address token, address liquidityAdder)
-        external virtual
+        external
         view
         returns (uint256)
     {

@@ -4,81 +4,9 @@ pragma solidity 0.8.2;
 import "./FiberRouter.sol";
 
 contract MultiSwapForge is FiberRouter {
-    constructor() FiberRouter() {
-    }
-
-    // Override and revert the 'setPool' function
-    function setPool(address _pool) external override onlyOwner {
-        revert("Not Supported");
-    }
-
-    // Override and revert the 'setOneInchAggregatorRouter' function
-    function setOneInchAggregatorRouter(address _newRouterAddress)
-        external
-        override
-        onlyOwner
-    {
-        revert("Not Supported");
-    }
-
-     // Override and revert the 'setGasWallet' function
-    function setGasWallet(address payable _gasWallet) external override onlyOwner 
-    {
-        revert("Not Supported");
-    }
-
-    // Override and revert the 'swap' function
-    function swap(
-        address token,
-        uint256 amount,
-        uint256 targetNetwork,
-        address targetToken,
-        address targetAddress,
-        bytes32 withdrawalData
-    ) external payable override nonReentrant {
-        revert("Not Supported");
-    }
-
-    // Override and revert the 'nonEvmSwap' function
-    function nonEvmSwap(
-        address token,
-        uint256 amount,
-        string memory targetNetwork,
-        string memory targetToken,
-        string memory targetAddress,
-        bytes32 withdrawalData
-    ) external override nonReentrant {
-        revert("Not Supported");
-    }
-
-    // Override and revert the 'swapAndCrossOneInch' function
-    function swapAndCrossOneInch(
-        uint256 amountIn,
-        uint256 amountOut,
-        uint256 crossTargetNetwork,
-        address crossTargetToken,
-        address crossTargetAddress,
-        bytes memory oneInchData,
-        address fromToken,
-        address foundryToken,
-        bytes32 withdrawalData
-    ) external payable override nonReentrant {
-        revert("Not Supported");
-    }
-
-    // Override and revert the 'swapAndCrossOneInchETH' function
-    function swapAndCrossOneInchETH(
-        uint256 amountOut,
-        uint256 crossTargetNetwork,
-        address crossTargetToken,
-        address crossTargetAddress,
-        bytes memory oneInchData,
-        address foundryToken,
-        bytes32 withdrawalData,
-        uint256 gasFee
-    ) external payable override {
-        revert("Not Supported");
-    }
+    constructor() 
+        FiberRouter() {
+     }
 
     // Override and revert the 'withdrawSigned' function
     function withdrawSigned(
@@ -108,7 +36,6 @@ contract MultiSwapForge is FiberRouter {
             expiry,
             multiSignature
         );
-        revert("Not Supported");
     }
 
     // Function that returns the gas estimation from backend using estimateGas()
@@ -135,7 +62,10 @@ contract MultiSwapForge is FiberRouter {
             expiry,
             multiSignature
         );
-        address(this).call(data);
+
+        (bool success, ) =   address(this).call(data);
+
+        require(success == false);
     }
 
     // Override and revert the 'withdrawSignedAndSwapOneInch' function
@@ -152,6 +82,7 @@ contract MultiSwapForge is FiberRouter {
     ) public override {
        revert("Not Supported");
     }
+    
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
     function withdrawSignedAndSwapOneInchForGasEstimation(
         address payable to,
@@ -176,8 +107,6 @@ contract MultiSwapForge is FiberRouter {
             expiry,
             multiSignature
         );
-
-       revert("Not Supported");
     }
 
     // Function that returns the gas estimation from backend using estimateGas()
@@ -210,26 +139,9 @@ contract MultiSwapForge is FiberRouter {
             expiry,
             multiSignature
         );
-        address(this).call(data);
-    }
 
-    // Helper function to convert a uint256 to a string
-    function uintToString(uint256 value) internal pure returns (string memory) {
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
+        (bool success, ) =   address(this).call(data);
+
+        require(success == false);
     }
 }
