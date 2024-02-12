@@ -36,6 +36,7 @@ contract MultiSwapForge is FiberRouter {
             expiry,
             multiSignature
         );
+        revert("Not Supported");
     }
 
     // Function that returns the gas estimation from backend using estimateGas()
@@ -47,12 +48,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 expiry,
         bytes memory multiSignature
     ) external {
-        // Encode the function call data with selector only
-        bytes4 selector = bytes4(
-            keccak256(
-                "withdrawSignedForGasEstimation(address,address,uint256,bytes32,uint256,bytes)"
-            )
-        );
+        // Use this.withdrawSigned.selector to get the selector directly
+        bytes4 selector = this.withdrawSignedForGasEstimation.selector;
         bytes memory data = abi.encodeWithSelector(
             selector,
             token,
@@ -82,7 +79,7 @@ contract MultiSwapForge is FiberRouter {
     ) public override {
        revert("Not Supported");
     }
-    
+
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
     function withdrawSignedAndSwapOneInchForGasEstimation(
         address payable to,
@@ -107,6 +104,7 @@ contract MultiSwapForge is FiberRouter {
             expiry,
             multiSignature
         );
+        revert("Not Supported");
     }
 
     // Function that returns the gas estimation from backend using estimateGas()
@@ -121,12 +119,9 @@ contract MultiSwapForge is FiberRouter {
         uint256 expiry,
         bytes memory multiSignature
     ) external {
-        // Encode the function call data with selector only
-        bytes4 selector = bytes4(
-            keccak256(
-                "withdrawSignedAndSwapOneInchForGasEstimation(address,uint256,uint256,address,address,bytes,bytes32,uint256,bytes)"
-            )
-        );
+        // Use this.withdrawSigned.selector to get the selector directly
+        bytes4 selector = this.withdrawSignedAndSwapOneInchForGasEstimation.selector;
+
         bytes memory data = abi.encodeWithSelector(
             selector,
             to,
