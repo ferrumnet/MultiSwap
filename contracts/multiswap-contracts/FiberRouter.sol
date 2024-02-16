@@ -85,8 +85,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amountOut
     );
 
-
-   /**
+    /**
      * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
      */
     constructor() {
@@ -110,7 +109,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     function setPool(address _pool) external onlyOwner {
         require(
             _pool != address(0),
-            "Swap router address cannot be zero"
+            "Swap pool address cannot be zero"
         );
         pool = _pool;
     }
@@ -395,6 +394,7 @@ function swapAndCrossOneInch(
     );
 }
 
+
     /*
      @notice Withdraws funds based on a multisig
      @dev For signature swapToToken must be the same as token
@@ -412,7 +412,7 @@ function swapAndCrossOneInch(
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
-    ) external nonReentrant {
+    ) public virtual nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
         require(payee != address(0), "Payee address cannot be zero");
@@ -452,7 +452,7 @@ function swapAndCrossOneInch(
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
-    ) external nonReentrant {
+    ) public virtual nonReentrant {
         require(foundryToken != address(0), "Bad Token Address");
         require(
             targetToken != address(0),
@@ -665,37 +665,6 @@ function swapAndCrossOneInch(
             foundryToken,
             amountOut,
             crossTargetNetwork,
-            crossTargetAddress
-        );
-        require(
-            FMAmountOut >= oneInchAmountOut,
-            "FR: Bad FM or OneInch Amount Out"
-        );
-    }
-
-    function _nonEvmSwapAndCrossOneInch(
-        uint256 amountIn,
-        uint256 amountOut, // amountOut on oneInch
-        string memory crossTargetNetwork, //cudos-1
-        string memory crossTargetToken, //acudos
-        string memory crossTargetAddress, //acudosXYZ
-        bytes memory oneInchData,
-        address fromToken,
-        address foundryToken
-    ) internal returns (uint256 FMAmountOut){
-        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
-        uint256 oneInchAmountOut = swapHelperForOneInch(
-            payable(pool),
-            fromToken,
-            amountIn,
-            amountOut,
-            oneInchData
-        );
-        FMAmountOut = FundManager(pool).nonEvmSwapToAddress(
-            foundryToken,
-            amountOut,
-            crossTargetNetwork,
-            crossTargetToken,
             crossTargetAddress
         );
         require(

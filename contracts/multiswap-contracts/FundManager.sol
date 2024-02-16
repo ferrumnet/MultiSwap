@@ -62,7 +62,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         _;
     }
 
-    //initialize function is constructor for upgradeable smart contract
     constructor() EIP712(NAME, VERSION) {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
 
@@ -80,7 +79,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         router = _router;
     }
 
-    function addSigner(address _signer) external onlyOwner {
+    function addSigner(address _signer) public onlyOwner {
         require(_signer != address(0), "Bad signer");
         signers[_signer] = true;
     }
@@ -212,6 +211,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
                 abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
             );
         address _signer = signerUnique(message, signature);
+        
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
@@ -255,7 +255,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
             );
         address _signer = signerUnique(message, signature);
         require(signers[_signer], "FM: Invalid signer");
-        require(!usedSalt[salt], "FM: Salt already used");
+        require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
         TokenReceivable.sendToken(foundryToken, router, amountIn);
         emit TransferBySignature(_signer, router, foundryToken, amountIn);
@@ -347,7 +347,7 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     }
 
     function liquidity(address token, address liquidityAdder)
-        public
+        external
         view
         returns (uint256)
     {
