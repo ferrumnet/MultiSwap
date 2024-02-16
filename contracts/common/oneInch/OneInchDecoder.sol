@@ -11,6 +11,19 @@ library OneInchDecoder {
         uint256 minReturnAmount;
         uint256 flags;
     }
+    struct Order {
+        uint256 salt;
+        address makerAsset; // targetToken
+        address takerAsset; // foundryToken
+        address maker;
+        address receiver;   
+        address allowedSender;  // equals to Zero address on public orders
+        uint256 makingAmount;
+        uint256 takingAmount;  // destinationAmountIn
+        uint256 offsets;
+        bytes interactions; // concat(makerAssetData, takerAssetData, getMakingAmount, getTakingAmount, predicate, permit, preIntercation, postInteraction)
+    }
+
     // Define the function signatures
     bytes4 public constant selectorUnoswap =
         bytes4(
@@ -24,7 +37,14 @@ library OneInchDecoder {
                 "swap(address,(address,address,address,address,uint256,uint256,uint256),bytes,bytes)"
             )
         );
-                
+    bytes4 public constant selectorFillOrderTo =
+        bytes4(
+            keccak256(
+                "fillOrderTo((uint256,address,address,address,address,address,uint256,uint256,uint256,bytes),bytes,bytes,uint256,uint256,uint256,address)"
+            )
+        );
+    
+        
     function decodeUnoswap(bytes memory data)
         public
         pure
@@ -70,7 +90,7 @@ library OneInchDecoder {
         );
     }
 
-    function decodeSwap(bytes memory data)
+   function decodeSwap(bytes memory data)
         public
         pure
         returns (
@@ -108,6 +128,31 @@ library OneInchDecoder {
 
         // Return only the values of the SwapDescription
         return (desc.dstReceiver, desc.amount, desc.minReturnAmount);
+    }
+
+    function decodeFillOrderTo(bytes memory data)
+        public
+        pure
+        returns (
+            Order memory order_,
+            bytes memory signature,
+            bytes memory interaction,
+            uint256 makingAmount,
+            uint256 takingAmount,  // destinationAmountIn
+            uint256 skipPermitAndThresholdAmount,
+            address target  // receiverAddress
+        )
+    {
+        require(data.length >= 4, "Data too short");
+
+        // Skip the first 4 bytes (function signature)
+        bytes memory params = slice(data, 4, data.length - 4);
+
+        // Decode the parameters
+        (order_, signature, interaction, makingAmount, takingAmount, skipPermitAndThresholdAmount, target) = abi.decode(
+            params,
+            (Order, bytes, bytes, uint256, uint256,uint256, address)
+        );
     }
 
     // Helper function to slice bytes array
