@@ -32,8 +32,8 @@ async function main() {
   console.log('OneInchDecoder library deployed to:', oneInchDecoder.address);
 
   // Replace these with actual values
-  const wethAddress = "0x";
-  const oneInchAggregatorRouterAddress = "0x";
+  const wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+  const oneInchAggregatorRouterAddress = "0x1111111254EEB25477B68fb85Ed929f73A960582";
   const poolAddress = pool;
 
   // Deploy FiberRouter with the address of OneInchDecoder and other parameters
@@ -71,7 +71,7 @@ async function main() {
   await forgeManager.addLiquidity(erc20.address, liquidityAmount);
   console.log("Liquidity added successfully!");
 
-  const gasEstimation = await multiswapForge.estimateGas.estimateGasForWithdrawSigned(
+  const estimatedGas = await multiswapForge.estimateGas.estimateGasForWithdrawSigned(
     erc20.address, 
     fundManager.address, 
     100,  
@@ -80,8 +80,39 @@ async function main() {
     "0x74f69192c2c9eb585885dcc7b7212f01f251e7367ac859e49ae8897db14ec2bd5347a27b18a81d941c4a9bbcb2f93ef161ad6ab2ada97c9e3f4423f8eaf76e741c"
   );
 
-  console.log("Gas estimation:", gasEstimation);
+  console.log("Gas estimation:", estimatedGas.toString());
+
+  const gasPrice = await getGasPriceFromAPI();
+  const gasCostWei = estimatedGas.mul(gasPrice);
+  console.log("gas cost in wei: ", gasCostWei);
+
+  // Convert gas cost to ethers
+  const gasCostEther = ethers.utils.formatUnits(gasCostWei, "ether");
+  
+  console.log("Estimated Gas Cost in Ether:", gasCostEther);
+  
 }
+
+async function getGasPriceFromAPI() {
+  try {
+  const infuraUrl = "https://bsc.meowrpc.com";
+  const provider = new ethers.providers.JsonRpcProvider(infuraUrl);
+
+  // Get the current gas price
+  const gasPrice = await provider.getGasPrice();
+    
+  // Convert gas price to Gwei for display
+  const gasPriceInGwei = ethers.utils.formatUnits(gasPrice, "gwei");
+
+  console.log("Current Gas Price (Gwei):", gasPriceInGwei);
+  console.log("Current Gas Price (Wei):", gasPrice.toString());
+
+  return gasPrice;
+  } catch (error) {
+    console.error("Error fetching gas price:", error);
+  }
+}
+
 
 main()
   .then(() => process.exit(0))
