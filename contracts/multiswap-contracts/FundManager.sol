@@ -13,6 +13,11 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     using SafeERC20 for IERC20;
 
     address public router;
+    address public settlementManager;
+    address public liquidityManager;
+    address public liquidityManagerBot;
+    address public liquidityManagerWithdrawalAddress;
+    address public liquidityManagerBotWithdrawalAddress;   
     uint32 constant WEEK = 3600 * 24 * 7;
     string public constant NAME = "FUND_MANAGER";
     string public constant VERSION = "000.004";
@@ -30,6 +35,13 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         address receiver,
         address token,
         uint256 amount
+    );
+    event FailedWithdrawalCancelled(
+        address indexed settlementManager,
+        address indexed receiver,
+        address indexed token,
+        uint256 amount,
+        bytes32 salt
     );
     event BridgeLiquidityAdded(address actor, address token, uint256 amount);
     event BridgeLiquidityRemoved(address actor, address token, uint256 amount);
@@ -57,11 +69,43 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     mapping(address => bool) public isFoundryAsset;
     mapping(bytes32=>bool) public usedSalt;
 
+    /**
+     * @dev Modifier that allows only the designated router to execute the function.
+     * It checks if the sender is equal to the `router` address.
+     * @notice Ensure that `router` is set before using this modifier.
+     */
     modifier onlyRouter() {
         require(msg.sender == router, "FM: Only router method");
         _;
     }
 
+    /**
+     * @dev Modifier that allows only the designated settlementManager to execute the function.
+     * It checks if the sender is equal to the `settlementManager` address.
+     * @notice Ensure that `settlementManager` is set before using this modifier.
+     */
+    modifier onlySettlementManager() {
+        require(msg.sender == settlementManager, "FM: Only Settlement Manager");
+        _;
+    }
+
+    /**
+     * @dev Modifier that allows only the designated liquidity managers to execute the function.
+     * It checks if the sender is either `liquidityManager` or `liquidityManagerBot`.
+     * @notice Ensure that `liquidityManager` and `liquidityManagerBot` are set before using this modifier.
+     */
+    modifier onlyLiquidityManager() {
+        require(
+            msg.sender == liquidityManager || msg.sender == liquidityManagerBot,
+            "FM: Only liquidity managers"
+        );
+        _;
+    }
+
+    /**
+     * @dev Contract constructor that initializes the EIP-712 domain with the specified NAME, VERSION.
+     * @notice This constructor is called only once during the deployment of the contract.
+     */
     constructor() EIP712(NAME, VERSION) {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
 
@@ -71,24 +115,75 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
      *************** Owner only operations ***************
      */
 
-    /*
-     @notice sets the router
+    /**
+     * @dev Sets the address of settlement manager
+     * @param _settlementManager The settlement manager address
+     */
+    function setSettlementManager(address _settlementManager) external onlyOwner {
+        require(_settlementManager != address(0), "FM: Bad settlement manager");
+
+        settlementManager = _settlementManager;
+    }
+
+    /**
+     * @dev Sets the addresses of liquidity managers
+     * @param _liquidityManager The primary liquidity manager address
+     * @param _liquidityManagerBot The secondary liquidity manager address
+     */
+    function setLiquidityManagers(address _liquidityManager, address _liquidityManagerBot) external onlyOwner {
+        require(_liquidityManager != address(0), "FM: Bad liquidity manager");
+        require(_liquidityManagerBot != address(0), "FM: Bad liquidity manager bot");
+
+        liquidityManager = _liquidityManager;
+        liquidityManagerBot = _liquidityManagerBot;
+    }
+
+    /**
+     * @dev Sets the addresses of liquidity managers
+     * @param _liquidityManagerWithdrawalAddress The liquidity manager withdrawal address
+     * @param _liquidityManagerBotWithdrawalAddress The liquidity manager bot withdrawal address
+     */
+    function setLiquidityManagerWithdrawal(address _liquidityManagerWithdrawalAddress, address _liquidityManagerBotWithdrawalAddress) external onlyOwner {
+        require(_liquidityManagerWithdrawalAddress != address(0), "FM: Bad liquidity manager withdrawal address");
+        require(_liquidityManagerBotWithdrawalAddress != address(0), "FM: Bad liquidity manager bot withdrawal address");
+
+        liquidityManagerWithdrawalAddress = _liquidityManagerWithdrawalAddress;
+        liquidityManagerBotWithdrawalAddress = _liquidityManagerBotWithdrawalAddress;
+    }
+
+    /**
+     @dev sets the router
+     @param _router is the FiberRouter address
      */
     function setRouter(address _router) external onlyOwner {
         require(_router != address(0), "FM: router requried");
         router = _router;
     }
 
+    /**
+     @dev sets the signer
+     @param _signer is the address that generate signatures
+     */
     function addSigner(address _signer) public onlyOwner {
         require(_signer != address(0), "Bad signer");
         signers[_signer] = true;
     }
 
+    /**
+     @dev removes the signer
+     @param _signer is the address that generate signatures
+     */
     function removeSigner(address _signer) external onlyOwner {
         require(_signer != address(0), "Bad signer");
         delete signers[_signer];
     }
 
+    /**
+     @dev sets the allowed target chain & token
+     @param token is the address of foundry token on source network
+     @param chainId target network's chain ID
+     @param targetToken target network's foundry token address
+     */
     function allowTarget(
         address token,
         uint256 chainId,
@@ -100,6 +195,12 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         allowedTargets[token][chainId] = targetToken;
     }
 
+    /**
+     @dev sets the allowed target chain & token on nonEVM chain
+     @param token is the address of foundry token on source network
+     @param chainId target non EVM network's chain ID
+     @param targetToken target non EVM network's foundry token address
+     */
     function nonEvmAllowTarget(
         address token,
         string memory chainId,
@@ -112,12 +213,22 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         nonEvmAllowedTargets[token][chainId] = targetToken;
     }
 
+    /**
+     @dev removes the allowed target chain & token
+     @param token is the address of foundry token on source network
+     @param chainId target network's chain ID
+     */
     function disallowTarget(address token, uint256 chainId) external onlyAdmin {
         require(token != address(0), "Bad token");
         require(chainId != 0, "Bad chainId");
         delete allowedTargets[token][chainId];
     }
 
+    /**
+     @dev removes the allowed target chain & token on nonEVM chain
+     @param token is the address of foundry token on source network
+     @param chainId target non EVM network's chain ID
+     */
     function nonEvmDisallowTarget(address token, string memory chainId)
         external
         onlyAdmin
@@ -127,16 +238,33 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         delete nonEvmAllowedTargets[token][chainId];
     }
 
+    /**
+     @dev sets the foundry token
+     @param token is the foundry token address
+     */
     function addFoundryAsset(address token) external onlyAdmin {
         require(token != address(0), "Bad token");
         isFoundryAsset[token] = true;
     }
 
+    /**
+     @dev removes the foundry token
+     @param token is the foundry token address
+     */
     function removeFoundryAsset(address token) external onlyAdmin {
         require(token != address(0), "Bad token");
         isFoundryAsset[token] = false;
     }
 
+    /**
+     * @dev Initiates an EVM token swap, exclusive to the router
+     * @notice Ensure valid parameters and router setup
+     * @param token The address of the token to be swapped
+     * @param amount The amount of tokens to be swapped
+     * @param targetNetwork The identifier of the target network for the swap
+     * @param targetAddress The address on the target network where the swapped tokens will be sent
+     * @return The actual amount of tokens swapped
+    */
     function swapToAddress(
         address token,
         uint256 amount,
@@ -162,6 +290,16 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return amount;
     }
 
+    /**
+     * @dev Initiates a non-EVM token swap, exclusive to the router
+     * @notice Ensure valid parameters and router setup
+     * @param token The address of the token to be swapped
+     * @param amount The amount of tokens to be swapped
+     * @param targetNetwork The identifier of the target network for the swap
+     * @param targetToken The identifier of the target token on the non-EVM network
+     * @param targetAddress The address on the target network where the swapped tokens will be sent
+     * @return The actual amount of tokens swapped
+     */
     function nonEvmSwapToAddress(
         address token,
         uint256 amount,
@@ -193,6 +331,17 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return amount;
     }
 
+    /**
+     * @dev Initiates a signed token withdrawal, exclusive to the router
+     * @notice Ensure valid parameters and router setup
+     * @param token The token to withdraw
+     * @param payee Address for where to send the tokens to
+     * @param amount The amount
+     * @param salt The salt for unique tx 
+     * @param expiry The expiration time for the signature
+     * @param signature The multisig validator signature
+     * @return The actual amount of tokens withdrawn
+     */
     function withdrawSigned(
         address token,
         address payee,
@@ -220,6 +369,20 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return amount;
     }
 
+    /**
+     * @dev Initiates a signed OneInch token withdrawal, exclusive to the router
+     * @notice Ensure valid parameters and router setup
+     * @param to The address to withdraw to
+     * @param amountIn The amount to be swapped in
+     * @param amountOut The expected amount out in the OneInch swap
+     * @param foundryToken The token used in the Foundry
+     * @param targetToken The target token for the swap
+     * @param oneInchData The data containing information for the 1inch swap
+     * @param salt The salt value for the signature
+     * @param expiry The expiration time for the signature
+     * @param signature The multi-signature data
+     * @return The actual amount of tokens withdrawn from Foundry
+     */
     function withdrawSignedOneInch(
         address to,
         uint256 amountIn,
@@ -262,6 +425,16 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return amountIn;
     }
 
+    /**
+     * @dev Verifies details of a signed token withdrawal without executing the withdrawal
+     * @param token Token address for withdrawal
+     * @param payee Intended recipient address
+     * @param amount Amount of tokens to be withdrawn
+     * @param salt Unique identifier to prevent replay attacks
+     * @param expiry Expiration timestamp of the withdrawal signature
+     * @param signature Cryptographic signature for verification
+     * @return Digest and signer's address from the provided signature
+     */
     function withdrawSignedVerify(
         address token,
         address payee,
@@ -277,6 +450,19 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return (digest, _signer);
     }
 
+    /**
+     * @dev Verifies details of a signed OneInch token withdrawal without execution
+     * @param to Recipient address on the target network
+     * @param amountIn Tokens withdrawn from Foundry
+     * @param amountOut Expected tokens on the target network
+     * @param foundryToken Token withdrawn from Foundry
+     * @param targetToken Token on the target network
+     * @param oneInchData The data containing information for the 1inch swap
+     * @param salt Unique identifier to prevent replay attacks
+     * @param expiry Expiration timestamp of the withdrawal signature
+     * @param signature Cryptographic signature for verification
+     * @return Digest and signer's address from the provided signature
+     */
     function withdrawSignedOneInchVerify(
         address to,
         uint256 amountIn,
@@ -305,12 +491,106 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return (digest, _signer);
     }
 
+    /**
+     * @dev Cancels a signed token withdrawal
+     * @param token The token to withdraw
+     * @param payee Address for where to send the tokens to
+     * @param amount The amount
+     * @param salt The salt for unique tx 
+     * @param expiry The expiration time for the signature
+     * @param signature The multisig validator signature
+     */
+    function cancelFailedWithdrawSigned(
+        address token,
+        address payee,
+        uint256 amount,
+        bytes32 salt,
+        uint256 expiry,
+        bytes memory signature
+    ) external onlySettlementManager {
+        require(token != address(0), "FM: bad token");
+        require(payee != address(0), "FM: bad payee");
+        require(salt != 0, "FM: bad salt");
+        require(amount != 0, "FM: bad amount");
+        require(block.timestamp < expiry, "FM: signature timed out");
+        require(expiry < block.timestamp + WEEK, "FM: expiry too far");
+        bytes32 message =  keccak256(
+                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
+            );
+        address _signer = signerUnique(message, signature);
+        
+        require(signers[_signer], "FM: Invalid signer");
+        require(!usedSalt[salt], "FM: salt already used");
+        usedSalt[salt] = true;
+
+        emit FailedWithdrawalCancelled(settlementManager, payee, token, amount, salt);
+    }
+
+    /**
+     * @dev Cancels a signed OneInch token withdrawal
+     * @notice Ensure valid parameters and router setup
+     * @param to The address to withdraw to
+     * @param amountIn The amount to be swapped in
+     * @param amountOut The expected amount out in the OneInch swap
+     * @param foundryToken The token used in the Foundry
+     * @param targetToken The target token for the swap
+     * @param oneInchData The data containing information for the 1inch swap
+     * @param salt The salt value for the signature
+     * @param expiry The expiration time for the signature
+     * @param signature The multi-signature data
+     */
+    function cancelFailedWithdrawSignedOneInch(
+        address to,
+        uint256 amountIn,
+        uint256 amountOut,
+        address foundryToken,
+        address targetToken,
+        bytes memory oneInchData,
+        bytes32 salt,
+        uint256 expiry,
+        bytes memory signature
+    ) external onlySettlementManager {
+        require(targetToken != address(0), "FM: bad token");
+        require(foundryToken != address(0), "FM: bad token");
+        require(to != address(0), "FM: bad payee");
+        require(salt != 0, "FM: bad salt");
+        require(amountIn != 0, "FM: bad amount");
+        require(amountOut != 0, "FM: bad amount");
+        require(block.timestamp < expiry, "FM: signature timed out");
+        require(expiry < block.timestamp + WEEK, "FM: expiry too far");
+
+        bytes32 message =  keccak256(
+                abi.encode(
+                    WITHDRAW_SIGNED_ONEINCH__METHOD,
+                    to,
+                    amountIn,
+                    amountOut,
+                    foundryToken,
+                    targetToken,
+                    oneInchData,
+                    salt,
+                    expiry
+                )
+            );
+        address _signer = signerUnique(message, signature);
+        require(signers[_signer], "FM: Invalid signer");
+        require(!usedSalt[salt], "FM: salt already used");
+        usedSalt[salt] = true;
+
+        emit FailedWithdrawalCancelled(settlementManager, to, targetToken, amountIn, salt);
+    }
+
+    /**
+     * @dev Adds liquidity for the specified token.
+     * @param token Token address for liquidity.
+     * @param amount Amount of tokens to be added.
+     */
     function addLiquidity(address token, uint256 amount) external {
-        require(amount != 0, "Amount must be positive");
-        require(token != address(0), "Bad token");
+        require(amount != 0, "FM: Amount must be positive");
+        require(token != address(0), "FM: Bad token");
         require(
             isFoundryAsset[token] == true,
-            "Only foundry assets can be added"
+            "FM: Only foundry assets can be added"
         );
         liquidities[token][msg.sender] += amount;
         amount = SafeAmount.safeTransferFrom(
@@ -323,18 +603,24 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         emit BridgeLiquidityAdded(msg.sender, token, amount);
     }
 
+    /**
+     * @dev Removes possible liquidity for the specified token.
+     * @param token Token address for liquidity removal.
+     * @param amount Amount of tokens to be removed.
+     * @return Actual amount of tokens removed.
+     */
     function removeLiquidityIfPossible(address token, uint256 amount)
         external
         returns (uint256)
     {
-        require(amount != 0, "Amount must be positive");
-        require(token != address(0), "Bad token");
+        require(amount != 0, "FM: Amount must be positive");
+        require(token != address(0), "FM: Bad token");
         require(
             isFoundryAsset[token] == true,
-            "Only foundry assets can be removed"
+            "FM: Only foundry assets can be removed"
         );
         uint256 liq = liquidities[token][msg.sender];
-        require(liq >= amount, "Not enough liquidity");
+        require(liq >= amount, "FM: Not enough liquidity");
         uint256 balance = IERC20(token).balanceOf(address(this));
         uint256 actualLiq = balance > amount ? amount : balance;
 
@@ -346,6 +632,12 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         return actualLiq;
     }
 
+    /**
+     * @dev Retrieves liquidity for the specified token and liquidity adder.
+     * @param token Token address for liquidity.
+     * @param liquidityAdder Address of the liquidity adder.
+     * @return Current liquidity amount.
+     */
     function liquidity(address token, address liquidityAdder)
         external
         view
@@ -353,4 +645,60 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     {
         return liquidities[token][liquidityAdder];
     }
+
+    /**
+     * @dev Adds liquidity for the specified token, managed exclusively by liquidity managers.
+     * @param token Token address for liquidity.
+     * @param amount Amount of tokens to be added.
+     */
+    function addLiquidityByManager(address token, uint256 amount) external onlyLiquidityManager {
+        // Similar to addLiquidity, but without liquidityAdder mapping
+        require(amount != 0, "FM: Amount must be positive");
+        require(token != address(0), "FM: Bad token");
+        require(
+            isFoundryAsset[token] == true,
+            "FM: Only foundry assets can be added"
+        );
+
+        amount = SafeAmount.safeTransferFrom(
+            token,
+            msg.sender,
+            address(this),
+            amount
+        );
+        amount = TokenReceivable.sync(token);
+        emit BridgeLiquidityAdded(msg.sender, token, amount);
+    }
+
+    /**
+     * @dev Removes specified liquidity for the given token, managed exclusively by liquidity managers.
+     * @param token Token address for liquidity removal.
+     * @param amount Amount of tokens to be removed.
+     * @return Actual amount of tokens removed.
+     */
+    function removeLiquidityByManager(address token, uint256 amount) external onlyLiquidityManager returns (uint256) {
+        require(token != address(0), "FM: Bad token");
+        require(isFoundryAsset[token], "FM: Only foundry assets can be removed");
+        require(amount != 0, "FM: Amount must be positive");
+
+        // Ensure the contract has enough balance to remove the requested liquidity
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        require(balance >= amount, "FM: Insufficient balance");
+
+        // Determine the withdrawal address based on the caller (bot or real owner)
+        address withdrawalAddress;
+
+        if (msg.sender == liquidityManager) {
+            withdrawalAddress = liquidityManagerWithdrawalAddress;
+        } else if (msg.sender == liquidityManagerBot) {
+            withdrawalAddress = liquidityManagerBotWithdrawalAddress;
+        }
+        
+        // Transfer the requested amount to the withdrawal address
+        TokenReceivable.sendToken(token, withdrawalAddress, amount);
+
+        emit BridgeLiquidityRemoved(withdrawalAddress, token, amount);
+        return amount;
+    }
+
 }
