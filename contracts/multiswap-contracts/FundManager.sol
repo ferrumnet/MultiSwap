@@ -3,21 +3,17 @@ pragma solidity 0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../common/signature/SigCheckable.sol";
-import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
 import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./LiquidityManagerRole.sol";
 
-contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
+contract FundManager is SigCheckable, TokenReceivable, LiquidityManagerRole {
     using SafeERC20 for IERC20;
 
     address public router;
     address public settlementManager;
-    address public liquidityManager;
-    address public liquidityManagerBot;
-    address public liquidityManagerWithdrawalAddress;
-    address public liquidityManagerBotWithdrawalAddress;   
     uint32 constant WEEK = 3600 * 24 * 7;
     string public constant NAME = "FUND_MANAGER";
     string public constant VERSION = "000.004";
@@ -90,19 +86,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
     }
 
     /**
-     * @dev Modifier that allows only the designated liquidity managers to execute the function.
-     * It checks if the sender is either `liquidityManager` or `liquidityManagerBot`.
-     * @notice Ensure that `liquidityManager` and `liquidityManagerBot` are set before using this modifier.
-     */
-    modifier onlyLiquidityManager() {
-        require(
-            msg.sender == liquidityManager || msg.sender == liquidityManagerBot,
-            "FM: Only liquidity managers"
-        );
-        _;
-    }
-
-    /**
      * @dev Contract constructor that initializes the EIP-712 domain with the specified NAME, VERSION.
      * @notice This constructor is called only once during the deployment of the contract.
      */
@@ -125,31 +108,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         settlementManager = _settlementManager;
     }
 
-    /**
-     * @dev Sets the addresses of liquidity managers
-     * @param _liquidityManager The primary liquidity manager address
-     * @param _liquidityManagerBot The secondary liquidity manager address
-     */
-    function setLiquidityManagers(address _liquidityManager, address _liquidityManagerBot) external onlyOwner {
-        require(_liquidityManager != address(0), "FM: Bad liquidity manager");
-        require(_liquidityManagerBot != address(0), "FM: Bad liquidity manager bot");
-
-        liquidityManager = _liquidityManager;
-        liquidityManagerBot = _liquidityManagerBot;
-    }
-
-    /**
-     * @dev Sets the addresses of liquidity managers
-     * @param _liquidityManagerWithdrawalAddress The liquidity manager withdrawal address
-     * @param _liquidityManagerBotWithdrawalAddress The liquidity manager bot withdrawal address
-     */
-    function setLiquidityManagerWithdrawal(address _liquidityManagerWithdrawalAddress, address _liquidityManagerBotWithdrawalAddress) external onlyOwner {
-        require(_liquidityManagerWithdrawalAddress != address(0), "FM: Bad liquidity manager withdrawal address");
-        require(_liquidityManagerBotWithdrawalAddress != address(0), "FM: Bad liquidity manager bot withdrawal address");
-
-        liquidityManagerWithdrawalAddress = _liquidityManagerWithdrawalAddress;
-        liquidityManagerBotWithdrawalAddress = _liquidityManagerBotWithdrawalAddress;
-    }
 
     /**
      @dev sets the router
@@ -644,61 +602,6 @@ contract FundManager is SigCheckable, WithAdmin, TokenReceivable {
         returns (uint256)
     {
         return liquidities[token][liquidityAdder];
-    }
-
-    /**
-     * @dev Adds liquidity for the specified token, managed exclusively by liquidity managers.
-     * @param token Token address for liquidity.
-     * @param amount Amount of tokens to be added.
-     */
-    function addLiquidityByManager(address token, uint256 amount) external onlyLiquidityManager {
-        // Similar to addLiquidity, but without liquidityAdder mapping
-        require(amount != 0, "FM: Amount must be positive");
-        require(token != address(0), "FM: Bad token");
-        require(
-            isFoundryAsset[token] == true,
-            "FM: Only foundry assets can be added"
-        );
-
-        amount = SafeAmount.safeTransferFrom(
-            token,
-            msg.sender,
-            address(this),
-            amount
-        );
-        amount = TokenReceivable.sync(token);
-        emit BridgeLiquidityAdded(msg.sender, token, amount);
-    }
-
-    /**
-     * @dev Removes specified liquidity for the given token, managed exclusively by liquidity managers.
-     * @param token Token address for liquidity removal.
-     * @param amount Amount of tokens to be removed.
-     * @return Actual amount of tokens removed.
-     */
-    function removeLiquidityByManager(address token, uint256 amount) external onlyLiquidityManager returns (uint256) {
-        require(token != address(0), "FM: Bad token");
-        require(isFoundryAsset[token], "FM: Only foundry assets can be removed");
-        require(amount != 0, "FM: Amount must be positive");
-
-        // Ensure the contract has enough balance to remove the requested liquidity
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        require(balance >= amount, "FM: Insufficient balance");
-
-        // Determine the withdrawal address based on the caller (bot or real owner)
-        address withdrawalAddress;
-
-        if (msg.sender == liquidityManager) {
-            withdrawalAddress = liquidityManagerWithdrawalAddress;
-        } else if (msg.sender == liquidityManagerBot) {
-            withdrawalAddress = liquidityManagerBotWithdrawalAddress;
-        }
-        
-        // Transfer the requested amount to the withdrawal address
-        TokenReceivable.sendToken(token, withdrawalAddress, amount);
-
-        emit BridgeLiquidityRemoved(withdrawalAddress, token, amount);
-        return amount;
     }
 
 }
