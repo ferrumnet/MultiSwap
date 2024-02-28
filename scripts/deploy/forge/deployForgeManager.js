@@ -31,13 +31,13 @@ async function main() {
     console.log('receipt: ', receipt);
 
     const forgeFundManagerAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
-  console.log("ForgeFundManager deployed to:", forgeFundManagerAddress);
-  console.log("Verifing...");
-  await hre.run("verify:verify", {
-    address: forgeFundManagerAddress,
-    constructorArguments: [],
-  });
-  console.log("Contract verified successfully !");
+    console.log("ForgeFundManager deployed to:", forgeFundManagerAddress);
+    console.log("Verifing...");
+    await hre.run("verify:verify", {
+      address: forgeFundManagerAddress,
+      constructorArguments: [],
+    });
+    console.log("Contract verified successfully !");
 }
 
 main().catch((error) => {

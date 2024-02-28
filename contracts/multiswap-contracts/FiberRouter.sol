@@ -103,7 +103,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     @notice Sets the fund manager contract.
+     @dev Sets the fund manager contract.
      @param _pool The fund manager
      */
     function setPool(address _pool) external onlyOwner {
@@ -115,7 +115,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     @notice Sets the gas wallet address.
+     @dev Sets the gas wallet address.
      @param _gasWallet The wallet which pays for the funds on withdrawal
      */
     function setGasWallet(address payable _gasWallet) external onlyOwner {
@@ -127,7 +127,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     @notice Sets the 1inch Aggregator Router address
+     @dev Sets the 1inch Aggregator Router address
      @param _newRouterAddress The new Router Address of oneInch
      */
     function setOneInchAggregatorRouter(address _newRouterAddress)
@@ -142,7 +142,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     * @notice Initiate an x-chain swap.
+     * @dev Initiate an x-chain swap.
      * @param token The token to be swapped
      * @param amount The amount to be swapped
      * @param targetNetwork The target network for the swap
@@ -195,7 +195,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     *@notice Initiate an x-chain swap.
+     *@dev Initiate an x-chain swap.
      *@param token The source token to be swaped
      *@param amount The source amount
      *@param targetNetwork The chain ID for the target network
@@ -252,7 +252,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     * @notice Do a local swap and generate a cross-chain swap
+     * @dev Do a local swap and generate a cross-chain swap
      * @param amountIn The input amount
      * @param amountOut Equivalent to amountOut on oneInch
      * @param crossTargetNetwork The target network for the swap
@@ -331,7 +331,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         }
 
     /**
-     * @notice Swap and cross to oneInch in native currency
+     * @dev Swap and cross to oneInch in native currency
      * @param amountOut Equivalent to amountOut on oneInch
      * @param crossTargetNetwork The target network for the swap
      * @param crossTargetToken The target token for the cross-chain swap
@@ -393,12 +393,14 @@ contract FiberRouter is Ownable, TokenReceivable {
 
 
     /**
-    *@notice Withdraws funds based on a multisig
-    *@param token The token to withdraw
-    *@param payee Address for where to send the tokens to
-    *@param amount The amount
-    *@param salt The salt for unique tx 
-    *@param multiSignature The multisig validator signature
+     * @dev Initiates a signed token withdrawal, exclusive to the router.
+     * @notice Ensure valid parameters and router setup.
+     * @param token The token to withdraw
+     * @param payee Address for where to send the tokens to
+     * @param amount The amount
+     * @param salt The salt for unique tx 
+     * @param expiry The expiration time for the signature
+     * @param multiSignature The multisig validator signature
     */
     function withdrawSigned(
         address token,
@@ -426,7 +428,8 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     * @notice Withdraws funds and swaps to a new token
+     * @dev Initiates a signed OneInch token withdrawal, exclusive to the router.
+     * @notice Ensure valid parameters and router setup.
      * @param to The address to withdraw to
      * @param amountIn The amount to be swapped in
      * @param amountOut The expected amount out in the OneInch swap
@@ -496,7 +499,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     * @notice Helper function for executing token swaps using OneInch aggregator
+     * @dev Helper function for executing token swaps using OneInch aggregator
      * @param to The recipient address to receive the swapped tokens
      * @param srcToken The source token to be swapped (input token)
      * @param amountIn The amount of input tokens to be swapped
@@ -527,13 +530,15 @@ contract FiberRouter is Ownable, TokenReceivable {
             returnAmount = handleSwap(to, srcToken, amountIn, amountOut, oneInchData);
         } else if (receivedSelector == OneInchDecoder.selectorFillOrderTo) {
             returnAmount = handleFillOrderTo(to, srcToken, amountIn, oneInchData);
+        } else if (receivedSelector == OneInchDecoder.selectorFillOrderRFQTo) {
+            returnAmount = handleFillOrderRFQTo(to, srcToken, amountIn, oneInchData);
         } else {
             revert("FR: incorrect oneInchData");
         }
     }
 
     /**
-     * @notice Handles the execution of a token swap operation using UnoSwap
+     * @dev Handles the execution of a token swap operation using UnoSwap
      * @param to The recipient address to receive the swapped tokens
      * @param fromToken The token to be swapped from (input token)
      * @param amountIn The amount of input tokens to be swapped
@@ -577,7 +582,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     * @notice Handles the execution of a token swap operation involving 1inch aggregator
+     * @dev Handles the execution of a token swap operation involving 1inch aggregator
      * @param to The recipient address to receive the swapped tokens
      * @param amountIn The amount of input tokens to be swapped
      * @param amountOut The expected amount of output tokens after the swap
@@ -615,7 +620,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     * @notice Handles the execution of a token swap operation, potentially involving 1inch aggregator
+     * @dev Handles the execution of a token swap operation, potentially involving 1inch aggregator
      * @param to The recipient address to receive the swapped tokens
      * @param fromToken The address of the input token for the swap
      * @param amountIn The amount of input tokens to be swapped
@@ -681,7 +686,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     * @notice Handles the execution of the `fillOrderTo` operation, involving 1inch aggregator
+     * @dev Handles the execution of the `fillOrderTo` operation, involving 1inch aggregator
      * @param to The recipient address to receive the swapped tokens
      * @param fromToken The address of the input token for the swap (foundryToken or takerAsset)
      * @param amountIn The amount of input tokens to be swapped
@@ -746,9 +751,64 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
     }
 
+    /**
+     * @dev Handles the execution of the `fillOrderRFQTo` operation, involving 1inch aggregator
+     * @param to The recipient address to receive the swapped tokens
+     * @param fromToken The address of the input token for the swap (foundryToken or takerAsset)
+     * @param amountIn The amount of input tokens to be swapped
+     * @param oneInchData The data containing information for the 1inch swap
+     * @return returnAmount The amount of tokens received after the swap and transaction execution
+     */
+    function handleFillOrderRFQTo(
+        address payable to,
+        address fromToken,  // foundryToken // takerAsset
+        uint256 amountIn,
+        bytes memory oneInchData
+    ) internal returns (uint256 returnAmount) {
+        // Decoding oneInchData to get the required parameters
+        (
+            OneInchDecoder.OrderRFQ memory order,
+            bytes memory signature,
+            uint256 flagsAndAmount,
+            address target // receiverAddress
+        ) = OneInchDecoder.decodeFillOrderRFQTo(oneInchData);
+
+        // Manually create a new OrderRFQ for IOneInchSwap
+        IOneInchSwap.OrderRFQ memory oneInchOrderRFQ = IOneInchSwap.OrderRFQ({
+            info: order.info,
+            makerAsset: order.makerAsset,
+            takerAsset: order.takerAsset,
+            maker: order.maker,
+            allowedSender: order.allowedSender,
+            makingAmount: order.makingAmount,
+            takingAmount: order.takingAmount
+        });
+
+        // Perform additional checks and validations if needed
+        require(to == target, "FR: recipient address bad oneInch Data");
+        require(fromToken == order.takerAsset, "FR: takerAsset bad oneInch Data");
+        require(amountIn == order.takingAmount, "FR: inputAmount bad oneInch Data ");
+        require(oneInchData.length >= 4, "Data too short for valid call");
+
+        // Performing the swap
+        ( returnAmount, , ) = IOneInchSwap(oneInchAggregatorRouter).fillOrderRFQTo(
+            oneInchOrderRFQ,
+            signature,
+            flagsAndAmount,
+            target
+        );
+
+        emit SwapHandled(
+            oneInchAggregatorRouter,
+            to,
+            fromToken,
+            amountIn,
+            returnAmount // should be returned 
+        );
+    }
 
     /**
-     * @notice Performs a token swap and cross-network transaction using the 1inch Aggregator
+     * @dev Performs a token swap and cross-network transaction using the 1inch Aggregator
      * @param amountIn The amount of input tokens to be swapped
      * @param amountOut The expected amount of output tokens after the swap on 1inch
      * @param crossTargetNetwork The network identifier for the cross-network transaction

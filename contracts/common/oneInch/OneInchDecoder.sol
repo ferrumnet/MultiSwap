@@ -23,6 +23,15 @@ library OneInchDecoder {
         uint256 offsets;
         bytes interactions; // concat(makerAssetData, takerAssetData, getMakingAmount, getTakingAmount, predicate, permit, preIntercation, postInteraction)
     }
+    struct OrderRFQ {
+        uint256 info;  // lowest 64 bits is the order id, next 64 bits is the expiration timestamp
+        address makerAsset; // targetToken
+        address takerAsset; // foundryToken
+        address maker;
+        address allowedSender;  // equals to Zero address on public orders
+        uint256 makingAmount;
+        uint256 takingAmount;
+    }
 
     // Define the function signatures
     bytes4 public constant selectorUnoswap =
@@ -43,7 +52,12 @@ library OneInchDecoder {
                 "fillOrderTo((uint256,address,address,address,address,address,uint256,uint256,uint256,bytes),bytes,bytes,uint256,uint256,uint256,address)"
             )
         );
-    
+    bytes4 public constant selectorFillOrderRFQTo =
+        bytes4(
+            keccak256(
+                "fillOrderRFQTo((uint256,address,address,address,address,uint256,uint256),bytes,uint256,address)"
+            )
+        );
         
     function decodeUnoswap(bytes memory data)
         public
@@ -152,6 +166,28 @@ library OneInchDecoder {
         (order_, signature, interaction, makingAmount, takingAmount, skipPermitAndThresholdAmount, target) = abi.decode(
             params,
             (Order, bytes, bytes, uint256, uint256,uint256, address)
+        );
+    }
+
+    function decodeFillOrderRFQTo(bytes memory data)
+        public
+        pure
+        returns (
+            OrderRFQ memory order,
+            bytes memory signature,
+            uint256 flagsAndAmount,
+            address target // receiverAddress
+        )
+    {
+        require(data.length >= 4, "Data too short");
+
+        // Skip the first 4 bytes (function signature)
+        bytes memory params = slice(data, 4, data.length - 4);
+
+        // Decode the parameters
+        (order, signature, flagsAndAmount, target) = abi.decode(
+            params,
+            (OrderRFQ, bytes, uint256, address)
         );
     }
 
