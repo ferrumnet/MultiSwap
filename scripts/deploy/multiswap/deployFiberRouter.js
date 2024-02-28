@@ -9,17 +9,22 @@ async function main() {
     const oneInchDecoder = await OneInchDecoder.deploy();
     await oneInchDecoder.deployed();
     console.log("OneInchDecoder library deployed to:", oneInchDecoder.address);
+    console.log("Verifing...");
+    await hre.run("verify:verify", {
+      address: oneInchDecoder.address,
+      constructorArguments: [],
+    });
 
     // Attach to the already deployed FerrumDeployer contract
-    const ferrumDeployerAddress = "ferrumDeployerAddress";
+    const ferrumDeployerAddress = "0x-ferrumDeployerAddress";
     const FerrumDeployer = await ethers.getContractFactory("FerrumDeployer");
     const ferrumDeployer = await FerrumDeployer.attach(ferrumDeployerAddress);
 
     // Prepare the initialization data for FiberRouter
     const initData = ethers.utils.defaultAbiCoder.encode(
-        ["address", "address", "address"],
-        ["WETH", "oneInchAggregator", "poolAddress"]
-    );
+      ["address", "address", "address"],
+      ["0x WETH", "0x-oneInchAggregator", "0x-poolAddress"]   // Replace these addresses with real data 
+  );
 
     // Get the contract factory for FiberRouter, linking the OneInchDecoder library
     const FiberRouter = await ethers.getContractFactory("FiberRouter", {
@@ -35,25 +40,21 @@ async function main() {
     const salt = ethers.utils.formatBytes32String(new Date().getTime().toString());
 
     // Deploy FiberRouter using FerrumDeployer's deployOwnable function
-    const ownerAddress = "ownerAdddress"; // Replace with the desired owner address
+    const ownerAddress = "0x-ownerAdddress"; // Replace with the desired owner address
     const deploymentTx = await ferrumDeployer.deployOwnable(salt, ownerAddress, initData, bytecodeWithInitData);
     const receipt = await deploymentTx.wait();
 
-  const fiberRouterAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
-  console.log("FiberRouter deployed to:", fiberRouterAddress);
-  console.log("Verifing...");
-  await hre.run("verify:verify", {
-    address: oneInchDecoder.address,
-    constructorArguments: [],
-  });
-  await hre.run("verify:verify", {
-    address: fiberRouterAddress,
-    constructorArguments: [],
-    libraries: {
-      OneInchDecoder : oneInchDecoder.address,
-    },
-  });
-  console.log("Contract verified successfully !");
+    const fiberRouterAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
+    console.log("FiberRouter deployed to:", fiberRouterAddress);
+    console.log("Verifing...");
+    await hre.run("verify:verify", {
+      address: fiberRouterAddress,
+      constructorArguments: [],
+      libraries: {
+        OneInchDecoder : oneInchDecoder.address,
+      },
+    });
+    console.log("Contract verified successfully !");
 }
 
 

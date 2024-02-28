@@ -5,7 +5,7 @@ async function main() {
     await hre.run('compile');
 
     // Attach to the already deployed FerrumDeployer contract
-    const ferrumDeployerAddress = "ferrumDeployerAddress";
+    const ferrumDeployerAddress = "0x-ferrumDeployerAddress";
     const FerrumDeployer = await ethers.getContractFactory("FerrumDeployer");
     const ferrumDeployer = await FerrumDeployer.attach(ferrumDeployerAddress);
 
@@ -30,13 +30,13 @@ async function main() {
     const receipt = await deploymentTx.wait();
 
     const fundManagerAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
-  console.log("FundManager deployed to:", fundManagerAddress);
-  console.log("Verifing...");
-  await hre.run("verify:verify", {
-    address: fundManagerAddress,
-    constructorArguments: [],
-  });
-  console.log("Contract verified successfully !");
+    console.log("FundManager deployed to:", fundManagerAddress);
+    console.log("Verifing...");
+    await hre.run("verify:verify", {
+      address: fundManagerAddress,
+      constructorArguments: [],
+    });
+    console.log("Contract verified successfully !");
 }
 
 main().catch((error) => {

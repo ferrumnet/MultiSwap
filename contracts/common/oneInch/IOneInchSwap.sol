@@ -13,6 +13,16 @@ interface IOneInchSwap {
         uint256 flags;
     }
 
+    struct OrderRFQ {
+        uint256 info;  // lowest 64 bits is the order id, next 64 bits is the expiration timestamp
+        address makerAsset; // targetToken
+        address takerAsset; // foundryToken
+        address maker;
+        address allowedSender;  // equals to Zero address on public orders
+        uint256 makingAmount;
+        uint256 takingAmount; // destinationAmountIn / foundryTokenAmountIn
+    }
+
     struct Order {
         uint256 salt;
         address makerAsset; // targetToken
@@ -27,7 +37,15 @@ interface IOneInchSwap {
     }
 
     // Define external functions that will be available for interaction
-    
+   
+    // fillOrderRFQTo 
+    function fillOrderRFQTo(
+        OrderRFQ calldata order,
+        bytes calldata signature,
+        uint256 flagsAndAmount,
+        address target // receiverAddress
+    ) external payable returns (uint256 filledMakingAmount, uint256 filledTakingAmount, bytes32 orderHash);
+
     // fillOrderTo function
     function fillOrderTo(
         Order calldata order_,
