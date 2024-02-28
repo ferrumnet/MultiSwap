@@ -3,27 +3,24 @@ const { ethers } = require("hardhat");
 async function main() {
     // Compile the contracts and libraries
     await hre.run('compile');
-    // Deploy the OneInchDecoder library
-    const OneInchDecoder = await ethers.getContractFactory("OneInchDecoder");
-    const oneInchDecoder = await OneInchDecoder.deploy();
-    await oneInchDecoder.deployed();
-    console.log("OneInchDecoder library deployed to:", oneInchDecoder.address);
+
+    const oneInchDecoderAddress = "0x"
 
     // Attach to the already deployed FerrumDeployer contract
     const ferrumDeployerAddress = "0x";
     const FerrumDeployer = await ethers.getContractFactory("FerrumDeployer");
     const ferrumDeployer = await FerrumDeployer.attach(ferrumDeployerAddress);
 
-    // Prepare the initialization data for MultiswapForge
+    // Prepare the initialization data for FiberRouter
     const initData = ethers.utils.defaultAbiCoder.encode(
-        ["address", "address"],
-        ["0x", "0x"] // ["oneInchAggregatorAddress", "poolAddress"]
-    );
+      ["address", "address", "address"],
+      ["0x WETH", "0x-oneInchAggregator", "0x-poolAddress"]   // Replace these addresses with real data 
+  );
 
     // Get the contract factory for MultiswapForge
     const MultiswapForge = await ethers.getContractFactory("MultiswapForge", {
         libraries: {
-            "contracts/common/oneInch/OneInchDecoder.sol:OneInchDecoder": oneInchDecoder.address
+            "contracts/common/oneInch/OneInchDecoder.sol:OneInchDecoder": oneInchDecoderAddress
         }
       });
 
@@ -41,18 +38,14 @@ async function main() {
 
     const multiswapForgeAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
     console.log("ForgeFundManager deployed to:", multiswapForgeAddress);
-  console.log("Verifing...");
-  await hre.run("verify:verify", {
-    address: oneInchDecoder.address,
-    constructorArguments: [],
-  });
-  await hre.run("verify:verify", {
-    address: multiswapForgeAddress,
-    constructorArguments: [],
-    libraries: {
-      OneInchDecoder : oneInchDecoder.address,
-    },
-  });
+    console.log("Verifing...");
+    await hre.run("verify:verify", {
+      address: multiswapForgeAddress,
+      constructorArguments: [],
+      libraries: {
+        OneInchDecoder : oneInchDecoderAddress,
+      },
+    });
   console.log("Contract verified successfully !");
 }
 

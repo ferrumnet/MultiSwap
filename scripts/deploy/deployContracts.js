@@ -14,6 +14,7 @@ async function main() {
   await hre.run("verify:verify", {
     address: fundManager.address,
     constructorArguments: [],
+    contract: "contracts/multiswap-contracts/FundManager.sol:FundManager"
   });
   console.log("Contract verified successfully !");
 
@@ -26,6 +27,7 @@ async function main() {
   await hre.run("verify:verify", {
     address: forgeManager.address,
     constructorArguments: [],
+    contract: "contracts/multiswap-contracts/ForgeManager.sol:ForgeFundManager"
   });
   console.log("Contract verified successfully !");
 
@@ -83,10 +85,10 @@ async function main() {
   });
   console.log("Contract verified successfully !");
 
-// Set MultiSwapForge address for MultiswapForge
-  await forgeManager.setRouter(multiswapForge.address);
-  console.log("Forge added successfully in ForgeManager!");
 }
+
+
+
 
 main()
   .then(() => process.exit(0))
