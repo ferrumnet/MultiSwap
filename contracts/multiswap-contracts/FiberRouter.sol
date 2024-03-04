@@ -4,7 +4,6 @@
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
-import "../common/oneInch/OneInchDecoder.sol";
 import "../common/oneInch/IOneInchSwap.sol";
 import "../common/IWETH.sol";
 import "foundry-contracts/contracts/common/FerrumDeployer.sol";
@@ -21,6 +20,43 @@ contract FiberRouter is Ownable, TokenReceivable {
     address public oneInchAggregatorRouter;
     address public WETH;
 
+    enum OneInchFunction {
+        unoswapTo,
+        uniswapV3SwapTo,
+        swap,
+        fillOrderTo,
+        fillOrderRFQTo
+    }
+    struct SwapDescription {
+        address srcToken;
+        address dstToken;
+        address payable srcReceiver;
+        address payable dstReceiver;
+        uint256 amount;
+        uint256 minReturnAmount;
+        uint256 flags;
+    }
+    struct Order {
+        uint256 salt;
+        address makerAsset; // targetToken
+        address takerAsset; // foundryToken
+        address maker;
+        address receiver;   
+        address allowedSender;  // equals to Zero address on public orders
+        uint256 makingAmount;
+        uint256 takingAmount;  // destinationAmountIn
+        uint256 offsets;
+        bytes interactions; // concat(makerAssetData, takerAssetData, getMakingAmount, getTakingAmount, predicate, permit, preIntercation, postInteraction)
+    }
+    struct OrderRFQ {
+        uint256 info;  // lowest 64 bits is the order id, next 64 bits is the expiration timestamp
+        address makerAsset; // targetToken
+        address takerAsset; // foundryToken
+        address maker;
+        address allowedSender;  // equals to Zero address on public orders
+        uint256 makingAmount;
+        uint256 takingAmount;
+    }
     event Swap(
         address sourceToken,
         address targetToken,
@@ -90,16 +126,18 @@ contract FiberRouter is Ownable, TokenReceivable {
      */
     constructor() {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
-        (WETH, oneInchAggregatorRouter, pool) = abi.decode(
-            initData,
-            (address, address, address)
-        );
-        require(WETH != address(0), "WETH address cannot be the zero address");
+    }
+
+    /**
+     @dev Sets the WETH address.
+     @param _weth The WETH address
+     */
+    function setWETH(address _weth) external onlyOwner {
         require(
-            oneInchAggregatorRouter != address(0),
-            "oneInchAggregator address cannot be the zero address"
+            _weth != address(0),
+            "_weth address cannot be zero"
         );
-        require(pool != address(0), "Pool address cannot be the zero address");
+        WETH = _weth;
     }
 
     /**
@@ -272,7 +310,8 @@ contract FiberRouter is Ownable, TokenReceivable {
             bytes memory oneInchData,
             address fromToken,
             address foundryToken,
-            bytes32 withdrawalData
+            bytes32 withdrawalData,
+            OneInchFunction funcSelector 
         ) external payable nonReentrant {
             // Validation checks
             require(
@@ -311,7 +350,8 @@ contract FiberRouter is Ownable, TokenReceivable {
                 crossTargetAddress,
                 oneInchData,
                 fromToken,
-                foundryToken
+                foundryToken,
+                funcSelector  // Pass the enum parameter
             );
             // Transfer the gas fee to the gasWallet
             payable(gasWallet).transfer(msg.value);
@@ -349,7 +389,8 @@ contract FiberRouter is Ownable, TokenReceivable {
         bytes memory oneInchData,
         address foundryToken,
         bytes32 withdrawalData,
-        uint256 gasFee
+        uint256 gasFee,
+        OneInchFunction funcSelector // Add the enum parameter
     ) external payable {
         uint256 amountIn = msg.value - gasFee;
         // Validation checks
@@ -372,7 +413,8 @@ contract FiberRouter is Ownable, TokenReceivable {
             crossTargetAddress,
             oneInchData,
             WETH,
-            foundryToken
+            foundryToken,
+            funcSelector // Pass the function selector
         );
         // Transfer the gas fee to the gasWallet
         payable(gasWallet).transfer(gasFee);
@@ -447,6 +489,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
+        OneInchFunction funcSelector, // Add the enum parameter
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
@@ -483,7 +526,8 @@ contract FiberRouter is Ownable, TokenReceivable {
             foundryToken,
             amountIn,
             amountOut,
-            oneInchData
+            oneInchData,
+            funcSelector
         );
         require(amountOutOneInch != 0, "FR: Bad amount out from oneInch");
         emit WithdrawOneInch(
@@ -512,28 +556,20 @@ contract FiberRouter is Ownable, TokenReceivable {
         address srcToken,
         uint256 amountIn,
         uint256 amountOut,
-        bytes memory oneInchData
+        bytes memory oneInchData,
+        OneInchFunction funcSelector  // Add enum parameter to identify the function
     ) internal returns (uint256 returnAmount) {
-        // Extract the first 4 bytes from data
-        bytes4 receivedSelector;
-        assembly {
-            // Extract the first 4 bytes directly from the data
-            // Assuming 'data' starts with the 4-byte function selector
-            receivedSelector := mload(add(oneInchData, 32))
-        }
-        // checking the function signature accoridng to oneInchData
-        if (receivedSelector == OneInchDecoder.selectorUnoswap) {
+
+        if (funcSelector == OneInchFunction.unoswapTo) {
             returnAmount = handleUnoSwap(to, srcToken, amountIn, amountOut, oneInchData);
-        } else if (receivedSelector == OneInchDecoder.selectorUniswapV3Swap) {
+        } else if (funcSelector == OneInchFunction.uniswapV3SwapTo) {
             returnAmount = handleUniswapV3Swap(to, amountIn, amountOut, oneInchData);
-        } else if (receivedSelector == OneInchDecoder.selectorSwap) {
+        } else if (funcSelector == OneInchFunction.swap) {
             returnAmount = handleSwap(to, srcToken, amountIn, amountOut, oneInchData);
-        } else if (receivedSelector == OneInchDecoder.selectorFillOrderTo) {
+        } else if (funcSelector == OneInchFunction.fillOrderTo) {
             returnAmount = handleFillOrderTo(to, srcToken, amountIn, oneInchData);
-        } else if (receivedSelector == OneInchDecoder.selectorFillOrderRFQTo) {
+        } else if (funcSelector == OneInchFunction.fillOrderRFQTo) {
             returnAmount = handleFillOrderRFQTo(to, srcToken, amountIn, oneInchData);
-        } else {
-            revert("FR: incorrect oneInchData");
         }
     }
 
@@ -559,7 +595,10 @@ contract FiberRouter is Ownable, TokenReceivable {
             uint256 amount,
             uint256 minReturn,
             uint256[] memory poolsOneInch
-        ) = OneInchDecoder.decodeUnoswap(oneInchData);
+        ) = abi.decode(
+            oneInchData,
+            (address, address, uint256, uint256, uint256[])
+        );
         require(to == recipient, "FR: recipient address bad oneInch Data");
         require(fromToken == srcToken, "FR: srcToken bad oneInch Data");
         require(amountIn == amount, "FR: inputAmount bad oneInch Data");
@@ -600,7 +639,10 @@ contract FiberRouter is Ownable, TokenReceivable {
             uint256 amount,
             uint256 minReturn,
             uint256[] memory poolsOneInch
-        ) = OneInchDecoder.decodeUniswapV3Swap(oneInchData);
+        ) = abi.decode(
+            oneInchData,
+            (address, uint256, uint256, uint256[])
+        );
         require(to == recipient, "FR: recipient address bad oneInch Data");
         require(amountIn == amount, "FR: inputAmount bad oneInch Data");
         require(amountOut == minReturn, "FR: outAmount bad oneInch Data");
@@ -638,10 +680,13 @@ contract FiberRouter is Ownable, TokenReceivable {
         // Decoding oneInchData to get the required parameters
         (
             address executor,
-            OneInchDecoder.SwapDescription memory desc,
+            SwapDescription memory desc,
             bytes memory permit,
             bytes memory swapData
-        ) = OneInchDecoder.decodeSwap(oneInchData);
+        ) = abi.decode(
+            oneInchData,
+            (address, SwapDescription, bytes, bytes)
+        );
         // Manually create a new SwapDescription for IOneInchSwap
         IOneInchSwap.SwapDescription memory oneInchDesc = IOneInchSwap
             .SwapDescription({
@@ -701,14 +746,17 @@ contract FiberRouter is Ownable, TokenReceivable {
     ) internal returns (uint256 returnAmount) {
         // Decoding oneInchData to get the required parameters
         (
-            OneInchDecoder.Order memory order_,
+            Order memory order_,
             bytes memory signature,
             bytes memory interaction,
             uint256 makingAmount,
             uint256 takingAmount,  // destinationAmountIn
             uint256 skipPermitAndThresholdAmount,
             address target  // receiverAddress
-        ) = OneInchDecoder.decodeFillOrderTo(oneInchData);
+        ) = abi.decode(
+            oneInchData,
+            (Order, bytes, bytes, uint256, uint256,uint256, address)
+        );
 
         // Manually create a new Order for IOneInchSwap
         IOneInchSwap.Order memory oneInchOrder = IOneInchSwap
@@ -767,11 +815,14 @@ contract FiberRouter is Ownable, TokenReceivable {
     ) internal returns (uint256 returnAmount) {
         // Decoding oneInchData to get the required parameters
         (
-            OneInchDecoder.OrderRFQ memory order,
+            OrderRFQ memory order,
             bytes memory signature,
             uint256 flagsAndAmount,
             address target // receiverAddress
-        ) = OneInchDecoder.decodeFillOrderRFQTo(oneInchData);
+        ) = abi.decode(
+            oneInchData,
+            (OrderRFQ, bytes, uint256, address)
+        );
 
         // Manually create a new OrderRFQ for IOneInchSwap
         IOneInchSwap.OrderRFQ memory oneInchOrderRFQ = IOneInchSwap.OrderRFQ({
@@ -825,8 +876,10 @@ contract FiberRouter is Ownable, TokenReceivable {
         address crossTargetAddress,
         bytes memory oneInchData,
         address fromToken,
-        address foundryToken
-    ) internal returns (uint256 FMAmountOut){
+        address foundryToken,
+        OneInchFunction funcSelector  // Add enum parameter to identify the function
+    ) internal returns (uint256 FMAmountOut) {
+
         // Check if allowance is non-zero
         if (IERC20(fromToken).allowance(address(this), oneInchAggregatorRouter) != 0) {
             // Reset the allowance to zero
@@ -840,7 +893,8 @@ contract FiberRouter is Ownable, TokenReceivable {
             fromToken,
             amountIn,
             amountOut,
-            oneInchData
+            oneInchData,
+            funcSelector  // Pass the enum parameter
         );
         FMAmountOut = FundManager(pool).swapToAddress(
             foundryToken,
