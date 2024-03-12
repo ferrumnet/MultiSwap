@@ -2,6 +2,7 @@
 pragma solidity 0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
@@ -9,6 +10,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  */
 abstract contract TokenReceivable is ReentrancyGuard {
   using SafeERC20 for IERC20;
+  using SafeMath for uint256;
   mapping(address => uint256) public inventory; // Amount of received tokens that are accounted for
 
   /**
@@ -19,7 +21,7 @@ abstract contract TokenReceivable is ReentrancyGuard {
   function sync(address token) internal nonReentrant returns (uint256 amount) {
     uint256 inv = inventory[token];
     uint256 balance = IERC20(token).balanceOf(address(this));
-    amount = balance - inv;
+    amount = balance.sub(inv);
     inventory[token] = balance;
   }
 
@@ -30,7 +32,7 @@ abstract contract TokenReceivable is ReentrancyGuard {
    @param amount The amount
    */
   function sendToken(address token, address payee, uint256 amount) internal nonReentrant {
-    inventory[token] = inventory[token] - amount;
+    inventory[token] = inventory[token].sub(amount);
     IERC20(token).safeTransfer(payee, amount);
   }
 }

@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../common/signature/SigCheckable.sol";
-import "../common/SafeAmount.sol";
-import "../common/tokenReceiveable.sol";
 import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./LiquidityManagerRole.sol";
 
-contract FundManager is SigCheckable, TokenReceivable, LiquidityManagerRole {
+contract FundManager is SigCheckable, LiquidityManagerRole {
     using SafeERC20 for IERC20;
 
     address public router;
