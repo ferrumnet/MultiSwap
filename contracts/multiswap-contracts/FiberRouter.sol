@@ -90,16 +90,18 @@ contract FiberRouter is Ownable, TokenReceivable {
      */
     constructor() {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
-        (WETH, oneInchAggregatorRouter, pool) = abi.decode(
-            initData,
-            (address, address, address)
-        );
-        require(WETH != address(0), "WETH address cannot be the zero address");
+    }
+
+    /**
+     @dev Sets the WETH address.
+     @param _weth The WETH address
+     */
+    function setWETH(address _weth) external onlyOwner {
         require(
-            oneInchAggregatorRouter != address(0),
-            "oneInchAggregator address cannot be the zero address"
+            _weth != address(0),
+            "_weth address cannot be zero"
         );
-        require(pool != address(0), "Pool address cannot be the zero address");
+        WETH = _weth;
     }
 
     /**

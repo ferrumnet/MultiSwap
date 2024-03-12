@@ -46,7 +46,7 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY0]
     },
     binance: {
-      url: "https://bsc.meowrpc.com",
+      url: "https://nd-049-483-298.p2pify.com/819ef21ecdd17a29a2ed1e856c7980ec",
       accounts: [process.env.PRIVATE_KEY0]
     },
     kava: {
@@ -71,7 +71,9 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: process.env.ARBITRUM_API_KEY,
+    // apiKey: process.env.ARBITRUM_API_KEY,
     // apiKey: process.env.BINANCE_API_KEY,
+    apiKey: process.env.ETHEREUM_API_KEY,
+
   },
 };
