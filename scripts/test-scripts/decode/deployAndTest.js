@@ -17,19 +17,19 @@ async function main() {
   await fundManager.deployed();
   console.log('FundManager deployed to:', fundManager.address);
 
-  // // Deploy ForgeManager (Child)
-  // const ForgeManager = await ethers.getContractFactory('ForgeFundManager');
-  // const forgeManager = await ForgeManager.deploy();
-  // await forgeManager.deployed();
-  // console.log('ForgeManager deployed to:', forgeManager.address);
+  // Deploy ForgeManager (Child)
+  const ForgeManager = await ethers.getContractFactory('ForgeFundManager');
+  const forgeManager = await ForgeManager.deploy();
+  await forgeManager.deployed();
+  console.log('ForgeManager deployed to:', forgeManager.address);
 
-  // const pool = forgeManager.address;
+  const pool = forgeManager.address;
 
-  // // Deploy OneInchDecoder library
-  // const OneInchDecoder = await ethers.getContractFactory('OneInchDecoder');
-  // const oneInchDecoder = await OneInchDecoder.deploy();
-  // await oneInchDecoder.deployed();
-  // console.log('OneInchDecoder library deployed to:', oneInchDecoder.address);
+  // Deploy OneInchDecoder library
+  const OneInchDecoder = await ethers.getContractFactory('OneInchDecoder');
+  const oneInchDecoder = await OneInchDecoder.deploy();
+  await oneInchDecoder.deployed();
+  console.log('OneInchDecoder library deployed to:', oneInchDecoder.address);
 
   // Replace these with actual values
   const wethAddress = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
@@ -37,8 +37,12 @@ async function main() {
   const poolAddress = pool;
 
   // Deploy FiberRouter with the address of OneInchDecoder and other parameters
-  const FiberRouter = await ethers.getContractFactory('FiberRouter');
-  const fiberRouter = await FiberRouter.deploy();
+  const FiberRouter = await ethers.getContractFactory('FiberRouter', {
+    libraries: {
+      OneInchDecoder: oneInchDecoder.address,
+    },
+  });
+  const fiberRouter = await FiberRouter.deploy(wethAddress, oneInchAggregatorRouterAddress, poolAddress);
   await fiberRouter.deployed();
   console.log('FiberRouter deployed to:', fiberRouter.address);
 
@@ -48,9 +52,9 @@ async function main() {
       OneInchDecoder: oneInchDecoder.address,
     },
   });
-  // const multiswapForge = await MultiswapForge.deploy(wethAddress, oneInchAggregatorRouterAddress, poolAddress);
-  // await multiswapForge.deployed();
-  // console.log('MultiswapForge deployed to:', multiswapForge.address);
+  const multiswapForge = await MultiswapForge.deploy(wethAddress, oneInchAggregatorRouterAddress, poolAddress);
+  await multiswapForge.deployed();
+  console.log('MultiswapForge deployed to:', multiswapForge.address);
 
 // Set Forge address for MultiswapForge
   await forgeManager.setRouter(multiswapForge.address);

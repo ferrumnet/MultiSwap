@@ -38,7 +38,7 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY0],
     },
     sepolia: {
-      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `https://ethereum-sepolia-rpc.publicnode.com`,
       accounts: [process.env.PRIVATE_KEY0]
     },
     polygon: {
@@ -71,7 +71,7 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: process.env.ARBITRUM_API_KEY,
-    // apiKey: process.env.BINANCE_API_KEY,
+    // apiKey: process.env.ARBITRUM_API_KEY,
+    apiKey: process.env.BINANCE_API_KEY,
   },
 };
