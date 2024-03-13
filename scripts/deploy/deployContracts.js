@@ -31,64 +31,36 @@ async function main() {
   });
   console.log("Contract verified successfully !");
 
-  // Deploy OneInchDecoder library
-  const OneInchDecoder = await ethers.getContractFactory('OneInchDecoder');
-  const oneInchDecoder = await OneInchDecoder.deploy();
-  await oneInchDecoder.deployed();
-  console.log('OneInchDecoder library deployed to:', oneInchDecoder.address);
-
   // Replace these with actual values
-  const wethAddress = "0x";
+  const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
   const oneInchAggregatorRouterAddress = "0x1111111254EEB25477B68fb85Ed929f73A960582";
   const poolFundManager = fundManager.address;
   const poolForge = forgeManager.address;
 
   // Deploy FiberRouter with the address of OneInchDecoder and other parameters
-  const FiberRouter = await ethers.getContractFactory('FiberRouter', {
-    libraries: {
-      OneInchDecoder: oneInchDecoder.address,
-    },
-  });
-  const fiberRouter = await FiberRouter.deploy(wethAddress, oneInchAggregatorRouterAddress, poolFundManager);
+  const FiberRouter = await ethers.getContractFactory('FiberRouter');
+  const fiberRouter = await FiberRouter.deploy();
   await fiberRouter.deployed();
   console.log('FiberRouter deployed to:', fiberRouter.address);
   console.log("Verifing...");
   await hre.run("verify:verify", {
-    address: oneInchDecoder.address,
-    constructorArguments: [],
-  });
-  await hre.run("verify:verify", {
     address: fiberRouter.address,
-    constructorArguments: [wethAddress, oneInchAggregatorRouterAddress, poolFundManager],
-    libraries: {
-      OneInchDecoder : oneInchDecoder.address,
-    },
+    constructorArguments: []
   });
   console.log("Contract verified successfully !");
 
   // Deploy MultiswapForge with the address of FiberRouter and other parameters
-  const MultiswapForge = await ethers.getContractFactory('MultiSwapForge', {
-    libraries: {
-      OneInchDecoder: oneInchDecoder.address,
-    },
-  });
-
-  const multiswapForge = await MultiswapForge.deploy(wethAddress, oneInchAggregatorRouterAddress, poolForge);
+  const MultiswapForge = await ethers.getContractFactory('MultiSwapForge');
+  const multiswapForge = await MultiswapForge.deploy();
   await multiswapForge.deployed();
   console.log('MultiswapForge deployed to:', multiswapForge.address);
   await hre.run("verify:verify", {
     address: multiswapForge.address,
-    constructorArguments: [wethAddress, oneInchAggregatorRouterAddress, poolForge],
-    libraries: {
-      OneInchDecoder : oneInchDecoder.address,
-    },
+    constructorArguments: [],
   });
   console.log("Contract verified successfully !");
 
 }
-
-
-
 
 main()
   .then(() => process.exit(0))

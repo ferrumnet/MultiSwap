@@ -8,11 +8,11 @@ const fiberRouterABI = require("../../artifacts/contracts/multiswap-contracts/Fi
 const multiswapForgeABI = require('../../artifacts/contracts/multiswap-contracts/MultiswapForge.sol/MultiswapForge.json');
 
 // Replace these with your actual contract addresses
-const forgeManagerAddress = '0x1b94fe35B4303ec69de3617541002fFC9E4dDD36';
-const multiswapForgeAddress = '0xe259f6D87c9b9331031f9D0AD2A000206eFC3149';
+const forgeManagerAddress = '0x8490E6640047F6057D070bd5576A7725C25B7Bde';
+const multiswapForgeAddress = '0x5347D88B62573C9a3cCFf047C96314151e39d65d';
 
-const fiberRouterAddress = '0x7A32c872619DFE0f07d04ef8EBEe77C5d0622c58';
-const fundManagerAddress = '0xbD9D99bb2A136a1936B87031c7A8102831855289';
+const fiberRouterAddress = '0xfd595F8031f49b75CD0e85B902316f5F8a428C76';
+const fundManagerAddress = '0x4Ba81924a6D7DaF6Dba27783168E5b6345D6A896';
 
 const foundryArbitrum = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8";
 const foundryBinance = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
@@ -24,7 +24,7 @@ const wethEthereum = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 const oneInchAggregatorRouter = "0x1111111254EEB25477B68fb85Ed929f73A960582";
 
-const signerAddress = "0x0aee4E03645bB13b49Bb4e5784f7efB8Ee332073";
+const signerAddress = "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B";
 
 const liquidityManager = "0x5dAC22dB4dEaCfab7e9A0A1425f25D6B18e9839C";
 const liquidityManagerBot = "0x9B7C800DCca6273CB6DDb861764cFB95BDAb15cc"
@@ -36,7 +36,7 @@ const settlementManagerAddress = "0x5912cE9327C2F8BE2Ffce1e8E521F6a65A870a19";
 const gasWallet = "0xBFBFE0e25835625efa98161e3286Ca1290057E1a";
 
 // the address that is allowed to call the estimate gas fee for withdrawal functions
-const gasEstimationAddress = "0x896aa74980f510e17Ec22A9906b6ce82Ef84C49F"
+const gasEstimationAddress = "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B"
 
 const binanceChainID = 56;
 const ethereumChainID = 1;
@@ -47,7 +47,7 @@ async function main() {
   const arbiProvider = 'https://nd-829-997-700.p2pify.com/790712c620e64556719c7c9f19ef56e3';
   const bscProvider = 'https://nd-049-483-298.p2pify.com/819ef21ecdd17a29a2ed1e856c7980ec';
 
-  const provider = new ethers.providers.JsonRpcProvider(ethProvider);
+  const provider = new ethers.providers.JsonRpcProvider(arbiProvider);
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY0 , provider);
 
   // Connect to ForgeManager and MultiswapForge contracts
@@ -59,7 +59,7 @@ async function main() {
   const fundManager = new ethers.Contract(fundManagerAddress, fundManagerABI.abi, provider);
 
   // Call setWETH on FundManager with WETH address
-  const wethSet = await fiberRouter.connect(wallet).setWETH(wethEthereum);
+  const wethSet = await fiberRouter.connect(wallet).setWETH(wethArbitrum);
   // Wait for the transaction receipt
   const receiptWethSet = await wethSet.wait();
   
@@ -70,7 +70,7 @@ async function main() {
   }
 
   // Call setRouter on ForgeManager with WETH address
-  const wethForgeSet = await multiswapForge.connect(wallet).setWETH(wethEthereum);
+  const wethForgeSet = await multiswapForge.connect(wallet).setWETH(wethArbitrum);
   // Wait for the transaction receipt
   const receiptWethForgeSet = await wethForgeSet.wait();
   
@@ -147,7 +147,7 @@ async function main() {
   }
   
   // Call allowTarget on FundManager with specified addresses
-  const targetAllowed = await fundManager.connect(wallet).allowTarget(foundryEthereum, arbitrumChainID, foundryArbitrum);
+  const targetAllowed = await fundManager.connect(wallet).allowTarget(foundryArbitrum, ethereumChainID, foundryEthereum);
   // Wait for the transaction receipt
   const receiptTargetAllowed = await targetAllowed.wait();
   
@@ -159,7 +159,7 @@ async function main() {
 
 
   // Call allowTarget on FundManager with specified addresses
-  const targetAllowed2 = await fundManager.connect(wallet).allowTarget(foundryEthereum, binanceChainID, foundryBinance);
+  const targetAllowed2 = await fundManager.connect(wallet).allowTarget(foundryArbitrum, binanceChainID, foundryBinance);
   // Wait for the transaction receipt
   const receiptTargetAllowed2 = await targetAllowed2.wait();
   
@@ -181,7 +181,7 @@ async function main() {
   }
 
   // Call addFoundryAsset on FundManager
-  const foundryAdded = await fundManager.connect(wallet).addFoundryAsset(foundryEthereum);
+  const foundryAdded = await fundManager.connect(wallet).addFoundryAsset(foundryArbitrum);
   // Wait for the transaction receipt
   const receiptFoundryAdded = await foundryAdded.wait();
   
@@ -192,7 +192,7 @@ async function main() {
   }
 
   // Call addFoundryAsset on ForgeManager
-  const forgeFoundryAdded = await forgeManager.connect(wallet).addFoundryAsset(foundryEthereum);
+  const forgeFoundryAdded = await forgeManager.connect(wallet).addFoundryAsset(foundryArbitrum);
   // Wait for the transaction receipt
   const receiptForgeFoundryAdded = await forgeFoundryAdded.wait();
   
