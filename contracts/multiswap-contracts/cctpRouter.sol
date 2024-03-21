@@ -4,7 +4,7 @@ import "../common/cctp/ITokenMessenger.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../common/SafeAmount.sol";
 
-contract RouterCirlce {
+contract cctpRouter {
     using SafeERC20 for IERC20;
     address public usdcToken;
 
@@ -15,8 +15,7 @@ contract RouterCirlce {
     address public targetCCTPFundManager;
 
     event InitiateCCT(
-        address indexed sourceToken,
-        address indexed targetToken,
+        address indexed burnToken,
         uint256 sourceChainId,
         uint256 targetChainId,
         address sourceAddress,
@@ -29,7 +28,7 @@ contract RouterCirlce {
     }
 
     // Initialise CCTP to set CCTP contract addresses and target network information
-    function initializeCCT(
+    function init(
         address _cctpTokenMessenger,
         address _usdcToken,
         address _targetCCTPFundManager
@@ -40,14 +39,12 @@ contract RouterCirlce {
     }
 
   // Initiate a Circle Cross-Chain Transfer
-    function initiateCCT(
-        address token,
+    function cctpSwap(
         uint256 amount,
-        uint32 targetNetworkDomain,
-        address targetToken
+        uint32 targetNetworkDomain 
     ) public {
         // Proceed with the swap logic
-        amount = SafeAmount.safeTransferFrom(token, msg.sender, address(this), amount);
+        amount = SafeAmount.safeTransferFrom(usdcToken, msg.sender, address(this), amount);
         // Approve the CCTP contracts to spend USDC
         require(IERC20(usdcToken).approve(cctpTokenMessenger, amount), "Approval failed");
 
@@ -62,7 +59,6 @@ contract RouterCirlce {
         // Emit InitiateCCT event
         emit InitiateCCT(
             usdcToken,
-            targetToken,
             block.chainid,
             targetNetworkDomain,
             msg.sender,

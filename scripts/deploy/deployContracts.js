@@ -5,18 +5,18 @@ async function main() {
 // Compile the contracts and libraries
  await hre.run('compile');
 
-  // // Deploy FundManager (Parent)
-  // const FundManager = await ethers.getContractFactory('FundManager');
-  // const fundManager = await FundManager.deploy();
-  // await fundManager.deployed();
-  // console.log('FundManager deployed to:', fundManager.address);
-  // console.log("Verifing...");
-  // await hre.run("verify:verify", {
-  //   address: fundManager.address,
-  //   constructorArguments: [],
-  //   contract: "contracts/multiswap-contracts/FundManager.sol:FundManager"
-  // });
-  // console.log("Contract verified successfully !");
+  // Deploy FundManager (Parent)
+  const FundManager = await ethers.getContractFactory('FundManager');
+  const fundManager = await FundManager.deploy();
+  await fundManager.deployed();
+  console.log('FundManager deployed to:', fundManager.address);
+  console.log("Verifing...");
+  await hre.run("verify:verify", {
+    address: fundManager.address,
+    constructorArguments: [],
+    contract: "contracts/multiswap-contracts/FundManager.sol:FundManager"
+  });
+  console.log("Contract verified successfully !");
 
   // Deploy ForgeManager (Child)
   const ForgeManager = await ethers.getContractFactory('ForgeFundManager');

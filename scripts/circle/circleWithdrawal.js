@@ -1,10 +1,10 @@
 require("dotenv").config();
 const Web3 = require('web3')
 
-const tokenMessengerAbi = require('./abis/cctp/TokenMessenger.json');
-const messageAbi = require('./abis/cctp/Message.json');
-const usdcAbi = require('./abis/Usdc.json');
-const messageTransmitterAbi = require('./abis/cctp/MessageTransmitter.json');
+const tokenMessengerAbi = require('../abis/cctp/TokenMessenger.json');
+const messageAbi = require('../abis/cctp/Message.json');
+const usdcAbi = require('../abis/Usdc.json');
+const messageTransmitterAbi = require('../abis/cctp/MessageTransmitter.json');
 
 const waitForTransaction = async(web3, txHash) => {
     let transactionReceipt = await web3.eth.getTransactionReceipt(txHash);
@@ -51,8 +51,8 @@ const main = async() => {
 
     const ARBI_TESTNET_DESTINATION_DOMAIN = 3;
 
-    // Amount that will be transferred
-    const amount = 1;
+    // // Amount that will be transferred
+    // const amount = 1;
 
     // // STEP 1: Approve messenger contract to withdraw from our active eth address
     // const approveTxGas = await usdcEthContract.methods.approve(MUMBAI_TOKEN_MESSENGER_CONTRACT_ADDRESS, amount).estimateGas()
@@ -67,7 +67,7 @@ const main = async() => {
     // console.log('BurnTxReceipt: ', burnTxReceipt)
 
     // STEP 3: Retrieve message bytes from logs
-    const transactionReceipt = await web3.eth.getTransactionReceipt("0xb1c3a3438cba633ae282ef2abd027b68689961de5799face1e853bf221b6118e");
+    const transactionReceipt = await web3.eth.getTransactionReceipt("0x2115148a2d0a9a46fce2f329519fd0fbaa7aff783426e723be6b654ffc0953c7");
     const eventTopic = web3.utils.keccak256('MessageSent(bytes)')
     const log = transactionReceipt.logs.find((l) => l.topics[0] === eventTopic)
     const messageBytes = web3.eth.abi.decodeParameters(['bytes'], log.data)[0]
@@ -93,6 +93,8 @@ const main = async() => {
     const receiveTx = await arbiMessageTransmitterContract.methods.receiveMessage(messageBytes, attestationSignature).send({gas: receiveTxGas});
     const receiveTxReceipt = await waitForTransaction(web3, receiveTx.transactionHash);
     console.log('ReceiveTxReceipt: ', receiveTxReceipt)
+
+    console.log('USDC Withdrawn to Receiver on Target Network:', receiveTxReceipt.transactionHash);
 };
 
 main()

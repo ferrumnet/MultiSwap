@@ -41,6 +41,10 @@ module.exports = {
       url: `https://ethereum-sepolia-rpc.publicnode.com`,
       accounts: [process.env.PRIVATE_KEY0]
     },
+    mumbai: {
+      url: `https://polygon-mumbai-pokt.nodies.app`,
+      accounts: [process.env.PRIVATE_KEY0]
+    },
     polygon: {
       url: `https://polygon-rpc.com`,
       accounts: [process.env.PRIVATE_KEY0]
@@ -55,7 +59,8 @@ module.exports = {
     },
     AvalancheMainnet: {
       url: 'https://nd-118-315-546.p2pify.com/048dd2e7493f4804ffed70b2acfffe8b/ext/bc/C/rpc',
-      accounts: [process.env.PRIVATE_KEY0]
+      accounts: [process.env.PRIVATE_KEY0],
+      gasLimit: 2000000 // Specify the gas limit here (adjust as needed)
     },
     optimismMainnet: {
       url: 'https://mainnet.optimism.io',
@@ -72,6 +77,9 @@ module.exports = {
   },
   etherscan: {
     // apiKey: process.env.ARBITRUM_API_KEY,
-    apiKey: process.env.BINANCE_API_KEY,
-  },
+    // apiKey: process.env.BINANCE_API_KEY,
+    // apiKey: process.env.MUMBAI_API_KEY,
+    //apiKey: process.env.AVALANCHE_API_KEY,
+    apiKey: process.env.OPTIMISM_API_KEY,
+    }
 };
