@@ -68,6 +68,10 @@ module.exports = {
     arbitrum: {
       url: 'https://nd-829-997-700.p2pify.com/790712c620e64556719c7c9f19ef56e3',
       accounts: [process.env.PRIVATE_KEY0]
+    },
+    base: {
+      url: 'https://base.llamarpc.com',
+      accounts: [process.env.PRIVATE_KEY0]
     }
   },
   etherscan: {
