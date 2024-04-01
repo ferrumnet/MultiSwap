@@ -216,6 +216,12 @@ function swapOnSameNetwork(
     require(targetAddress != address(0), "FR: Target address cannot be zero");
     require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
 
+    amountIn = SafeAmount.safeTransferFrom(
+            fromToken,
+            _msgSender(),
+            address(this),
+            amountIn
+        );
     // Perform the token swap using 1inch
     uint256 settledAmount = _swapOnSameNetwork(
         amountIn,
