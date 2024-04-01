@@ -2,8 +2,6 @@
 const { ethers } = require('hardhat');
 
 async function main() {
-// Compile the contracts and libraries
- await hre.run('compile');
 
   // Deploy FundManager (Parent)
   const FundManager = await ethers.getContractFactory('FundManager');
@@ -30,12 +28,6 @@ async function main() {
     contract: "contracts/multiswap-contracts/ForgeManager.sol:ForgeFundManager"
   });
   console.log("Contract verified successfully !");
-
-  // Replace these with actual values
-  const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
-  const oneInchAggregatorRouterAddress = "0x1111111254EEB25477B68fb85Ed929f73A960582";
-  const poolFundManager = fundManager.address;
-  const poolForge = forgeManager.address;
 
   // Deploy FiberRouter with the address of OneInchDecoder and other parameters
   const FiberRouter = await ethers.getContractFactory('FiberRouter');

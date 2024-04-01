@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
- pragma solidity 0.8.2;
+pragma solidity 0.8.2;
 
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
@@ -70,6 +70,16 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 gasAmount
     );
 
+        // Emit Swap event
+    event SwapSameNetwork(
+        address sourceToken,
+        address targetToken,
+        uint256 sourceAmount,
+        uint256 settledAmount,
+        address sourceAddress,
+        address targetAddress
+    );
+
     event Withdraw(
         address token,
         address receiver,
@@ -122,7 +132,7 @@ contract FiberRouter is Ownable, TokenReceivable {
     );
 
    /**
-     * @dev Constructor that sets the WETH address, oneInchAggregator address, and the pool address.
+     * @dev Constructor that sets FerrumDeployer InitData
      */
     constructor() {
         bytes memory initData = IFerrumDeployer(msg.sender).initData();
@@ -178,6 +188,136 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
         oneInchAggregatorRouter = _newRouterAddress;
     }
+
+/**
+ * @dev Perform a same network token swap using 1inch
+ * @param amountIn The input amount
+ * @param amountOut Equivalent to amountOut on oneInch
+ * @param fromToken The token to be swapped
+ * @param toToken The token to receive after the swap
+ * @param targetAddress The receiver address
+ * @param oneInchData The data containing information for the 1inch swap
+ * @param funcSelector selector enum for deciding which 1inch fucntion to call
+ */
+function swapOnSameNetwork(
+    uint256 amountIn,
+    uint256 amountOut, // amountOut on oneInch
+    address fromToken,
+    address toToken,
+    address targetAddress,
+    bytes memory oneInchData,
+    OneInchFunction funcSelector
+) external nonReentrant {
+    // Validation checks
+    require(fromToken != address(0), "FR: From token address cannot be zero");
+    require(toToken != address(0), "FR: To token address cannot be zero");
+    require(amountIn != 0, "FR: Amount in must be greater than zero");
+    require(amountOut != 0, "FR: Amount out must be greater than zero");
+    require(targetAddress != address(0), "FR: Target address cannot be zero");
+    require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
+
+    // Perform the token swap using 1inch
+    uint256 settledAmount = _swapOnSameNetwork(
+        amountIn,
+        amountOut,
+        fromToken,
+        targetAddress,
+        oneInchData,
+        funcSelector // Pass the enum parameter
+    );
+
+    // Emit Swap event
+    emit SwapSameNetwork(
+        fromToken,
+        toToken,
+        amountIn,
+        settledAmount,
+        _msgSender(),
+        targetAddress
+    );
+}
+
+/**
+ * @dev Performs a native currency swap and cross to another token on the same network using 1inch
+ * @param amountOut The expected amount of output tokens after the swap on 1inch
+ * @param oneInchData The data containing information for the 1inch swap
+ * @param toToken The token to receive after the swap
+ * @param funcSelector Enum parameter to identify the function for 1inch swap
+ */
+function swapOnSameNetworkETH(
+    uint256 amountOut, // amountOut on oneInch
+    address toToken,
+    address targetAddress,
+    bytes memory oneInchData,
+    OneInchFunction funcSelector // Add the enum parameter
+) external payable {
+    uint256 amountIn = msg.value;
+    // Validation checks
+    require(toToken != address(0), "FR: To token address cannot be zero");
+    require(amountIn != 0, "FR: Amount in must be greater than zero");
+    require(amountOut != 0, "FR: Amount out must be greater than zero");
+    require(targetAddress != address(0), "FR: Target address cannot be zero");
+    require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
+
+    // Deposit ETH and get WETH
+    IWETH(WETH).deposit{value: amountIn}();
+
+    // Execute swap and cross-chain operation
+    uint256 settledAmount = _swapOnSameNetwork(
+        amountIn,
+        amountOut,
+        WETH,
+        targetAddress,
+        oneInchData,
+        funcSelector // Pass the function selector
+    );
+
+    // Emit Swap event
+    emit SwapSameNetwork(
+        WETH,
+        toToken,
+        amountIn,
+        settledAmount,
+        _msgSender(),
+        targetAddress
+    );
+}
+
+/**
+ * @dev Perform a same network token swap using 1inch
+ * @param amountIn The input amount
+ * @param amountOut Equivalent to amountOut on oneInch
+ * @param fromToken The token to be swapped
+ * @param targetAddress The receiver address
+ * @param oneInchData The data containing information for the 1inch swap
+ * @param funcSelector selector enum for deciding which 1inch fucntion to call
+ */
+function _swapOnSameNetwork(
+    uint256 amountIn,
+    uint256 amountOut,
+    address fromToken,
+    address targetAddress,
+    bytes memory oneInchData,
+    OneInchFunction funcSelector
+) internal returns (uint256 settledAmount) {
+    // Check if allowance is non-zero
+    if (IERC20(fromToken).allowance(address(this), oneInchAggregatorRouter) != 0) {
+        // Reset the allowance to zero
+        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, 0);
+    }
+    // Set the allowance to the swap amount
+    IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
+
+    // Perform the token swap using 1inch
+    settledAmount = swapHelperForOneInch(
+        payable(targetAddress),
+        fromToken,
+        amountIn,
+        amountOut,
+        oneInchData,
+        funcSelector // Pass the enum parameter
+    );
+}
 
     /**
      * @dev Initiate an x-chain swap.
