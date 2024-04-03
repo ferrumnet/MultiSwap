@@ -246,8 +246,9 @@ function swapOnSameNetwork(
 /**
  * @dev Performs a native currency swap and cross to another token on the same network using 1inch
  * @param amountOut The expected amount of output tokens after the swap on 1inch
- * @param oneInchData The data containing information for the 1inch swap
  * @param toToken The token to receive after the swap
+ * @param targetAddress The receiver address for this token
+ * @param oneInchData The data containing information for the 1inch swap
  * @param funcSelector Enum parameter to identify the function for 1inch swap
  */
 function swapOnSameNetworkETH(
@@ -446,6 +447,7 @@ function _swapOnSameNetwork(
      * @param fromToken The token to be swapped
      * @param foundryToken The foundry token used for the swap
      * @param withdrawalData Data related to the withdrawal
+     * @param funcSelector selector enum for deciding which 1inch fucntion to call
      */
     function swapAndCrossOneInch(
             uint256 amountIn,
@@ -526,6 +528,7 @@ function _swapOnSameNetwork(
      * @param foundryToken The foundry token used for the swap
      * @param withdrawalData Data related to the withdrawal
      * @param gasFee The gas fee being charged on withdrawal
+     * @param funcSelector selector enum for deciding which 1inch fucntion to call
      */
     function swapAndCrossOneInchETH(
         uint256 amountOut, // amountOut on oneInch
@@ -624,6 +627,7 @@ function _swapOnSameNetwork(
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
      * @param oneInchData The data containing information for the 1inch swap
+     * @param funcSelector selector enum for deciding which 1inch fucntion to call
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param multiSignature The multi-signature data
@@ -695,6 +699,7 @@ function _swapOnSameNetwork(
      * @param amountIn The amount of input tokens to be swapped
      * @param amountOut The expected amount of output tokens after the swap
      * @param oneInchData The data containing information for the 1inch swap
+     * @param funcSelector selector enum for deciding which 1inch fucntion to call
      * @return returnAmount The amount of tokens received after the swap and transaction execution
      */
     function swapHelperForOneInch(
@@ -1013,6 +1018,7 @@ function _swapOnSameNetwork(
      * @param oneInchData The data containing information for the 1inch swap
      * @param fromToken The address of the input token for the swap
      * @param foundryToken The address of the token used as the foundry
+     * @param funcSelector selector enum for deciding which 1inch fucntion to call
      * @return FMAmountOut The amount of foundry tokens received after the cross-network transaction
      */
     function _swapAndCrossOneInch(
