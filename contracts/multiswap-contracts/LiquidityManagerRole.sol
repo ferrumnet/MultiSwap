@@ -80,8 +80,4 @@ abstract contract LiquidityManagerRole is WithAdmin, TokenReceivable {
         return amount;
     }
 
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 7a6e8eb35c50570d15928abe1ded4c8e70964d81
