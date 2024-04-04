@@ -34,7 +34,8 @@ async function main() {
 
     // Compute a unique salt for deployment
     // const salt = ethers.utils.formatBytes32String(new Date().getTime().toString());
-    const salt = "0x3137303931363530323534373000000000000000000000000000000000000000";
+    // const salt = "0x3137303931363530323534373000000000000000000000000000000000000000";
+    const salt = "0x3137313032363838383636353800000000000000000000000000000000000000"; // Latest Deployment
     console.log('Salt: ', salt);
 
     // Specify the owner address to which the ownership of the contract will be transferred
@@ -47,8 +48,8 @@ async function main() {
     const fundManagerAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
     console.log("FundManager deployed to:", fundManagerAddress);
 
-    // Wait for 25 seconds before verification
-    await logCountdown(25); // This logs the countdown and waits
+    // Wait for 30 seconds before verification
+    await logCountdown(60); // This logs the countdown and waits
 
     console.log("Verifing...");
     await hre.run("verify:verify", {

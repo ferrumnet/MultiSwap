@@ -63,6 +63,7 @@ contract MultiSwapForge is FiberRouter {
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
+        OneInchFunction funcSelector, // Add the enum parameter
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
@@ -78,6 +79,7 @@ contract MultiSwapForge is FiberRouter {
         address foundryToken,
         address targetToken,
         bytes memory oneInchData,
+        OneInchFunction funcSelector, // Add the enum parameter
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
@@ -90,6 +92,7 @@ contract MultiSwapForge is FiberRouter {
             foundryToken,
             targetToken,
             oneInchData,
+            funcSelector,
             salt,
             expiry,
             multiSignature
