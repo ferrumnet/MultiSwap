@@ -12,7 +12,8 @@ const forgeManagerAddress = '0x1b94fe35B4303ec69de3617541002fFC9E4dDD36';
 const multiswapForgeAddress = '0xe259f6D87c9b9331031f9D0AD2A000206eFC3149';
 
 const fiberRouterAddress = '0x7A32c872619DFE0f07d04ef8EBEe77C5d0622c58';
-const fundManagerAddress = '0xbD9D99bb2A136a1936B87031c7A8102831855289';
+// const fundManagerAddress = '0xbD9D99bb2A136a1936B87031c7A8102831855289'; // Old
+const fundManagerAddress = '0x5eBeF0bD015e4fAfe64172Ae00b9bB46a05906a7';
 
 const foundryArbitrum = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8";
 const foundryBinance = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
@@ -50,37 +51,37 @@ async function main() {
   const provider = new ethers.providers.JsonRpcProvider(ethProvider);
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY0 , provider);
 
-  // Connect to ForgeManager and MultiswapForge contracts
-  const forgeManager = new ethers.Contract(forgeManagerAddress, forgeManagerABI.abi, provider);
-  const multiswapForge = new ethers.Contract(multiswapForgeAddress, multiswapForgeABI.abi, provider);
+//   // Connect to ForgeManager and MultiswapForge contracts
+//   const forgeManager = new ethers.Contract(forgeManagerAddress, forgeManagerABI.abi, provider);
+//   const multiswapForge = new ethers.Contract(multiswapForgeAddress, multiswapForgeABI.abi, provider);
 
-  // Connect to FiberRouter and FundManager contracts
+//   // Connect to FiberRouter and FundManager contracts
   const fiberRouter = new ethers.Contract(fiberRouterAddress, fiberRouterABI.abi, provider);
   const fundManager = new ethers.Contract(fundManagerAddress, fundManagerABI.abi, provider);
 
   // Call setWETH on FundManager with WETH address
-  const wethSet = await fiberRouter.connect(wallet).setWETH(wethEthereum);
-  // Wait for the transaction receipt
-  const receiptWethSet = await wethSet.wait();
+//   const wethSet = await fiberRouter.connect(wallet).setWETH(wethEthereum);
+//   // Wait for the transaction receipt
+//   const receiptWethSet = await wethSet.wait();
   
-  if (receiptWethSet.status == 1) {
-      console.log("WETH address added successfully in FiberRouter!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptWethSet.status == 1) {
+//       console.log("WETH address added successfully in FiberRouter!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call setRouter on ForgeManager with WETH address
-  const wethForgeSet = await multiswapForge.connect(wallet).setWETH(wethEthereum);
-  // Wait for the transaction receipt
-  const receiptWethForgeSet = await wethForgeSet.wait();
+//   // Call setRouter on ForgeManager with WETH address
+//   const wethForgeSet = await multiswapForge.connect(wallet).setWETH(wethEthereum);
+//   // Wait for the transaction receipt
+//   const receiptWethForgeSet = await wethForgeSet.wait();
   
-  if (receiptWethForgeSet.status == 1) {
-      console.log("WETH address added successfully in MultiSwapForge!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptWethForgeSet.status == 1) {
+//       console.log("WETH address added successfully in MultiSwapForge!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call setPool on FiberRouter with FundManager address
+//   Call setPool on FiberRouter with FundManager address
   const poolFundManagerSet = await fiberRouter.connect(wallet).setPool(fundManagerAddress);
   // Wait for the transaction receipt
   const receiptPoolFundManagerSet = await poolFundManagerSet.wait();
@@ -92,170 +93,170 @@ async function main() {
   }
 
   // Call setPool on MultiSwapForge with ForgeManager address
-  const poolForgeManagerSet = await multiswapForge.connect(wallet).setPool(forgeManagerAddress);
-  // Wait for the transaction receipt
-  const receiptPoolForgeManagerSet = await poolForgeManagerSet.wait();
+//   const poolForgeManagerSet = await multiswapForge.connect(wallet).setPool(forgeManagerAddress);
+//   // Wait for the transaction receipt
+//   const receiptPoolForgeManagerSet = await poolForgeManagerSet.wait();
   
-  if (receiptPoolForgeManagerSet.status == 1) {
-      console.log("Pool Forge Manager address added successfully in MultiSwap Forge!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptPoolForgeManagerSet.status == 1) {
+//       console.log("Pool Forge Manager address added successfully in MultiSwap Forge!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
   // Call setOneInchAggregatorRouter on FiberRouter with oneInchAggregatorRouter address
-  const oneInchAddressSet = await fiberRouter.connect(wallet).setOneInchAggregatorRouter(oneInchAggregatorRouter);
-  // Wait for the transaction receipt
-  const receiptOneInchAddressSet = await oneInchAddressSet.wait();
+//   const oneInchAddressSet = await fiberRouter.connect(wallet).setOneInchAggregatorRouter(oneInchAggregatorRouter);
+//   // Wait for the transaction receipt
+//   const receiptOneInchAddressSet = await oneInchAddressSet.wait();
   
-  if (receiptOneInchAddressSet.status == 1) {
-      console.log("OneInch Aggregator address added successfully in FiberRouter!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptOneInchAddressSet.status == 1) {
+//       console.log("OneInch Aggregator address added successfully in FiberRouter!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
   // Call setOneInchAggregatorRouter on MultiSwap Forge with oneInchAggregatorRouter address
-  const oneInchAddressForgeSet = await multiswapForge.connect(wallet).setOneInchAggregatorRouter(oneInchAggregatorRouter);
-  // Wait for the transaction receipt
-  const receiptOneInchAddressForgeSet = await oneInchAddressForgeSet.wait();
+//   const oneInchAddressForgeSet = await multiswapForge.connect(wallet).setOneInchAggregatorRouter(oneInchAggregatorRouter);
+//   // Wait for the transaction receipt
+//   const receiptOneInchAddressForgeSet = await oneInchAddressForgeSet.wait();
   
-  if (receiptOneInchAddressForgeSet.status == 1) {
-      console.log("OneInch Aggregator address added successfully in MultiSwap Forge!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptOneInchAddressForgeSet.status == 1) {
+//       console.log("OneInch Aggregator address added successfully in MultiSwap Forge!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call setRouter on FundManager with FiberRouter address
-  const routerSet = await fundManager.connect(wallet).setRouter(fiberRouter.address);
-  // Wait for the transaction receipt
-  const receiptRouterSet = await routerSet.wait();
+//   // Call setRouter on FundManager with FiberRouter address
+//   const routerSet = await fundManager.connect(wallet).setRouter(fiberRouter.address);
+//   // Wait for the transaction receipt
+//   const receiptRouterSet = await routerSet.wait();
   
-  if (receiptRouterSet.status == 1) {
-      console.log("Router added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptRouterSet.status == 1) {
+//       console.log("Router added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
   // Call setRouter on ForgeManager with MultiswapForge address
-  const forgeSet = await forgeManager.connect(wallet).setRouter(multiswapForge.address);
-  // Wait for the transaction receipt
-  const receiptForgeSet = await forgeSet.wait();
+//   const forgeSet = await forgeManager.connect(wallet).setRouter(multiswapForge.address);
+//   // Wait for the transaction receipt
+//   const receiptForgeSet = await forgeSet.wait();
   
-  if (receiptForgeSet.status == 1) {
-      console.log("Forge added successfully in ForgeManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptForgeSet.status == 1) {
+//       console.log("Forge added successfully in ForgeManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
   
-  // Call allowTarget on FundManager with specified addresses
-  const targetAllowed = await fundManager.connect(wallet).allowTarget(foundryEthereum, arbitrumChainID, foundryArbitrum);
-  // Wait for the transaction receipt
-  const receiptTargetAllowed = await targetAllowed.wait();
+//   // Call allowTarget on FundManager with specified addresses
+//   const targetAllowed = await fundManager.connect(wallet).allowTarget(foundryBinance, ethereumChainID, foundryEthereum);
+//   // Wait for the transaction receipt
+//   const receiptTargetAllowed = await targetAllowed.wait();
   
-  if (receiptTargetAllowed.status == 1) {
-      console.log("AllowTarget added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptTargetAllowed.status == 1) {
+//       console.log("AllowTarget added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
 
-  // Call allowTarget on FundManager with specified addresses
-  const targetAllowed2 = await fundManager.connect(wallet).allowTarget(foundryEthereum, binanceChainID, foundryBinance);
-  // Wait for the transaction receipt
-  const receiptTargetAllowed2 = await targetAllowed2.wait();
+//   // Call allowTarget on FundManager with specified addresses
+//   const targetAllowed2 = await fundManager.connect(wallet).allowTarget(foundryBinance, arbitrumChainID, foundryArbitrum);
+//   // Wait for the transaction receipt
+//   const receiptTargetAllowed2 = await targetAllowed2.wait();
   
-  if (receiptTargetAllowed2.status == 1) {
-      console.log("AllowTarget added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptTargetAllowed2.status == 1) {
+//       console.log("AllowTarget added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call addSigner on FundManager with signer address
-  const signerAdded = await fundManager.connect(wallet).addSigner(signerAddress);
-  // Wait for the transaction receipt
-  const receiptSignerAdded = await signerAdded.wait();
+//   // Call addSigner on FundManager with signer address
+//   const signerAdded = await fundManager.connect(wallet).addSigner(signerAddress);
+//   // Wait for the transaction receipt
+//   const receiptSignerAdded = await signerAdded.wait();
   
-  if (receiptSignerAdded.status == 1) {
-      console.log("Signer added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptSignerAdded.status == 1) {
+//       console.log("Signer added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call addFoundryAsset on FundManager
-  const foundryAdded = await fundManager.connect(wallet).addFoundryAsset(foundryEthereum);
-  // Wait for the transaction receipt
-  const receiptFoundryAdded = await foundryAdded.wait();
+//   // Call addFoundryAsset on FundManager
+//   const foundryAdded = await fundManager.connect(wallet).addFoundryAsset(foundryBinance);
+//   // Wait for the transaction receipt
+//   const receiptFoundryAdded = await foundryAdded.wait();
   
-  if (receiptFoundryAdded.status == 1) {
-      console.log("USDC Foundry added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptFoundryAdded.status == 1) {
+//       console.log("USDC Foundry added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call addFoundryAsset on ForgeManager
-  const forgeFoundryAdded = await forgeManager.connect(wallet).addFoundryAsset(foundryEthereum);
-  // Wait for the transaction receipt
-  const receiptForgeFoundryAdded = await forgeFoundryAdded.wait();
+//   // Call addFoundryAsset on ForgeManager
+//   const forgeFoundryAdded = await forgeManager.connect(wallet).addFoundryAsset(foundryEthereum);
+//   // Wait for the transaction receipt
+//   const receiptForgeFoundryAdded = await forgeFoundryAdded.wait();
   
-  if (receiptForgeFoundryAdded.status == 1) {
-      console.log("USDC Foundry added successfully in ForgeManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptForgeFoundryAdded.status == 1) {
+//       console.log("USDC Foundry added successfully in ForgeManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call setGasWallet on FiberRouter with gasWallet address
-  const gasWalletAdded = await fiberRouter.connect(wallet).setGasWallet(gasWallet);
-  // Wait for the transaction receipt
-  const receiptGasWalletAdded = await gasWalletAdded.wait();
+//   // Call setGasWallet on FiberRouter with gasWallet address
+//   const gasWalletAdded = await fiberRouter.connect(wallet).setGasWallet(gasWallet);
+//   // Wait for the transaction receipt
+//   const receiptGasWalletAdded = await gasWalletAdded.wait();
   
-  if (receiptGasWalletAdded.status == 1) {
-      console.log("GasWallet added successfully in FiberRouter!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptGasWalletAdded.status == 1) {
+//       console.log("GasWallet added successfully in FiberRouter!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call addSigner on FundManager with signer address
-  const gasEstimationAddressAdded = await multiswapForge.connect(wallet).setGasEstimationAddress(gasEstimationAddress);
-  // Wait for the transaction receipt
-  const receiptGasEstimationAddressAdded = await gasEstimationAddressAdded.wait();
+//   // Call addSigner on FundManager with signer address
+//   const gasEstimationAddressAdded = await multiswapForge.connect(wallet).setGasEstimationAddress(gasEstimationAddress);
+//   // Wait for the transaction receipt
+//   const receiptGasEstimationAddressAdded = await gasEstimationAddressAdded.wait();
   
-  if (receiptGasEstimationAddressAdded.status == 1) {
-      console.log("Gas Estimation Address added successfully in MultiSwapForge!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptGasEstimationAddressAdded.status == 1) {
+//       console.log("Gas Estimation Address added successfully in MultiSwapForge!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call setLiquidityManagers on FundManager with liquidity manager addresses
-  const liquidityManagerAdded = await fundManager.connect(wallet).setLiquidityManagers(liquidityManager, liquidityManagerBot);
-  // Wait for the transaction receipt
-  const receiptLiquidityManagerAdded = await liquidityManagerAdded.wait();
+//   // Call setLiquidityManagers on FundManager with liquidity manager addresses
+//   const liquidityManagerAdded = await fundManager.connect(wallet).setLiquidityManagers(liquidityManager, liquidityManagerBot);
+//   // Wait for the transaction receipt
+//   const receiptLiquidityManagerAdded = await liquidityManagerAdded.wait();
   
-  if (receiptLiquidityManagerAdded.status == 1) {
-      console.log("Liquidity Managers added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptLiquidityManagerAdded.status == 1) {
+//       console.log("Liquidity Managers added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 
-  // Call setWithdrawalAddress on FundManager with liquidity withdrawal addresses
-  const withdrawalAddressAdded = await fundManager.connect(wallet).setWithdrawalAddress(withdrawalAddress);
-  // Wait for the transaction receipt
-  const receiptWithdrawalAddressAdded = await withdrawalAddressAdded.wait();
+//   // Call setWithdrawalAddress on FundManager with liquidity withdrawal addresses
+//   const withdrawalAddressAdded = await fundManager.connect(wallet).setWithdrawalAddress(withdrawalAddress);
+//   // Wait for the transaction receipt
+//   const receiptWithdrawalAddressAdded = await withdrawalAddressAdded.wait();
   
-  if (receiptWithdrawalAddressAdded.status == 1) {
-      console.log("Liquidity Withdrawal Address added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptWithdrawalAddressAdded.status == 1) {
+//       console.log("Liquidity Withdrawal Address added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
   
-  // Call setSettlementManager on FundManager with Settlement Manager address
-  const settlementManagerAddressAdded = await fundManager.connect(wallet).setSettlementManager(settlementManagerAddress);
-  // Wait for the transaction receipt
-  const receiptSettlementManagerAddressAdded = await settlementManagerAddressAdded.wait();
+//   // Call setSettlementManager on FundManager with Settlement Manager address
+//   const settlementManagerAddressAdded = await fundManager.connect(wallet).setSettlementManager(settlementManagerAddress);
+//   // Wait for the transaction receipt
+//   const receiptSettlementManagerAddressAdded = await settlementManagerAddressAdded.wait();
   
-  if (receiptSettlementManagerAddressAdded.status == 1) {
-      console.log("Settlement Manager address added successfully in FundManager!");
-  } else {
-      console.log("Transaction failed");
-  }
+//   if (receiptSettlementManagerAddressAdded.status == 1) {
+//       console.log("Settlement Manager address added successfully in FundManager!");
+//   } else {
+//       console.log("Transaction failed");
+//   }
 }
 
 main();
