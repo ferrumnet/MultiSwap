@@ -8,23 +8,31 @@ const fiberRouterABI = require("../../artifacts/contracts/multiswap-contracts/Fi
 const multiswapForgeABI = require('../../artifacts/contracts/multiswap-contracts/MultiswapForge.sol/MultiswapForge.json');
 
 // Replace these with your actual contract addresses
-const forgeManagerAddress = '0x1b94fe35B4303ec69de3617541002fFC9E4dDD36';
-const multiswapForgeAddress = '0xe259f6D87c9b9331031f9D0AD2A000206eFC3149';
+const forgeManagerAddress = '';
+const multiswapForgeAddress = '';
 
-const fiberRouterAddress = '0x7A32c872619DFE0f07d04ef8EBEe77C5d0622c58';
-const fundManagerAddress = '0xbD9D99bb2A136a1936B87031c7A8102831855289';
+const fiberRouterAddress = '';
+const fundManagerAddress = '';
 
 const foundryArbitrum = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8";
 const foundryBinance = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
 const foundryEthereum = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const foundryOptimism = "0x0b2c639c533813f4aa9d7837caf62653d097ff85";
+const foundryAvalanche = "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E";
+const foundryBase = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const foundryScroll = "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4";
 
 const wethArbitrum = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1";
 const wethBinance = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
 const wethEthereum = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const wethOptimism = "0x4200000000000000000000000000000000000006";
+const wethAvalanche = "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab";
+const wethBase = "0x4200000000000000000000000000000000000006";
+const wethScroll = "0x5300000000000000000000000000000000000004";
 
 const oneInchAggregatorRouter = "0x1111111254EEB25477B68fb85Ed929f73A960582";
 
-const signerAddress = "0x0aee4E03645bB13b49Bb4e5784f7efB8Ee332073";
+const signerAddress = "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B";
 
 const liquidityManager = "0x5dAC22dB4dEaCfab7e9A0A1425f25D6B18e9839C";
 const liquidityManagerBot = "0x9B7C800DCca6273CB6DDb861764cFB95BDAb15cc"
@@ -36,18 +44,26 @@ const settlementManagerAddress = "0x5912cE9327C2F8BE2Ffce1e8E521F6a65A870a19";
 const gasWallet = "0xBFBFE0e25835625efa98161e3286Ca1290057E1a";
 
 // the address that is allowed to call the estimate gas fee for withdrawal functions
-const gasEstimationAddress = "0x896aa74980f510e17Ec22A9906b6ce82Ef84C49F"
+const gasEstimationAddress = "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B"
 
 const binanceChainID = 56;
 const ethereumChainID = 1;
 const arbitrumChainID = 42161;
+const optimismChainID = 10;
+const AvalancheChainID = 43114;
+const baseChainID = 8453;
+const scrollChainID = 534352;
 
 async function main() {
   const ethProvider = 'https://nd-611-696-948.p2pify.com/8a54d0bc389e645253087fd1a6c5fe3a';
   const arbiProvider = 'https://nd-829-997-700.p2pify.com/790712c620e64556719c7c9f19ef56e3';
   const bscProvider = 'https://nd-049-483-298.p2pify.com/819ef21ecdd17a29a2ed1e856c7980ec';
+  const opProvider = "https://optimism-mainnet.core.chainstack.com/7cb5109bd1c125224315d9b753cc0e45";
+  const avalancheProvider = "https://nd-118-315-546.p2pify.com/048dd2e7493f4804ffed70b2acfffe8b/ext/bc/C/rpc";
+  const baseProvider = "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278";
+  const scrollProvider = "https://scroll-mainnet.core.chainstack.com/26406aa9a6209c7577a5ab1ff15243cd";
 
-  const provider = new ethers.providers.JsonRpcProvider(ethProvider);
+  const provider = new ethers.providers.JsonRpcProvider(avalancheProvider);
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY0 , provider);
 
   // Connect to ForgeManager and MultiswapForge contracts
@@ -59,7 +75,7 @@ async function main() {
   const fundManager = new ethers.Contract(fundManagerAddress, fundManagerABI.abi, provider);
 
   // Call setWETH on FundManager with WETH address
-  const wethSet = await fiberRouter.connect(wallet).setWETH(wethEthereum);
+  const wethSet = await fiberRouter.connect(wallet).setWETH(wethAvalanche);
   // Wait for the transaction receipt
   const receiptWethSet = await wethSet.wait();
   
@@ -70,7 +86,7 @@ async function main() {
   }
 
   // Call setRouter on ForgeManager with WETH address
-  const wethForgeSet = await multiswapForge.connect(wallet).setWETH(wethEthereum);
+  const wethForgeSet = await multiswapForge.connect(wallet).setWETH(wethAvalanche);
   // Wait for the transaction receipt
   const receiptWethForgeSet = await wethForgeSet.wait();
   
@@ -147,7 +163,7 @@ async function main() {
   }
   
   // Call allowTarget on FundManager with specified addresses
-  const targetAllowed = await fundManager.connect(wallet).allowTarget(foundryEthereum, arbitrumChainID, foundryArbitrum);
+  const targetAllowed = await fundManager.connect(wallet).allowTarget(foundryAvalanche, ethereumChainID, foundryEthereum);
   // Wait for the transaction receipt
   const receiptTargetAllowed = await targetAllowed.wait();
   
@@ -159,11 +175,55 @@ async function main() {
 
 
   // Call allowTarget on FundManager with specified addresses
-  const targetAllowed2 = await fundManager.connect(wallet).allowTarget(foundryEthereum, binanceChainID, foundryBinance);
+  const targetAllowed2 = await fundManager.connect(wallet).allowTarget(foundryAvalanche, binanceChainID, foundryBinance);
   // Wait for the transaction receipt
   const receiptTargetAllowed2 = await targetAllowed2.wait();
   
   if (receiptTargetAllowed2.status == 1) {
+      console.log("AllowTarget added successfully in FundManager!");
+  } else {
+      console.log("Transaction failed");
+  }
+
+  // Call allowTarget on FundManager with specified addresses
+  const targetAllowed3 = await fundManager.connect(wallet).allowTarget(foundryAvalanche, arbitrumChainID, foundryArbitrum);
+  // Wait for the transaction receipt
+  const receiptTargetAllowed3 = await targetAllowed3.wait();
+  
+  if (receiptTargetAllowed3.status == 1) {
+      console.log("AllowTarget added successfully in FundManager!");
+  } else {
+      console.log("Transaction failed");
+  }
+
+  // Call allowTarget on FundManager with specified addresses
+  const targetAllowed4 = await fundManager.connect(wallet).allowTarget(foundryAvalanche, optimismChainID, foundryOptimism);
+  // Wait for the transaction receipt
+  const receiptTargetAllowed4 = await targetAllowed4.wait();
+  
+  if (receiptTargetAllowed4.status == 1) {
+      console.log("AllowTarget added successfully in FundManager!");
+  } else {
+      console.log("Transaction failed");
+  }
+
+  // Call allowTarget on FundManager with specified addresses
+  const targetAllowed5 = await fundManager.connect(wallet).allowTarget(foundryAvalanche, baseChainID, foundryBase);
+  // Wait for the transaction receipt
+  const receiptTargetAllowed5 = await targetAllowed5.wait();
+  
+  if (receiptTargetAllowed5.status == 1) {
+      console.log("AllowTarget added successfully in FundManager!");
+  } else {
+      console.log("Transaction failed");
+  }
+
+  // Call allowTarget on FundManager with specified addresses
+  const targetAllowed6 = await fundManager.connect(wallet).allowTarget(foundryAvalanche, scrollChainID, foundryScroll);
+  // Wait for the transaction receipt
+  const receiptTargetAllowed6 = await targetAllowed6.wait();
+  
+  if (receiptTargetAllowed6.status == 1) {
       console.log("AllowTarget added successfully in FundManager!");
   } else {
       console.log("Transaction failed");
@@ -181,7 +241,7 @@ async function main() {
   }
 
   // Call addFoundryAsset on FundManager
-  const foundryAdded = await fundManager.connect(wallet).addFoundryAsset(foundryEthereum);
+  const foundryAdded = await fundManager.connect(wallet).addFoundryAsset(foundryAvalanche);
   // Wait for the transaction receipt
   const receiptFoundryAdded = await foundryAdded.wait();
   
@@ -192,7 +252,7 @@ async function main() {
   }
 
   // Call addFoundryAsset on ForgeManager
-  const forgeFoundryAdded = await forgeManager.connect(wallet).addFoundryAsset(foundryEthereum);
+  const forgeFoundryAdded = await forgeManager.connect(wallet).addFoundryAsset(foundryAvalanche);
   // Wait for the transaction receipt
   const receiptForgeFoundryAdded = await forgeFoundryAdded.wait();
   

@@ -38,7 +38,11 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY0],
     },
     sepolia: {
-      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `https://ethereum-sepolia-rpc.publicnode.com`,
+      accounts: [process.env.PRIVATE_KEY0]
+    },
+    mumbai: {
+      url: `https://polygon-mumbai-pokt.nodies.app`,
       accounts: [process.env.PRIVATE_KEY0]
     },
     polygon: {
@@ -58,7 +62,7 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY0]
     },
     optimismMainnet: {
-      url: 'https://mainnet.optimism.io',
+      url: 'https://optimism-mainnet.core.chainstack.com/7cb5109bd1c125224315d9b753cc0e45',
       accounts: [process.env.PRIVATE_KEY0]
     },
     ethereum: {
@@ -68,12 +72,25 @@ module.exports = {
     arbitrum: {
       url: 'https://nd-829-997-700.p2pify.com/790712c620e64556719c7c9f19ef56e3',
       accounts: [process.env.PRIVATE_KEY0]
+    },
+    scroll: {
+      url: 'https://scroll-mainnet.core.chainstack.com/26406aa9a6209c7577a5ab1ff15243cd',
+      accounts: [process.env.PRIVATE_KEY0]
+    },
+    zksync: {
+      url: 'https://nd-559-202-193.p2pify.com/43eb159adcbe7f31f7f192309025670e',
+      accounts: [process.env.PRIVATE_KEY0]
+    },
+    base: {
+      url: 'https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278',
+      accounts: [process.env.PRIVATE_KEY0]
     }
   },
   etherscan: {
     // apiKey: process.env.ARBITRUM_API_KEY,
-    // apiKey: process.env.BINANCE_API_KEY,
-    apiKey: process.env.ETHEREUM_API_KEY,
-
+    apiKey: process.env.BINANCE_API_KEY,
+    // apiKey: process.env.MUMBAI_API_KEY,
+    // apiKey: process.env.AVALANCHE_API_KEY,
+    // apiKey: process.env.OPTIMISM_API_KEY,
   },
 };
