@@ -5,6 +5,48 @@ MultiSwap Overview: >-
 
 # MultiSwap
 
+## Getting Started
+Install packages:
+```
+npm install
+```
+Add your private key in `.env`, and compile with:
+```
+hh compile
+```
+Run unit test:
+```
+hh test test/FiberRouter.test.ts
+```
+The repo is currently undergoing a migration from ethers v5 to v6. The other (older) unit tests (and some scripts) will likely not work, but are kept for reference.
+
+### Deployment to a new network
+Before deployment, the necessary configs must be added in `constants/addresses.json`. This includes specifying a router/dex which `FiberRouter` will call and its corresponding selectors:
+
+1. Fetch the ABI of the router/dex you wish to whitelist and paste in `scripts/computeSelectors.ts`
+2. Run the script with `hh run scripts/computeSelectors.ts`
+3. From the console output, manually add in the function selectors you wish to whitelist in `constants/addresses.json` (see existing networks for an example)
+4. Fill in other required addresses such as the WETH and foundry token address, chainID etc.
+5. Now add a network entry in `hardhat.config.ts`. The network names here and in `constants/addresses.json` must match
+
+Contracts are now ready for deployment with HardHat's new Ignition modules system. Simply run:
+```
+hh ignition deploy ignition/modules/Multiswap.ts
+```
+This will deploy all MultiSwap contracts with all necessary configs. Contract addresses can be found in the deployment artifacts, which will autogenerate in the `ignition/` directory
+
+### ZkSync
+ZkSync uses a different compiler with different node packages. After following the 4 steps above, first compile with:
+```
+hh compile --network zksync
+```
+Followed by deployment with:
+```
+hh deploy-zksync --network zksync
+```
+Note that running the compile command before deploying is necessary. Deployment artifacts (along with deployed contract addresses) can be found in `deployments-zk`
+
+## Overview
 ### MultiSwap is divided into three major parts 
 1. Fiber Engine: Controls everything
 2. Fiber Router: Everything flows through the router, to ensure that there is no external contract interaction with the Fund Manager contract where the majority of Foundry Assets are.
