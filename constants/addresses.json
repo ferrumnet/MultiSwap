@@ -5,6 +5,7 @@
     "withdrawal": "0x1370172Ed69Ec231cDB8E59d928D42824094c0C6",
     "settlementManager": "0x5912cE9327C2F8BE2Ffce1e8E521F6a65A870a19",
     "gasWallet": "0xBFBFE0e25835625efa98161e3286Ca1290057E1a",
+    "gasEstimationWallet": "0x896aa74980f510e17Ec22A9906b6ce82Ef84C49F",
 
     "networks": {
         "ethereum": {
@@ -63,6 +64,18 @@
                 }
             ]
         },
+        "zksync": {
+            "chainId": 324,
+            "weth": "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91",
+            "foundry": "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4",
+            "routers": [
+                {
+                    "router": "0x6fd4383cB451173D5f9304F041C7BCBf27d561fF",
+                    "selectors" : [
+                    ]
+                }
+            ]
+        },
         "scroll": {
             "chainId": 534352,
             "weth": "0x5300000000000000000000000000000000000004",
@@ -79,8 +92,8 @@
             ]
         },
         "hardhat": {
-            "weth": "0x0000000000000000000000000000000000000000",
-            "foundry": "0x0000000000000000000000000000000000000000"
+            "weth": "0x1111111111111111111111111111111111111111",
+            "foundry": "0x1111111111111111111111111111111111111111"
         }
     }
 }

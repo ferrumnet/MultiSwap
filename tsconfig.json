@@ -10,6 +10,6 @@
     "allowJs": true,
     "noImplicitAny": false
   },
-  "include": ["./scripts", "./test/**/*"],
+  "include": ["./scripts", "./test/**/*", "./deploy-zksync/**/*", "./ignition/**/*"],
   "files": ["./hardhat.config.ts"]
 }

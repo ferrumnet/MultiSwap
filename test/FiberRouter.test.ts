@@ -2,7 +2,7 @@ import hre from "hardhat"
 import { ignition } from "hardhat"
 import { loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import Multiswap from "../ignition/modules/Multiswap"
-import addresses from "../ignition/addresses.json"
+import addresses from "../constants/addresses.json"
 import { expect } from "chai";
 import { Contract, AbiCoder, id, Signer } from "ethers";
 

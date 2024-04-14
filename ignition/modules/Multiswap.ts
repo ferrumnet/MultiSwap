@@ -1,6 +1,6 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules"
 import hre from "hardhat"
-import addresses from "../addresses.json"
+import addresses from "../../constants/addresses.json"
 
 export default buildModule("Multiswap", (m) => {
   const currentNetwork = hre.network.name
@@ -29,11 +29,12 @@ export default buildModule("Multiswap", (m) => {
   m.call(fundManager, "setSettlementManager", [addresses.settlementManager])
 
   m.call(multiswapForge, "setPool", [forgeManager])
+  m.call(multiswapForge, "setGasEstimationAddress", [addresses.gasEstimationWallet])
   m.call(forgeManager, "setRouter", [multiswapForge])
   m.call(forgeManager, "addFoundryAsset", [foundry])
 
   if (currentNetwork != "hardhat") {
-    // Add routers and selectors. Selectors need to be computed with the scripts/computeSelectors.ts and added to ignition/addresses.json beforehand
+    // Add routers and selectors. Selectors need to be computed with scripts/computeSelectors.ts and added to constants/addresses.json beforehand
     const swapRouters = addresses.networks[currentNetwork].routers
     for (const swapRouter of swapRouters) {
       const router = swapRouter.router

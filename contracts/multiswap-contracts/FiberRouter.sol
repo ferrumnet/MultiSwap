@@ -255,7 +255,8 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
 
         // Transfer the gas fee to the gasWallet
-        payable(gasWallet).transfer(msg.value);
+        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
+        require(success, "FR: Gas fee transfer failed");
 
         // Emit Swap event
         emit Swap(
@@ -388,14 +389,16 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
 
         // Transfer the gas fee to the gasWallet
-        payable(gasWallet).transfer(msg.value);
+        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
+        require(success, "FR: Gas fee transfer failed");
 
+        uint256 _amountIn = amountIn; // to avoid stack too deep error
         emit Swap(
             fromToken,
             crossTargetToken,
             block.chainid,
             crossTargetNetwork,
-            amountIn,
+            _amountIn,
             _msgSender(),
             crossTargetAddress,
             amountOut,
@@ -457,7 +460,8 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
 
         // Transfer the gas fee to the gasWallet
-        payable(gasWallet).transfer(gasFee);
+        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
+        require(success, "FR: Gas fee transfer failed");
 
         uint256 _gasFee = gasFee; // to avoid stack too deep error
         emit Swap(

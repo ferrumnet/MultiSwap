@@ -1,6 +1,7 @@
-import { HardhatUserConfig } from "hardhat/types"
 import "@nomicfoundation/hardhat-toolbox"
 import "@openzeppelin/hardhat-upgrades"
+import "@matterlabs/hardhat-zksync"
+import { HardhatUserConfig } from "hardhat/types"
 import dotenv from 'dotenv'
 dotenv.config()
 
@@ -36,12 +37,18 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  networks: {
-    hardhat: {
-      // accounts: {
-      //   mnemonic: "test test test test test test test test test test test test"
-      // }
+  zksolc: {
+    version: "1.4.0",
+    settings: {
+      isSystem: true,
+      optimizer: {
+        enabled: true, // optional. True by default
+        mode: '3', // optional. 3 by default, z to optimize bytecode size
+        fallback_to_optimizing_for_size: true, // optional. Try to recompile with optimizer mode "z" if the bytecode is too large
+      },
     },
+  },
+  networks: {
     goerli: {
       url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [process.env.PRIVATE_KEY0!],
@@ -86,14 +93,38 @@ const config: HardhatUserConfig = {
       url: 'https://scroll-mainnet.core.chainstack.com/26406aa9a6209c7577a5ab1ff15243cd',
       accounts: [process.env.PRIVATE_KEY0!]
     },
-    zksync: {
-      url: 'https://nd-559-202-193.p2pify.com/43eb159adcbe7f31f7f192309025670e',
-      accounts: [process.env.PRIVATE_KEY0!]
-    },
     base: {
       url: 'https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278',
       accounts: [process.env.PRIVATE_KEY0!]
-    }
+    },
+    zksync: {
+      url: "https://mainnet.era.zksync.io",
+      ethNetwork: "mainnet",
+      zksync: true,
+      accounts: [process.env.PRIVATE_KEY0!],
+      deployPaths: "deploy-zkSync",
+      verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification",
+    },
+    zkSyncSepoliaTestnet: {
+      url: "https://sepolia.era.zksync.dev",
+      ethNetwork: "sepolia",
+      zksync: true,
+      accounts: [process.env.PRIVATE_KEY0!],
+      deployPaths: "deploy-zkSync",
+      verifyURL: "https://explorer.sepolia.era.zksync.dev/contract_verification",
+    },
+    dockerizedNode: {
+      url: "http://localhost:3050",
+      ethNetwork: "http://localhost:8545",
+      zksync: true,
+      deployPaths: "deploy-zkSync"
+    },
+    inMemoryNode: {
+      url: "http://127.0.0.1:8011",
+      ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
+      zksync: true,
+      deployPaths: "deploy-zkSync"
+    },
   },
   etherscan: {
     // apiKey: process.env.ARBITRUM_API_KEY,
