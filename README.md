@@ -23,8 +23,8 @@ The repo is currently undergoing a migration from ethers v5 to v6. The other (ol
 ### Deployment to a new network
 Before deployment, the necessary configs must be added in `constants/addresses.json`. This includes specifying a router/dex which `FiberRouter` will call and its corresponding selectors:
 
-1. Fetch the ABI of the router/dex you wish to whitelist and paste in `scripts/computeSelectors.ts`
-2. Run the script with `hh run scripts/computeSelectors.ts`
+1. Fetch the ABI of the router/dex you wish to whitelist and paste in `scripts/computeSelectors/main.ts`
+2. Run the script with `hh run scripts/computeSelectors/main.ts`
 3. From the console output, manually add in the function selectors you wish to whitelist in `constants/addresses.json` (see existing networks for an example)
 4. Fill in other required addresses such as the WETH and foundry token address, chainID etc.
 5. Now add a network entry in `hardhat.config.ts`. The network names here and in `constants/addresses.json` must match
