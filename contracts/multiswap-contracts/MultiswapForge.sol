@@ -7,9 +7,7 @@ contract MultiSwapForge is FiberRouter {
     
     address public gasEstimationAddress;
 
-    constructor() 
-        FiberRouter() {
-     }
+    constructor(address weth) FiberRouter(weth) {}
 
     /**
      @dev Sets address authorized to execute gas estimations
@@ -56,14 +54,14 @@ contract MultiSwapForge is FiberRouter {
     }
 
     // Override and revert the 'withdrawSignedAndSwapOneInch' function
-    function withdrawSignedAndSwapOneInch(
+    function withdrawSignedWithSwap(
         address payable to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
-        OneInchFunction funcSelector, // Add the enum parameter
+        address router,
+        bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
@@ -75,24 +73,24 @@ contract MultiSwapForge is FiberRouter {
     function withdrawSignedAndSwapOneInchForGasEstimation(
         address payable to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
-        OneInchFunction funcSelector, // Add the enum parameter
+        address router,
+        bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
     ) external {
         // Call the original function from FiberRouter
-        super.withdrawSignedAndSwapOneInch(
+        super.withdrawSignedWithSwap(
             to,
             amountIn,
-            amountOut,
+            minAmountOut,
             foundryToken,
             targetToken,
-            oneInchData,
-            funcSelector,
+            router,
+            routerCallData,
             salt,
             expiry,
             multiSignature

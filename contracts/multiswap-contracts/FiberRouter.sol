@@ -4,9 +4,7 @@ pragma solidity 0.8.2;
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
-import "../common/oneInch/IOneInchSwap.sol";
 import "../common/IWETH.sol";
-import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
@@ -15,48 +13,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 */
 contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
+    address private constant NATIVE_CURRENCY = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address public immutable weth;
     address public pool;
     address payable public gasWallet;
-    address public oneInchAggregatorRouter;
-    address public WETH;
+    mapping(bytes32 => bool) private routerAllowList;
 
-    enum OneInchFunction {
-        unoswapTo,
-        uniswapV3SwapTo,
-        swap,
-        fillOrderTo,
-        fillOrderRFQTo
-    }
-    struct SwapDescription {
-        address srcToken;
-        address dstToken;
-        address payable srcReceiver;
-        address payable dstReceiver;
-        uint256 amount;
-        uint256 minReturnAmount;
-        uint256 flags;
-    }
-    struct Order {
-        uint256 salt;
-        address makerAsset; // targetToken
-        address takerAsset; // foundryToken
-        address maker;
-        address receiver;   
-        address allowedSender;  // equals to Zero address on public orders
-        uint256 makingAmount;
-        uint256 takingAmount;  // destinationAmountIn
-        uint256 offsets;
-        bytes interactions; // concat(makerAssetData, takerAssetData, getMakingAmount, getTakingAmount, predicate, permit, preIntercation, postInteraction)
-    }
-    struct OrderRFQ {
-        uint256 info;  // lowest 64 bits is the order id, next 64 bits is the expiration timestamp
-        address makerAsset; // targetToken
-        address takerAsset; // foundryToken
-        address maker;
-        address allowedSender;  // equals to Zero address on public orders
-        uint256 makingAmount;
-        uint256 takingAmount;
-    }
     event Swap(
         address sourceToken,
         address targetToken,
@@ -70,7 +32,6 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 gasAmount
     );
 
-        // Emit Swap event
     event SwapSameNetwork(
         address sourceToken,
         address targetToken,
@@ -88,13 +49,14 @@ contract FiberRouter is Ownable, TokenReceivable {
         bytes signature
     );
 
-    event WithdrawOneInch(
+    event WithdrawWithSwap(
         address to,
         uint256 amountIn,
-        uint256 amountOutOneInch,
+        uint256 amountOut,
         address foundryToken,
         address targetToken,
-        bytes oneInchData,
+        address router,
+        bytes routerCallData,
         bytes32 salt,
         bytes multiSignature
     );
@@ -110,61 +72,27 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 settledAmount,
         bytes32 withdrawalData
     );
-    event UnoSwapHandled(
-        address indexed swapRouter,
-        address indexed to,
-        address indexed fromToken,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-    event UniswapV3SwapHandled(
-        address indexed swapRouter,
-        address indexed to,
-        uint256 amountIn,
-        uint256 amountOut
-    );
-    event SwapHandled(
-        address indexed swapRouter,
-        address indexed to,
-        address indexed fromToken,
-        uint256 amountIn,
-        uint256 amountOut
-    );
 
-   /**
-     * @dev Constructor that sets FerrumDeployer InitData
-     */
-    constructor() {
-        bytes memory initData = IFerrumDeployer(msg.sender).initData();
+    event RouterAndSelectorWhitelisted(address router, bytes selector);
+    event RouterAndSelectorRemoved(address router, bytes selector);
+
+    constructor(address _weth) {
+        require(_weth != address(0), "weth address cannot be zero");
+        weth = _weth;
     }
 
     /**
-     @dev Sets the WETH address.
-     @param _weth The WETH address
-     */
-    function setWETH(address _weth) external onlyOwner {
-        require(
-            _weth != address(0),
-            "_weth address cannot be zero"
-        );
-        WETH = _weth;
-    }
-
-    /**
-     @dev Sets the fund manager contract.
-     @param _pool The fund manager
+     * @dev Sets the fund manager contract.
+     * @param _pool The fund manager
      */
     function setPool(address _pool) external onlyOwner {
-        require(
-            _pool != address(0),
-            "Swap pool address cannot be zero"
-        );
+        require(_pool != address(0), "Swap pool address cannot be zero");
         pool = _pool;
     }
 
     /**
-     @dev Sets the gas wallet address.
-     @param _gasWallet The wallet which pays for the funds on withdrawal
+     * @dev Sets the gas wallet address.
+     * @param _gasWallet The wallet which pays for the funds on withdrawal
      */
     function setGasWallet(address payable _gasWallet) external onlyOwner {
         require(
@@ -175,156 +103,121 @@ contract FiberRouter is Ownable, TokenReceivable {
     }
 
     /**
-     @dev Sets the 1inch Aggregator Router address
-     @param _newRouterAddress The new Router Address of oneInch
+     * @notice Whitelists the router and selector combination
+     * @param router The router address
+     * @param selector The selector for the router
      */
-    function setOneInchAggregatorRouter(address _newRouterAddress)
-        external
-        onlyOwner
-    {
-        require(
-            _newRouterAddress != address(0),
-            "Swap router address cannot be zero"
-        );
-        oneInchAggregatorRouter = _newRouterAddress;
+    function addRouterAndSelector(address router, bytes calldata selector) external onlyOwner {
+        routerAllowList[_getKey(router, selector)] = true;
+        emit RouterAndSelectorWhitelisted(router, selector);
     }
 
-/**
- * @dev Perform a same network token swap using 1inch
- * @param amountIn The input amount
- * @param amountOut Equivalent to amountOut on oneInch
- * @param fromToken The token to be swapped
- * @param toToken The token to receive after the swap
- * @param targetAddress The receiver address
- * @param oneInchData The data containing information for the 1inch swap
- * @param funcSelector selector enum for deciding which 1inch fucntion to call
- */
-function swapOnSameNetwork(
-    uint256 amountIn,
-    uint256 amountOut, // amountOut on oneInch
-    address fromToken,
-    address toToken,
-    address targetAddress,
-    bytes memory oneInchData,
-    OneInchFunction funcSelector
-) external nonReentrant {
-    // Validation checks
-    require(fromToken != address(0), "FR: From token address cannot be zero");
-    require(toToken != address(0), "FR: To token address cannot be zero");
-    require(amountIn != 0, "FR: Amount in must be greater than zero");
-    require(amountOut != 0, "FR: Amount out must be greater than zero");
-    require(targetAddress != address(0), "FR: Target address cannot be zero");
-    require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
+    /**
+     * @notice Removes the router and selector combination from the whitelist
+     * @param router The router address
+     * @param selector The selector for the router
+     */
+    function removeRouterAndSelector(address router, bytes calldata selector) external onlyOwner {
+        routerAllowList[_getKey(router, selector)] = false;
+        emit RouterAndSelectorRemoved(router, selector);
+    }
 
-    amountIn = SafeAmount.safeTransferFrom(
+    /**
+     * @dev Perform a same network token swap on specified router/dex
+     * @param amountIn The input amount
+     * @param minAmountOut The minimum amount out accounting for slippage
+     * @param fromToken The token to be swapped
+     * @param toToken The token to receive after the swap
+     * @param recipient The receiver address
+     * @param router The router address
+     * @param routerCallData Calldata for the router
+     */
+    function swapOnSameNetwork(
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address fromToken,
+        address toToken,
+        address recipient,
+        address router,
+        bytes memory routerCallData
+    ) external nonReentrant {
+        // Validation checks
+        require(fromToken != address(0), "FR: From token address cannot be zero");
+        require(toToken != address(0), "FR: To token address cannot be zero");
+        require(amountIn != 0, "FR: Amount in must be greater than zero");
+        require(minAmountOut != 0, "FR: Amount out must be greater than zero");
+        require(recipient != address(0), "FR: Target address cannot be zero");
+
+        amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
+
+        // Perform the token swap
+        uint256 amountOut = _swapAndCheckSlippage(
+            recipient,
             fromToken,
-            _msgSender(),
-            address(this),
-            amountIn
+            toToken,
+            amountIn,
+            minAmountOut,
+            router,
+            routerCallData
         );
-    // Perform the token swap using 1inch
-    uint256 settledAmount = _swapOnSameNetwork(
-        amountIn,
-        amountOut,
-        fromToken,
-        targetAddress,
-        oneInchData,
-        funcSelector // Pass the enum parameter
-    );
 
-    // Emit Swap event
-    emit SwapSameNetwork(
-        fromToken,
-        toToken,
-        amountIn,
-        settledAmount,
-        _msgSender(),
-        targetAddress
-    );
-}
-
-/**
- * @dev Performs a native currency swap and cross to another token on the same network using 1inch
- * @param amountOut The expected amount of output tokens after the swap on 1inch
- * @param toToken The token to receive after the swap
- * @param targetAddress The receiver address for this token
- * @param oneInchData The data containing information for the 1inch swap
- * @param funcSelector Enum parameter to identify the function for 1inch swap
- */
-function swapOnSameNetworkETH(
-    uint256 amountOut, // amountOut on oneInch
-    address toToken,
-    address targetAddress,
-    bytes memory oneInchData,
-    OneInchFunction funcSelector // Add the enum parameter
-) external payable {
-    uint256 amountIn = msg.value;
-    // Validation checks
-    require(toToken != address(0), "FR: To token address cannot be zero");
-    require(amountIn != 0, "FR: Amount in must be greater than zero");
-    require(amountOut != 0, "FR: Amount out must be greater than zero");
-    require(targetAddress != address(0), "FR: Target address cannot be zero");
-    require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
-
-    // Deposit ETH and get WETH
-    IWETH(WETH).deposit{value: amountIn}();
-
-    // Execute swap and cross-chain operation
-    uint256 settledAmount = _swapOnSameNetwork(
-        amountIn,
-        amountOut,
-        WETH,
-        targetAddress,
-        oneInchData,
-        funcSelector // Pass the function selector
-    );
-
-    // Emit Swap event
-    emit SwapSameNetwork(
-        WETH,
-        toToken,
-        amountIn,
-        settledAmount,
-        _msgSender(),
-        targetAddress
-    );
-}
-
-/**
- * @dev Perform a same network token swap using 1inch
- * @param amountIn The input amount
- * @param amountOut Equivalent to amountOut on oneInch
- * @param fromToken The token to be swapped
- * @param targetAddress The receiver address
- * @param oneInchData The data containing information for the 1inch swap
- * @param funcSelector selector enum for deciding which 1inch fucntion to call
- */
-function _swapOnSameNetwork(
-    uint256 amountIn,
-    uint256 amountOut,
-    address fromToken,
-    address targetAddress,
-    bytes memory oneInchData,
-    OneInchFunction funcSelector
-) internal returns (uint256 settledAmount) {
-    // Check if allowance is non-zero
-    if (IERC20(fromToken).allowance(address(this), oneInchAggregatorRouter) != 0) {
-        // Reset the allowance to zero
-        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, 0);
+        // Emit Swap event
+        emit SwapSameNetwork(
+            fromToken,
+            toToken,
+            amountIn,
+            amountOut,
+            _msgSender(),
+            recipient
+        );
     }
-    // Set the allowance to the swap amount
-    IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
 
-    // Perform the token swap using 1inch
-    settledAmount = swapHelperForOneInch(
-        payable(targetAddress),
-        fromToken,
-        amountIn,
-        amountOut,
-        oneInchData,
-        funcSelector // Pass the enum parameter
-    );
-}
+    /**
+     * @dev Performs a swap from native currency to specified token
+     * @param minAmountOut The minimum amount of tokens expected after the swap
+     * @param toToken The token to receive after the swap
+     * @param recipient The receiver address for the token
+     * @param router The router address
+     * @param routerCallData Calldata for the router
+     */
+    function swapOnSameNetworkETH(
+        uint256 minAmountOut,
+        address toToken,
+        address recipient,
+        address router,
+        bytes memory routerCallData
+    ) external payable {
+        uint256 amountIn = msg.value;
+        // Validation checks
+        require(toToken != address(0), "FR: To token address cannot be zero");
+        require(amountIn != 0, "FR: Amount in must be greater than zero");
+        require(minAmountOut != 0, "FR: Amount out must be greater than zero");
+        require(recipient != address(0), "FR: Target address cannot be zero");
+        require(bytes(routerCallData).length != 0, "FR: Calldata cannot be empty");
+
+        // Deposit ETH and get WETH
+        IWETH(weth).deposit{value: amountIn}();
+
+        uint256 amountOut = _swapAndCheckSlippage(
+            recipient,
+            weth,
+            toToken,
+            amountIn,
+            minAmountOut,
+            router,
+            routerCallData
+        );
+
+        // Emit Swap event
+        emit SwapSameNetwork(
+            NATIVE_CURRENCY,
+            toToken,
+            amountIn,
+            amountOut,
+            _msgSender(),
+            recipient
+        );
+    }
 
     /**
      * @dev Initiate an x-chain swap.
@@ -439,149 +332,147 @@ function _swapOnSameNetwork(
     /**
      * @dev Do a local swap and generate a cross-chain swap
      * @param amountIn The input amount
-     * @param amountOut Equivalent to amountOut on oneInch
-     * @param crossTargetNetwork The target network for the swap
-     * @param crossTargetToken The target token for the cross-chain swap
-     * @param crossTargetAddress The target address for the cross-chain swap
-     * @param oneInchData The data containing information for the 1inch swap
+     * @param minAmountOut The minimum amount out after the swap
      * @param fromToken The token to be swapped
      * @param foundryToken The foundry token used for the swap
-     * @param withdrawalData Data related to the withdrawal
-     * @param funcSelector selector enum for deciding which 1inch fucntion to call
-     */
-    function swapAndCrossOneInch(
-            uint256 amountIn,
-            uint256 amountOut, // amountOut on oneInch
-            uint256 crossTargetNetwork,
-            address crossTargetToken,
-            address crossTargetAddress,
-            bytes memory oneInchData,
-            address fromToken,
-            address foundryToken,
-            bytes32 withdrawalData,
-            OneInchFunction funcSelector 
-        ) external payable nonReentrant {
-            // Validation checks
-            require(
-                fromToken != address(0),
-                "FR: From token address cannot be zero"
-            );
-            require(
-                foundryToken != address(0),
-                "FR: Foundry token address cannot be zero"
-            );
-            require(
-                crossTargetToken != address(0),
-                "FR: Cross target token address cannot be zero"
-            );
-            require(amountIn != 0, "FR: Amount in must be greater than zero");
-            require(amountOut != 0, "FR: Amount out must be greater than zero");
-            require(
-                bytes(oneInchData).length != 0,
-                "FR: 1inch data cannot be empty"
-            );
-            require(
-                withdrawalData != 0,
-                "FR: withdraw data cannot be empty"
-            );
-            require(msg.value != 0, "FR: Gas Amount must be greater than zero");
-            amountIn = SafeAmount.safeTransferFrom(
-                fromToken,
-                _msgSender(),
-                address(this),
-                amountIn
-            );
-            uint256 settledAmount = _swapAndCrossOneInch(
-                amountIn,
-                amountOut,
-                crossTargetNetwork,
-                crossTargetAddress,
-                oneInchData,
-                fromToken,
-                foundryToken,
-                funcSelector  // Pass the enum parameter
-            );
-            // Transfer the gas fee to the gasWallet
-            payable(gasWallet).transfer(msg.value);
-            // Emit Swap event
-            emit Swap(
-                fromToken,
-                crossTargetToken,
-                block.chainid,
-                crossTargetNetwork,
-                amountIn,
-                _msgSender(),
-                crossTargetAddress,
-                settledAmount,
-                withdrawalData,
-                msg.value
-            );
-        }
-
-    /**
-     * @dev Swap and cross to oneInch in native currency
-     * @param amountOut Equivalent to amountOut on oneInch
+     * @param router The router address
+     * @param routerCallData The calldata for the swap
      * @param crossTargetNetwork The target network for the swap
      * @param crossTargetToken The target token for the cross-chain swap
      * @param crossTargetAddress The target address for the cross-chain swap
-     * @param oneInchData The data containing information for the 1inch swap
-     * @param foundryToken The foundry token used for the swap
      * @param withdrawalData Data related to the withdrawal
-     * @param gasFee The gas fee being charged on withdrawal
-     * @param funcSelector selector enum for deciding which 1inch fucntion to call
      */
-    function swapAndCrossOneInchETH(
-        uint256 amountOut, // amountOut on oneInch
+    function swapTokensLocallyAndCross(
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address fromToken,
+        address foundryToken,
+        address router,
+        bytes memory routerCallData,
         uint256 crossTargetNetwork,
         address crossTargetToken,
         address crossTargetAddress,
-        bytes memory oneInchData,
-        address foundryToken,
-        bytes32 withdrawalData,
-        uint256 gasFee,
-        OneInchFunction funcSelector // Add the enum parameter
-    ) external payable {
-        uint256 amountIn = msg.value - gasFee;
-        // Validation checks
-        require(amountIn != 0, "FR: Amount in must be greater than zero");
-        require(gasFee != 0, "FR: Gas fee must be greater than zero");
-        require(msg.value == amountIn + gasFee, "FR: msg.value must equal amountIn plus gasFee");
-        require(amountOut != 0, "FR: Amount out must be greater than zero");
-        require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
-        require(bytes(oneInchData).length != 0, "FR: 1inch data cannot be empty");
+        bytes32 withdrawalData
+    ) external payable nonReentrant {
+        require(fromToken != address(0), "FR: From token address cannot be zero");
         require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
-        require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
+        require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
+        require(amountIn != 0, "FR: Amount in must be greater than zero");
+        require(minAmountOut != 0, "FR: Amount out must be greater than zero");
+        require(withdrawalData != 0, "FR: withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
-        // Deposit ETH (excluding gas fee) and get WETH
-        IWETH(WETH).deposit{value: amountIn}();
-        // Execute swap and cross-chain operation
-        uint256 settledAmount = _swapAndCrossOneInch(
+
+        amountIn = SafeAmount.safeTransferFrom(
+            fromToken,
+            _msgSender(),
+            address(this),
+            amountIn
+        );
+
+        uint256 amountOut = _swapAndCheckSlippage(
+            pool,
+            fromToken,
+            foundryToken,
             amountIn,
+            minAmountOut,
+            router,
+            routerCallData
+        );
+
+        // Update pool inventory and emit cross chain event
+        FundManager(pool).swapToAddress(
+            foundryToken,
             amountOut,
             crossTargetNetwork,
-            crossTargetAddress,
-            oneInchData,
-            WETH,
-            foundryToken,
-            funcSelector // Pass the function selector
+            crossTargetAddress
         );
+
         // Transfer the gas fee to the gasWallet
-        payable(gasWallet).transfer(gasFee);
-        // Emit Swap event
+        payable(gasWallet).transfer(msg.value);
+
         emit Swap(
-            WETH,
+            fromToken,
             crossTargetToken,
             block.chainid,
             crossTargetNetwork,
             amountIn,
             _msgSender(),
             crossTargetAddress,
-            settledAmount,
+            amountOut,
             withdrawalData,
-            gasFee
+            msg.value
         );
     }
 
+    /**
+     * @dev Do a local swap with ETH as input and generate a cross-chain swap
+     * @param minAmountOut The minimum amount out after the swap
+     * @param foundryToken The foundry token used for the swap
+     * @param gasFee The gas fee being charged on withdrawal
+     * @param router The router address
+     * @param routerCallData The calldata for the swap
+     * @param crossTargetNetwork The target network for the swap
+     * @param crossTargetToken The target token for the cross-chain swap
+     * @param crossTargetAddress The target address for the cross-chain swap
+     * @param withdrawalData Data related to the withdrawal
+     */
+    function swapETHLocallyAndCross(
+        uint256 minAmountOut,
+        address foundryToken,
+        uint256 gasFee,
+        address router,
+        bytes memory routerCallData,
+        uint256 crossTargetNetwork,
+        address crossTargetToken,
+        address crossTargetAddress,
+        bytes32 withdrawalData
+    ) external payable {
+        uint256 amountIn = msg.value - gasFee;
+
+        require(amountIn != 0, "FR: Amount in must be greater than zero");
+        require(gasFee != 0, "FR: Gas fee must be greater than zero");
+        require(minAmountOut != 0, "FR: Amount out must be greater than zero");
+        require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
+        require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
+        require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
+
+        // Deposit ETH (excluding gas fee) for WETH and swap
+        IWETH(weth).deposit{value: amountIn}();
+        uint256 amountOut = _swapAndCheckSlippage(
+            pool,
+            weth,
+            foundryToken,
+            amountIn,
+            minAmountOut,
+            router,
+            routerCallData
+        );
+
+        // Update pool inventory and emit cross chain event
+        FundManager(pool).swapToAddress(
+            foundryToken,
+            amountOut,
+            crossTargetNetwork,
+            crossTargetAddress
+        );
+
+        // Transfer the gas fee to the gasWallet
+        payable(gasWallet).transfer(gasFee);
+
+        uint256 _gasFee = gasFee; // to avoid stack too deep error
+        emit Swap(
+            weth,
+            crossTargetToken,
+            block.chainid,
+            crossTargetNetwork,
+            amountIn,
+            _msgSender(),
+            crossTargetAddress,
+            amountOut,
+            withdrawalData,
+            _gasFee
+        );
+    }
 
     /**
      * @dev Initiates a signed token withdrawal, exclusive to the router.
@@ -619,444 +510,144 @@ function _swapOnSameNetwork(
     }
 
     /**
-     * @dev Initiates a signed OneInch token withdrawal, exclusive to the router.
+     * @dev Initiates a signed token withdrawal with swap through router, exclusive to the router.
      * @notice Ensure valid parameters and router setup.
      * @param to The address to withdraw to
      * @param amountIn The amount to be swapped in
-     * @param amountOut The expected amount out in the OneInch swap
+     * @param minAmountOut The minimum amount out after the swap
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
-     * @param oneInchData The data containing information for the 1inch swap
-     * @param funcSelector selector enum for deciding which 1inch fucntion to call
+     * @param router The router address
+     * @param routerCallData The calldata for the swap
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param multiSignature The multi-signature data
      */
-    function withdrawSignedAndSwapOneInch(
+    function withdrawSignedWithSwap(
         address payable to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
-        OneInchFunction funcSelector, // Add the enum parameter
+        address router,
+        bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature
     ) public virtual nonReentrant {
         require(foundryToken != address(0), "Bad Token Address");
-        require(
-            targetToken != address(0),
-            "FR: Target token address cannot be zero"
-        );
+        require(targetToken != address(0), "FR: Target token address cannot be zero");
         require(amountIn != 0, "Amount in must be greater than zero");
-        require(amountOut != 0, "Amount out minimum must be greater than zero");
+        require(minAmountOut != 0, "Amount out minimum must be greater than zero");
         require(foundryToken != address(0), "Bad Token Address");
-        FundManager(pool).withdrawSignedOneInch(
+
+        FundManager(pool).withdrawSignedWithSwap(
             to,
             amountIn,
-            amountOut,
+            minAmountOut,
             foundryToken,
             targetToken,
-            oneInchData,
+            router,
+            routerCallData,
             salt,
             expiry,
             multiSignature
         );
+
         amountIn = IERC20(foundryToken).balanceOf(address(this));
-        // Check if allowance is non-zero
-        if (IERC20(foundryToken).allowance(address(this), oneInchAggregatorRouter) != 0) {
-            // We reset it to zero
-            IERC20(foundryToken).safeApprove(oneInchAggregatorRouter, 0);
-        }
-        // Set the allowance to the swap amount
-        IERC20(foundryToken).safeApprove(oneInchAggregatorRouter, amountIn);
-        uint256 amountOutOneInch = swapHelperForOneInch(
+        uint256 amountOut = _swapAndCheckSlippage(
             to,
-            foundryToken,
-            amountIn,
-            amountOut,
-            oneInchData,
-            funcSelector
-        );
-        require(amountOutOneInch != 0, "FR: Bad amount out from oneInch");
-        emit WithdrawOneInch(
-            to,
-            amountIn,
-            amountOutOneInch,
             foundryToken,
             targetToken,
-            oneInchData,
+            amountIn,
+            minAmountOut,
+            router,
+            routerCallData
+        );
+
+        emit WithdrawWithSwap(
+            to,
+            amountIn,
+            amountOut,
+            foundryToken,
+            targetToken,
+            router,
+            routerCallData,
             salt,
             multiSignature
         );
     }
 
     /**
-     * @dev Helper function for executing token swaps using OneInch aggregator
-     * @param to The recipient address to receive the swapped tokens
-     * @param srcToken The source token to be swapped (input token)
-     * @param amountIn The amount of input tokens to be swapped
-     * @param amountOut The expected amount of output tokens after the swap
-     * @param oneInchData The data containing information for the 1inch swap
-     * @param funcSelector selector enum for deciding which 1inch fucntion to call
-     * @return returnAmount The amount of tokens received after the swap and transaction execution
+     * @notice Checks if the router and selector combination is whitelisted
+     * @param router The router address
+     * @param selector The selector for the router
      */
-    function swapHelperForOneInch(
-        address payable to,
-        address srcToken,
-        uint256 amountIn,
-        uint256 amountOut,
-        bytes memory oneInchData,
-        OneInchFunction funcSelector  // Add enum parameter to identify the function
-    ) internal returns (uint256 returnAmount) {
-
-        if (funcSelector == OneInchFunction.unoswapTo) {
-            returnAmount = handleUnoSwap(to, srcToken, amountIn, amountOut, oneInchData);
-        } else if (funcSelector == OneInchFunction.uniswapV3SwapTo) {
-            returnAmount = handleUniswapV3Swap(to, amountIn, amountOut, oneInchData);
-        } else if (funcSelector == OneInchFunction.swap) {
-            returnAmount = handleSwap(to, srcToken, amountIn, amountOut, oneInchData);
-        } else if (funcSelector == OneInchFunction.fillOrderTo) {
-            returnAmount = handleFillOrderTo(to, srcToken, amountIn, oneInchData);
-        } else if (funcSelector == OneInchFunction.fillOrderRFQTo) {
-            returnAmount = handleFillOrderRFQTo(to, srcToken, amountIn, oneInchData);
-        }
+    function isAllowListed(address router, bytes calldata selector) external view returns (bool) {
+        return routerAllowList[_getKey(router, selector)];
     }
 
     /**
-     * @dev Handles the execution of a token swap operation using UnoSwap
-     * @param to The recipient address to receive the swapped tokens
-     * @param fromToken The token to be swapped from (input token)
-     * @param amountIn The amount of input tokens to be swapped
-     * @param amountOut The expected amount of output tokens after the swap
-     * @param oneInchData The data containing information for the 1inch swap
-     * @return returnAmount The amount of tokens received after the swap and transaction execution
-     */
-    function handleUnoSwap(
-        address payable to,
-        address fromToken,
-        uint256 amountIn,
-        uint256 amountOut,
-        bytes memory oneInchData
-    ) internal returns (uint256 returnAmount) {
-        (
-            address payable recipient,
-            address srcToken,
-            uint256 amount,
-            uint256 minReturn,
-            uint256[] memory poolsOneInch
-        ) = abi.decode(
-            oneInchData,
-            (address, address, uint256, uint256, uint256[])
-        );
-        require(to == recipient, "FR: recipient address bad oneInch Data");
-        require(fromToken == srcToken, "FR: srcToken bad oneInch Data");
-        require(amountIn == amount, "FR: inputAmount bad oneInch Data");
-        require(amountOut == minReturn, "FR: outAmount bad oneInch Data");
-        require(oneInchData.length >= 4, "Data too short for valid call");
-        returnAmount = IOneInchSwap(oneInchAggregatorRouter).unoswapTo(
-            recipient,
-            srcToken,
-            amount,
-            minReturn,
-            poolsOneInch
-        );
-        emit UnoSwapHandled(
-            oneInchAggregatorRouter,
-            to,
-            fromToken,
-            amountIn,
-            returnAmount //should return by the unoSwap
-        );
-    }
-
-    /**
-     * @dev Handles the execution of a token swap operation involving 1inch aggregator
-     * @param to The recipient address to receive the swapped tokens
-     * @param amountIn The amount of input tokens to be swapped
-     * @param amountOut The expected amount of output tokens after the swap
-     * @param oneInchData The data containing information for the 1inch swap
-     * @return returnAmount The amount of tokens received after the swap and transaction execution
-     */
-    function handleUniswapV3Swap(
-        address payable to,
-        uint256 amountIn,
-        uint256 amountOut,
-        bytes memory oneInchData
-    ) internal returns (uint256 returnAmount) {
-        (
-            address payable recipient,
-            uint256 amount,
-            uint256 minReturn,
-            uint256[] memory poolsOneInch
-        ) = abi.decode(
-            oneInchData,
-            (address, uint256, uint256, uint256[])
-        );
-        require(to == recipient, "FR: recipient address bad oneInch Data");
-        require(amountIn == amount, "FR: inputAmount bad oneInch Data");
-        require(amountOut == minReturn, "FR: outAmount bad oneInch Data");
-        require(oneInchData.length >= 4, "Data too short for valid call");
-        returnAmount = IOneInchSwap(oneInchAggregatorRouter).uniswapV3SwapTo(
-            recipient,
-            amount,
-            minReturn,
-            poolsOneInch
-        );
-        emit UniswapV3SwapHandled(
-            oneInchAggregatorRouter,
-            to,
-            amountIn,
-            returnAmount //should be returned by uniswapV3SwapTo
-        );
-    }
-
-    /**
-     * @dev Handles the execution of a token swap operation, potentially involving 1inch aggregator
-     * @param to The recipient address to receive the swapped tokens
+     * @notice Helper function for executing token swaps through provided router
+     * @param recipient The recipient address to receive the swapped tokens
      * @param fromToken The address of the input token for the swap
-     * @param amountIn The amount of input tokens to be swapped
-     * @param amountOut The expected amount of output tokens after the swap
-     * @param oneInchData The data containing information for the 1inch swap
-     * @return returnAmount The amount of tokens received after the swap and transaction execution
+     * @param toToken The address of the output token from the swap
+     * @param amountIn The exact amount of input tokens to be swapped
+     * @param minAmountOut The minimum amount of output tokens expected after the swap
+     * @param router The router address
+     * @param data The calldata for the swap
      */
-    function handleSwap(
-        address payable to,
+    function _swapAndCheckSlippage(
+        address recipient,
         address fromToken,
+        address toToken,
         uint256 amountIn,
-        uint256 amountOut,
-        bytes memory oneInchData
-    ) internal returns (uint256 returnAmount) {
-        // Decoding oneInchData to get the required parameters
-        (
-            address executor,
-            SwapDescription memory desc,
-            bytes memory permit,
-            bytes memory swapData
-        ) = abi.decode(
-            oneInchData,
-            (address, SwapDescription, bytes, bytes)
-        );
-        // Manually create a new SwapDescription for IOneInchSwap
-        IOneInchSwap.SwapDescription memory oneInchDesc = IOneInchSwap
-            .SwapDescription({
-                srcToken: IERC20(desc.srcToken),
-                dstToken: IERC20(desc.dstToken),
-                srcReceiver: desc.srcReceiver,
-                dstReceiver: desc.dstReceiver,
-                amount: desc.amount,
-                minReturnAmount: desc.minReturnAmount,
-                flags: desc.flags
-            });
-
-        // Accessing fields of the desc instance of SwapDescription struct
-        require(
-            to == desc.dstReceiver,
-            "FR: recipient address bad oneInch Data"
-        );
-        require(amountIn == desc.amount, "FR: inputAmount bad oneInch Data");
-        require(
-            amountOut == desc.minReturnAmount,
-            "FR: outAmount bad oneInch Data"
-        );
-        require(fromToken == desc.srcToken, "FR: srcToken bad oneInch Data");
-
-        // Additional safety check
-        require(oneInchData.length >= 4, "Data too short for valid call");
-
-        // Performing the swap
-        ( returnAmount,) = IOneInchSwap(oneInchAggregatorRouter).swap(
-            executor,
-            oneInchDesc,
-            permit,
-            swapData
-        );
-        emit SwapHandled(
-            oneInchAggregatorRouter,
-            to,
-            fromToken,
-            amountIn,
-            returnAmount // should be returned 
-        );
+        uint256 minAmountOut,
+        address router,
+        bytes memory data
+    ) internal returns (uint256) {
+        require(routerAllowList[_getKey(router, data)], "FR: Router and selector not whitelisted");
+        _approveRouter(fromToken, router, amountIn);
+        uint256 balanceBefore = _getBalance(toToken, recipient);
+        _makeRouterCall(router, data);
+        uint256 amountOut = _getBalance(toToken, recipient) - balanceBefore;
+        require(amountOut >= minAmountOut, "FR: Slippage check failed");
+        return amountOut;
     }
 
-    /**
-     * @dev Handles the execution of the `fillOrderTo` operation, involving 1inch aggregator
-     * @param to The recipient address to receive the swapped tokens
-     * @param fromToken The address of the input token for the swap (foundryToken or takerAsset)
-     * @param amountIn The amount of input tokens to be swapped
-     * @param oneInchData The data containing information for the 1inch swap
-     * @return returnAmount The amount of tokens received after the swap and transaction execution
-     */
-    function handleFillOrderTo(
-        address payable to,
-        address fromToken,  // foundryToken // takerAsset
-        uint256 amountIn,
-        bytes memory oneInchData
-    ) internal returns (uint256 returnAmount) {
-        // Decoding oneInchData to get the required parameters
-        (
-            Order memory order_,
-            bytes memory signature,
-            bytes memory interaction,
-            uint256 makingAmount,
-            uint256 takingAmount,  // destinationAmountIn
-            uint256 skipPermitAndThresholdAmount,
-            address target  // receiverAddress
-        ) = abi.decode(
-            oneInchData,
-            (Order, bytes, bytes, uint256, uint256,uint256, address)
-        );
-
-        // Manually create a new Order for IOneInchSwap
-        IOneInchSwap.Order memory oneInchOrder = IOneInchSwap
-            .Order({
-                salt: order_.salt,
-                makerAsset: order_.makerAsset,
-                takerAsset: order_.takerAsset,
-                maker: order_.maker,
-                receiver: order_.receiver,
-                allowedSender: order_.allowedSender,
-                makingAmount: order_.makingAmount,
-                takingAmount: order_.takingAmount,
-                offsets: order_.offsets,
-                interactions: order_.interactions
-            });
-
-        // Perform additional checks and validations if needed
-        require(to == target, "FR: recipient address bad oneInch Data");
-        require(fromToken == order_.takerAsset, "FR: takerAsset bad oneInch Data");
-        require(amountIn == takingAmount, "FR: inputAmount bad oneInch Data ");
-        require(oneInchData.length >= 4, "Data too short for valid call");
-
-        // Performing the swap
-        ( returnAmount, , ) = IOneInchSwap(oneInchAggregatorRouter).fillOrderTo(
-            oneInchOrder,
-            signature,
-            interaction,
-            makingAmount,
-            takingAmount,
-            skipPermitAndThresholdAmount,
-            target
-        );
-
-        emit SwapHandled(
-            oneInchAggregatorRouter,
-            to,
-            fromToken,
-            amountIn,
-            returnAmount // should be returned 
-        );
+    function _getBalance(address token, address account) public view returns (uint256) {
+        return token == NATIVE_CURRENCY ? account.balance : IERC20(token).balanceOf(account);
     }
 
-    /**
-     * @dev Handles the execution of the `fillOrderRFQTo` operation, involving 1inch aggregator
-     * @param to The recipient address to receive the swapped tokens
-     * @param fromToken The address of the input token for the swap (foundryToken or takerAsset)
-     * @param amountIn The amount of input tokens to be swapped
-     * @param oneInchData The data containing information for the 1inch swap
-     * @return returnAmount The amount of tokens received after the swap and transaction execution
-     */
-    function handleFillOrderRFQTo(
-        address payable to,
-        address fromToken,  // foundryToken // takerAsset
-        uint256 amountIn,
-        bytes memory oneInchData
-    ) internal returns (uint256 returnAmount) {
-        // Decoding oneInchData to get the required parameters
-        (
-            OrderRFQ memory order,
-            bytes memory signature,
-            uint256 flagsAndAmount,
-            address target // receiverAddress
-        ) = abi.decode(
-            oneInchData,
-            (OrderRFQ, bytes, uint256, address)
-        );
-
-        // Manually create a new OrderRFQ for IOneInchSwap
-        IOneInchSwap.OrderRFQ memory oneInchOrderRFQ = IOneInchSwap.OrderRFQ({
-            info: order.info,
-            makerAsset: order.makerAsset,
-            takerAsset: order.takerAsset,
-            maker: order.maker,
-            allowedSender: order.allowedSender,
-            makingAmount: order.makingAmount,
-            takingAmount: order.takingAmount
-        });
-
-        // Perform additional checks and validations if needed
-        require(to == target, "FR: recipient address bad oneInch Data");
-        require(fromToken == order.takerAsset, "FR: takerAsset bad oneInch Data");
-        require(amountIn == order.takingAmount, "FR: inputAmount bad oneInch Data ");
-        require(oneInchData.length >= 4, "Data too short for valid call");
-
-        // Performing the swap
-        ( returnAmount, , ) = IOneInchSwap(oneInchAggregatorRouter).fillOrderRFQTo(
-            oneInchOrderRFQ,
-            signature,
-            flagsAndAmount,
-            target
-        );
-
-        emit SwapHandled(
-            oneInchAggregatorRouter,
-            to,
-            fromToken,
-            amountIn,
-            returnAmount // should be returned 
-        );
-    }
-
-    /**
-     * @dev Performs a token swap and cross-network transaction using the 1inch Aggregator
-     * @param amountIn The amount of input tokens to be swapped
-     * @param amountOut The expected amount of output tokens after the swap on 1inch
-     * @param crossTargetNetwork The network identifier for the cross-network transaction
-     * @param crossTargetAddress The target address on the specified network for the cross-network transaction
-     * @param oneInchData The data containing information for the 1inch swap
-     * @param fromToken The address of the input token for the swap
-     * @param foundryToken The address of the token used as the foundry
-     * @param funcSelector selector enum for deciding which 1inch fucntion to call
-     * @return FMAmountOut The amount of foundry tokens received after the cross-network transaction
-     */
-    function _swapAndCrossOneInch(
-        uint256 amountIn,
-        uint256 amountOut, // amountOut on oneInch
-        uint256 crossTargetNetwork,
-        address crossTargetAddress,
-        bytes memory oneInchData,
-        address fromToken,
-        address foundryToken,
-        OneInchFunction funcSelector  // Add enum parameter to identify the function
-    ) internal returns (uint256 FMAmountOut) {
-
-        // Check if allowance is non-zero
-        if (IERC20(fromToken).allowance(address(this), oneInchAggregatorRouter) != 0) {
-            // Reset the allowance to zero
-            IERC20(fromToken).safeApprove(oneInchAggregatorRouter, 0);
+    function _approveRouter(address token, address router, uint256 amount) internal {
+        if (IERC20(token).allowance(address(this), router) != 0) {
+            IERC20(token).safeApprove(router, 0);
         }
-        // Set the allowance to the swap amount
-        IERC20(fromToken).safeApprove(oneInchAggregatorRouter, amountIn);
+        IERC20(token).safeApprove(router, amount);
+    }
 
-        uint256 oneInchAmountOut = swapHelperForOneInch(
-            payable(pool),
-            fromToken,
-            amountIn,
-            amountOut,
-            oneInchData,
-            funcSelector  // Pass the enum parameter
-        );
-        FMAmountOut = FundManager(pool).swapToAddress(
-            foundryToken,
-            amountOut,
-            crossTargetNetwork,
-            crossTargetAddress
-        );
-        require(
-            FMAmountOut >= oneInchAmountOut,
-            "FR: Bad FM or OneInch Amount Out"
-        );
+    function _getKey(address router, bytes memory data) internal pure returns (bytes32) {
+        bytes32 key; // Takes the shape of 0x{4byteFuncSelector}00..00{20byteRouterAddress}
+        assembly {
+            key := or(
+                and(mload(add(data, 0x20)), 0xffffffff00000000000000000000000000000000000000000000000000000000),
+                router
+            )
+        }
+        return key;
+    }
+
+    function _makeRouterCall(address router, bytes memory data) internal {
+        (bool success, bytes memory returnData) = router.call(data);
+        if (!success) {
+            if (returnData.length > 0) { // Bubble up the revert reason
+                assembly {
+                    let returnDataSize := mload(returnData)
+                    revert(add(32, returnData), returnDataSize)
+                }
+            } else {
+                revert("FR: Call to router failed");
+            }
+        }
     }
 }
