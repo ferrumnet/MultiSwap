@@ -1,5 +1,18 @@
 const { ethers } = require("hardhat");
 
+// Function to create a delay
+function delay(seconds) {
+  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+}
+
+// Function to log countdown
+async function logCountdown(seconds) {
+  for (let i = seconds; i > 0; i--) {
+      console.log(`Waiting ${i} seconds for block confirmations...`);
+      await delay(1); // wait for 1 second before logging the next countdown
+  }
+}
+
 async function main() {
     // Compile the contracts
     await hre.run('compile');
@@ -20,10 +33,13 @@ async function main() {
     const bytecode = FundManager.bytecode;
 
     // Compute a unique salt for deployment
-    const salt = ethers.utils.formatBytes32String(new Date().getTime().toString());
+    // const salt = ethers.utils.formatBytes32String(new Date().getTime().toString());
+    // const salt = "0x3137303931363530323534373000000000000000000000000000000000000000";
+    const salt = "0x3137313032363838383636353800000000000000000000000000000000000000"; // Latest Deployment
+    console.log('Salt: ', salt);
 
     // Specify the owner address to which the ownership of the contract will be transferred
-    const ownerAddress = "0xB5d1E1Ff700CFC0c687F1Fc99284E94ab0ef63E5"; // Replace with the desired owner address
+    const ownerAddress = "0xdCd60Be5b153d1884e1E6E8C23145D6f3546315e"; // Replace with the desired owner address
 
     // Deploy FundManager using FerrumDeployer's deployOwnable
     const deploymentTx = await ferrumDeployer.deployOwnable(salt, ownerAddress, initData, bytecode);
@@ -31,6 +47,10 @@ async function main() {
 
     const fundManagerAddress = receipt.events.find((event) => event.event === 'DeployedWithData').args[0];
     console.log("FundManager deployed to:", fundManagerAddress);
+
+    // Wait for 30 seconds before verification
+    await logCountdown(60); // This logs the countdown and waits
+
     console.log("Verifing...");
     await hre.run("verify:verify", {
       address: fundManagerAddress,

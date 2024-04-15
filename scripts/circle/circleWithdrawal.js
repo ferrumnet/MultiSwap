@@ -16,32 +16,31 @@ const waitForTransaction = async(web3, txHash) => {
 }
 
 const main = async() => {
-    const arbiRPC = "https://public.stackup.sh/api/v1/node/arbitrum-sepolia";
-    const mumbaiRPC = "https://endpoints.omniatech.io/v1/matic/mumbai/public";
-    const web3 = new Web3(mumbaiRPC);
+    const arbiProvider = '';
+    const avalancheProvider = '';
+
+    const web3 = new Web3(arbiProvider);
     
     // Add Mumbai private key used for signing transactions
-    const ethSigner = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY0);
-    web3.eth.accounts.wallet.add(ethSigner);
+    const avaxSigner = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY0);
+    web3.eth.accounts.wallet.add(avaxSigner);
 
     // Add Arbitrum private key used for signing transactions
     const arbiSigner = web3.eth.accounts.privateKeyToAccount(process.env.PRIVATE_KEY0);
     web3.eth.accounts.wallet.add(arbiSigner);
 
     // Testnet Contract Addresses
-    const MUMBAI_TOKEN_MESSENGER_CONTRACT_ADDRESS = "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5";
-    const USDC_MUMBAI_CONTRACT_ADDRESS = "0x9999f7Fea5938fD3b1E26A12c3f2fb024e194f97";
-    const MUMBAI_MESSAGE_CONTRACT_ADDRESS = "0xe09A679F56207EF33F5b9d8fb4499Ec00792eA73"
-    const ARBI_MESSAGE_TRANSMITTER_CONTRACT_ADDRESS = '0xaCF1ceeF35caAc005e15888dDb8A3515C41B4872';
+    const ARBI_TOKEN_MESSENGER_CONTRACT_ADDRESS = "0x19330d10D9Cc8751218eaf51E8885D058642E08A";
+    const USDC_ARBI_CONTRACT_ADDRESS = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+    const AVAX_MESSAGE_TRANSMITTER_CONTRACT_ADDRESS = '0x8186359af5f57fbb40c6b14a588d2a59c0c29880';
 
     // initialize contracts using address and ABI
-    const ethTokenMessengerContract = new web3.eth.Contract(tokenMessengerAbi, MUMBAI_TOKEN_MESSENGER_CONTRACT_ADDRESS, {from: ethSigner.address});
-    const usdcEthContract = new web3.eth.Contract(usdcAbi, USDC_MUMBAI_CONTRACT_ADDRESS, {from: ethSigner.address});
-    const ethMessageContract = new web3.eth.Contract(messageAbi, MUMBAI_MESSAGE_CONTRACT_ADDRESS, {from: ethSigner.address});
-    const arbiMessageTransmitterContract = new web3.eth.Contract(messageTransmitterAbi, ARBI_MESSAGE_TRANSMITTER_CONTRACT_ADDRESS, {from: arbiSigner.address});
+    const ethTokenMessengerContract = new web3.eth.Contract(tokenMessengerAbi, ARBI_TOKEN_MESSENGER_CONTRACT_ADDRESS, {from: arbiSigner.address});
+    const usdcEthContract = new web3.eth.Contract(usdcAbi, USDC_ARBI_CONTRACT_ADDRESS, {from: arbiSigner.address});
+    const avaxMessageTransmitterContract = new web3.eth.Contract(messageTransmitterAbi, AVAX_MESSAGE_TRANSMITTER_CONTRACT_ADDRESS, {from: avaxSigner.address});
 
     // AVAX destination address
-    const mintRecipient = "0xB5d1E1Ff700CFC0c687F1Fc99284E94ab0ef63E5";
+    const mintRecipient = "";
 
     async function addressToBytes32(address) {
         const bytes32Value = await web3.utils.padRight(web3.utils.asciiToHex(address), 64);
@@ -49,25 +48,25 @@ const main = async() => {
     }
     const destinationAddressInBytes32 = await addressToBytes32(mintRecipient);
 
-    const ARBI_TESTNET_DESTINATION_DOMAIN = 3;
+    const ARBI_DESTINATION_DOMAIN = 3;
 
     // // Amount that will be transferred
     // const amount = 1;
 
     // // STEP 1: Approve messenger contract to withdraw from our active eth address
-    // const approveTxGas = await usdcEthContract.methods.approve(MUMBAI_TOKEN_MESSENGER_CONTRACT_ADDRESS, amount).estimateGas()
-    // const approveTx = await usdcEthContract.methods.approve(MUMBAI_TOKEN_MESSENGER_CONTRACT_ADDRESS, amount).send({gas: approveTxGas})
+    // const approveTxGas = await usdcEthContract.methods.approve(ARBI_TOKEN_MESSENGER_CONTRACT_ADDRESS, amount).estimateGas()
+    // const approveTx = await usdcEthContract.methods.approve(ARBI_TOKEN_MESSENGER_CONTRACT_ADDRESS, amount).send({gas: approveTxGas})
     // const approveTxReceipt = await waitForTransaction(web3, approveTx.transactionHash);
     // console.log('ApproveTxReceipt: ', approveTxReceipt)
 
     // // STEP 2: Burn USDC
-    // const burnTxGas = await ethTokenMessengerContract.methods.depositForBurn(amount, ARBI_TESTNET_DESTINATION_DOMAIN, destinationAddressInBytes32, USDC_MUMBAI_CONTRACT_ADDRESS).estimateGas();
-    // const burnTx = await ethTokenMessengerContract.methods.depositForBurn(amount, ARBI_TESTNET_DESTINATION_DOMAIN, destinationAddressInBytes32, USDC_MUMBAI_CONTRACT_ADDRESS).send({gas: burnTxGas});
+    // const burnTxGas = await ethTokenMessengerContract.methods.depositForBurn(amount, ARBI_TESTNET_DESTINATION_DOMAIN, destinationAddressInBytes32, USDC_ARBI_CONTRACT_ADDRESS).estimateGas();
+    // const burnTx = await ethTokenMessengerContract.methods.depositForBurn(amount, ARBI_TESTNET_DESTINATION_DOMAIN, destinationAddressInBytes32, USDC_ARBI_CONTRACT_ADDRESS).send({gas: burnTxGas});
     // const burnTxReceipt = await waitForTransaction(web3, burnTx.transactionHash);
     // console.log('BurnTxReceipt: ', burnTxReceipt)
 
     // STEP 3: Retrieve message bytes from logs
-    const transactionReceipt = await web3.eth.getTransactionReceipt("0x2115148a2d0a9a46fce2f329519fd0fbaa7aff783426e723be6b654ffc0953c7");
+    const transactionReceipt = await web3.eth.getTransactionReceipt("");
     const eventTopic = web3.utils.keccak256('MessageSent(bytes)')
     const log = transactionReceipt.logs.find((l) => l.topics[0] === eventTopic)
     const messageBytes = web3.eth.abi.decodeParameters(['bytes'], log.data)[0]
@@ -79,7 +78,7 @@ const main = async() => {
     // STEP 4: Fetch attestation signature
     let attestationResponse = {status: 'pending'};
     while(attestationResponse.status != 'complete') {
-        const response = await fetch(`https://iris-api-sandbox.circle.com/attestations/${messageHash}`);
+        const response = await fetch(`https://iris-api.circle.com/attestations/${messageHash}`);
         attestationResponse = await response.json()
         await new Promise(r => setTimeout(r, 2000));
     }
@@ -88,9 +87,9 @@ const main = async() => {
     console.log(`Signature: ${attestationSignature}`)
 
     // STEP 5: Using the message bytes and signature recieve the funds on destination chain and address
-    web3.setProvider(arbiRPC); // Connect web3 to ARBITRUM testnet
-    const receiveTxGas = await arbiMessageTransmitterContract.methods.receiveMessage(messageBytes, attestationSignature).estimateGas();
-    const receiveTx = await arbiMessageTransmitterContract.methods.receiveMessage(messageBytes, attestationSignature).send({gas: receiveTxGas});
+    web3.setProvider(avalancheProvider); // Connect web3 to avalanche mainnet
+    const receiveTxGas = await avaxMessageTransmitterContract.methods.receiveMessage(messageBytes, attestationSignature).estimateGas();
+    const receiveTx = await avaxMessageTransmitterContract.methods.receiveMessage(messageBytes, attestationSignature).send({gas: receiveTxGas});
     const receiveTxReceipt = await waitForTransaction(web3, receiveTx.transactionHash);
     console.log('ReceiveTxReceipt: ', receiveTxReceipt)
 

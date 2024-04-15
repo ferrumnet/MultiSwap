@@ -105,7 +105,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         settlementManager = _settlementManager;
     }
 
-
     /**
      @dev sets the router
      @param _router is the FiberRouter address
@@ -119,7 +118,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      @dev sets the signer
      @param _signer is the address that generate signatures
      */
-    function addSigner(address _signer) public onlyOwner {
+    function addSigner(address _signer) external onlyOwner {
         require(_signer != address(0), "Bad signer");
         signers[_signer] = true;
     }
@@ -285,7 +284,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         );
         return amount;
     }
-
+    
     /**
      * @dev Initiates a signed token withdrawal, exclusive to the router
      * @notice Ensure valid parameters and router setup
