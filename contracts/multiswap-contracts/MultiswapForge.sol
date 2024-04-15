@@ -30,7 +30,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public override {
         revert("Not Supported");
     }
@@ -41,7 +42,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) external {
         super.withdrawSigned(
             token,
@@ -49,7 +51,8 @@ contract MultiSwapForge is FiberRouter {
             amount,
             salt,
             expiry,
-            multiSignature
+            multiSignature,
+            cctpType
         );
 
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
