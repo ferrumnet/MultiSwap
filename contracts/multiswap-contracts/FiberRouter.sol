@@ -452,7 +452,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             amountIn,
             targetNetworkDomain,
             bytes32(uint256(uint160(targetCCTPFundManager))),
-            usdcToken
+            fromToken
         );
     }
 
