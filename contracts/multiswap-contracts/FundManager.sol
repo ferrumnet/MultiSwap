@@ -20,7 +20,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         );
     bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "WithdrawSignedWithSwap(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes routerCallData,bytes32 salt,uint256 expiry)"
+            "WithdrawSignedWithSwap(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCallData,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -436,7 +436,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    routerCallData,
+                    keccak256(routerCallData),
                     salt,
                     expiry
                 )
@@ -524,7 +524,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    routerCallData,
+                    keccak256(routerCallData),
                     salt,
                     expiry
                 )

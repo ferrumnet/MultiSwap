@@ -18,6 +18,10 @@ Run unit test:
 ```
 hh test test/FiberRouter.test.ts
 ```
+Run unit test and see coverage with:
+```
+hh coverage --testfiles "test/FiberRouter.test.ts"
+```
 The repo is currently undergoing a migration from ethers v5 to v6. The other (older) unit tests (and some scripts) will likely not work, but are kept for reference.
 
 ### Deployment to a new network
@@ -29,11 +33,11 @@ Before deployment, the necessary configs must be added in `constants/addresses.j
 4. Fill in other required addresses such as the WETH and foundry token address, chainID etc.
 5. Now add a network entry in `hardhat.config.ts`. The network names here and in `constants/addresses.json` must match
 
-Contracts are now ready for deployment with HardHat's new Ignition modules system. Simply run:
+Contracts are now ready for deployment. Simply run:
 ```
-hh ignition deploy ignition/modules/Multiswap.ts
+hh run deploy/index.ts
 ```
-This will deploy all MultiSwap contracts with all necessary configs. Contract addresses can be found in the deployment artifacts, which will autogenerate in the `ignition/` directory
+This will deploy all MultiSwap contracts with all necessary configs. Contract addresses will print to console
 
 ### ZkSync
 ZkSync uses a different compiler with different node packages. After following the 4 steps above, first compile with:

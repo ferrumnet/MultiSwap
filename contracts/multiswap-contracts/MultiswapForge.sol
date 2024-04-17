@@ -7,7 +7,7 @@ contract MultiSwapForge is FiberRouter {
     
     address public gasEstimationAddress;
 
-    constructor(address weth) FiberRouter(weth) {}
+    constructor() {}
 
     /**
      @dev Sets address authorized to execute gas estimations

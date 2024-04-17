@@ -1,10 +1,9 @@
 import hre from "hardhat"
-import { ignition } from "hardhat"
 import { loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers"
-import Multiswap from "../ignition/modules/Multiswap"
 import addresses from "../constants/addresses.json"
 import { expect } from "chai";
-import { Contract, AbiCoder, id, Signer } from "ethers";
+import { Contract, AbiCoder, id, Signer, keccak256 } from "ethers";
+import { multiswap } from "../deploy/multiswap"
 
 
 let weth: Contract,
@@ -26,14 +25,7 @@ async function multiswapDeploymentFixture() {
     await weth.mint(await signer.getAddress(), BigInt(1000000))
 
     // Pass in addresses to deployment script
-    return ignition.deploy(Multiswap, {
-        parameters: {
-          Multiswap: {
-            weth: await weth.getAddress(),
-            foundry: await foundry.getAddress(),
-          }
-        }
-    })
+    return multiswap(await foundry.getAddress(), await weth.getAddress())
 }
 
 describe('FiberRouter', () => {
@@ -69,7 +61,7 @@ describe('FiberRouter', () => {
         })
     })
 
-    describe("swapTokensLocallyAndSwap", async () => {
+    describe("local swap then cross", async () => {
         let routerCallData:string,
             fiberRouter:Contract,
             fundManager:Contract,
@@ -115,7 +107,7 @@ describe('FiberRouter', () => {
             )).to.be.revertedWith("FR: Slippage check failed")
         })
 
-        it("should swap if all checks pass", async () => {
+        it("should swap token if all checks pass", async () => {
             const tx = fiberRouter.swapTokensLocallyAndCross(
                 amountIn,                                       // amountIn
                 9700,                                           // minAmountOut
@@ -155,6 +147,86 @@ describe('FiberRouter', () => {
                 1000
             )
 
+        })
+
+        it("should swap ETH if all checks pass", async () => {
+            const minAmountOut = 9700
+            const gasFee = 100
+            const tx = fiberRouter.swapETHLocallyAndCross(      
+                minAmountOut,                                   // minAmountOut
+                await foundry.getAddress(),                     // foundryToken
+                gasFee,                                         // gas fee
+                await swapRouter.getAddress(),                  // router
+                mockRouterSelector + routerCallData.slice(2),   // routerCallData
+                otherChainId,                                   // crossTargetNetwork
+                await foundry.getAddress(),                     // crossTargetToken
+                signer,                                         // crossTargetAddress
+                id("some withdrawal data"),                     // withdrawalData
+                { value: amountIn + gasFee }                    // amountIn
+            )
+            
+            await expect(tx).to.changeEtherBalances(
+                [signer, fundManager, swapRouter],
+                [-BigInt(amountIn + gasFee), 0, 0]
+            )
+
+            await expect(tx).to.changeTokenBalances(
+                foundry,
+                [signer, fundManager, swapRouter],
+                [0, amountOut, -BigInt(amountOut)]
+            )
+
+            await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
+                await weth.getAddress(),
+                await foundry.getAddress(),
+                31337,
+                otherChainId,
+                amountIn,
+                await signer.getAddress(),
+                await signer.getAddress(),
+                amountOut,
+                id("some withdrawal data"),
+                gasFee
+            )
+
+        })
+    })
+
+    describe("swap", async () => {
+        it("should initiate a cross chain transfer", async () => {
+            const { fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture)
+            const amount = 10000
+            await foundry.approve(await fiberRouter.getAddress(), amount)
+            const targetNetwork = 10
+            
+            const tx = fiberRouter.swap(
+                foundry,
+                amount,
+                targetNetwork,
+                weth,
+                signer,
+                id("some withdrawal data"),
+                { value: 100 }
+            )
+            
+            await expect(tx).to.changeTokenBalances(
+                foundry,
+                [signer, fundManager],
+                [-BigInt(amount), BigInt(amount)]
+            )
+
+            await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
+                foundry,
+                weth,
+                31337,
+                targetNetwork,
+                amount,
+                signer,
+                signer,
+                amount,
+                id("some withdrawal data"),
+                100
+            )
         })
     })
 
@@ -256,7 +328,7 @@ describe('FiberRouter', () => {
                     { name: "foundryToken", type: "address" },
                     { name: "targetToken", type: "address" },
                     { name: "router", type: "address" },
-                    { name: "routerCallData", type: "bytes" },
+                    { name: "routerCallData", type: "bytes32" },
                     { name: "salt", type: "bytes32" },
                     { name: "expiry", type: "uint256" }
                 ]
@@ -269,7 +341,7 @@ describe('FiberRouter', () => {
                 foundryToken: await foundry.getAddress(),
                 targetToken: await weth.getAddress(),
                 router: await swapRouter.getAddress(),
-                routerCallData: mockRouterSelector + routerCallData.slice(2),
+                routerCallData: keccak256(mockRouterSelector + routerCallData.slice(2)),
                 salt,
                 expiry                
             }

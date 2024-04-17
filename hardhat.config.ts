@@ -1,6 +1,7 @@
 import "@nomicfoundation/hardhat-toolbox"
 import "@openzeppelin/hardhat-upgrades"
 import "@matterlabs/hardhat-zksync"
+import 'solidity-coverage'
 import { HardhatUserConfig } from "hardhat/types"
 import dotenv from 'dotenv'
 dotenv.config()
@@ -132,6 +133,14 @@ const config: HardhatUserConfig = {
     // apiKey: process.env.MUMBAI_API_KEY,
     // apiKey: process.env.AVALANCHE_API_KEY,
     // apiKey: process.env.OPTIMISM_API_KEY,
+  },
+  ignition: {
+    strategyConfig: {
+      create2: {
+        // To learn more about salts, see the CreateX documentation
+        salt: "0x0000000000000000000000000000100000000000000000000000000000000000",
+      },
+    },
   },
 };
 

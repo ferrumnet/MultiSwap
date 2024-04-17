@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract FiberRouter is Ownable, TokenReceivable {
     using SafeERC20 for IERC20;
     address private constant NATIVE_CURRENCY = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address public immutable weth;
+    address public weth;
     address public pool;
     address payable public gasWallet;
     mapping(bytes32 => bool) private routerAllowList;
@@ -76,7 +76,11 @@ contract FiberRouter is Ownable, TokenReceivable {
     event RouterAndSelectorWhitelisted(address router, bytes selector);
     event RouterAndSelectorRemoved(address router, bytes selector);
 
-    constructor(address _weth) {
+    /**
+     * @notice Set the weth address
+     * @param _weth The weth address
+     */
+    function setWeth(address _weth) external onlyOwner {
         require(_weth != address(0), "weth address cannot be zero");
         weth = _weth;
     }
@@ -460,7 +464,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         );
 
         // Transfer the gas fee to the gasWallet
-        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
+        (bool success, ) = payable(gasWallet).call{value: gasFee}("");
         require(success, "FR: Gas fee transfer failed");
 
         uint256 _gasFee = gasFee; // to avoid stack too deep error
@@ -615,11 +619,13 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 balanceBefore = _getBalance(toToken, recipient);
         _makeRouterCall(router, data);
         uint256 amountOut = _getBalance(toToken, recipient) - balanceBefore;
-        require(amountOut >= minAmountOut, "FR: Slippage check failed");
+        require(amountOut >= minAmountOut, "FR: Slippage check failed"); // TODO: on-chain settlement. Receive USDC on dst chain
+        // Or ask about updated quote
+        // or get funds back on src chain
         return amountOut;
     }
 
-    function _getBalance(address token, address account) public view returns (uint256) {
+    function _getBalance(address token, address account) private view returns (uint256) {
         return token == NATIVE_CURRENCY ? account.balance : IERC20(token).balanceOf(account);
     }
 
@@ -630,7 +636,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         IERC20(token).safeApprove(router, amount);
     }
 
-    function _getKey(address router, bytes memory data) internal pure returns (bytes32) {
+    function _getKey(address router, bytes memory data) private pure returns (bytes32) {
         bytes32 key; // Takes the shape of 0x{4byteFuncSelector}00..00{20byteRouterAddress}
         assembly {
             key := or(
@@ -641,7 +647,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         return key;
     }
 
-    function _makeRouterCall(address router, bytes memory data) internal {
+    function _makeRouterCall(address router, bytes memory data) private {
         (bool success, bytes memory returnData) = router.call(data);
         if (!success) {
             if (returnData.length > 0) { // Bubble up the revert reason

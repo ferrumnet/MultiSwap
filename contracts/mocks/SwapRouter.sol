@@ -8,7 +8,6 @@ import "hardhat/console.sol";
 // Simple mock contract to simulate some aggregator/dex behaviour
 // Will always swap specified amountIn inToken for amountOut outToken
 contract SwapRouter {
-
     function swapExactTokensForTokens(
         uint amountIn,
         uint amountOut,
@@ -16,6 +15,7 @@ contract SwapRouter {
         address outToken,
         address to
     ) external returns (uint256) {
+        console.log(IERC20(inToken).balanceOf(address(msg.sender)));
         IERC20(inToken).transferFrom(msg.sender, address(this), amountIn);
         IERC20(outToken).transfer(to, amountOut);
         return amountOut;
