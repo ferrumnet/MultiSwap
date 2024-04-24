@@ -9,7 +9,7 @@ import "./LiquidityManagerRole.sol";
 contract FundManager is SigCheckable, LiquidityManagerRole {
     using SafeERC20 for IERC20;
 
-    address public router;
+    address public fiberRouter;
     address public settlementManager;
     uint32 constant WEEK = 3600 * 24 * 7;
     string public constant NAME = "FUND_MANAGER";
@@ -46,29 +46,20 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         address targetAddrdess,
         uint256 amount
     );
-    event nonEvmBridgeSwap(
-        address from,
-        address indexed token,
-        string targetNetwork,
-        string targetToken,
-        string targetAddrdess,
-        uint256 amount
-    );
 
     mapping(address => bool) public signers;
     mapping(address => mapping(address => uint256)) private liquidities;
     mapping(address => mapping(uint256 => address)) public allowedTargets;
-    mapping(address => mapping(string => string)) public nonEvmAllowedTargets;
     mapping(address => bool) public isFoundryAsset;
     mapping(bytes32=>bool) public usedSalt;
 
     /**
-     * @dev Modifier that allows only the designated router to execute the function.
-     * It checks if the sender is equal to the `router` address.
-     * @notice Ensure that `router` is set before using this modifier.
+     * @dev Modifier that allows only the designated fiberRouter to execute the function.
+     * It checks if the sender is equal to the `fiberRouter` address.
+     * @notice Ensure that `fiberRouter` is set before using this modifier.
      */
     modifier onlyRouter() {
-        require(msg.sender == router, "FM: Only router method");
+        require(msg.sender == fiberRouter, "FM: Only fiberRouter method");
         _;
     }
 
@@ -87,8 +78,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @notice This constructor is called only once during the deployment of the contract.
      */
     constructor() EIP712(NAME, VERSION) {
-        bytes memory initData = IFerrumDeployer(msg.sender).initData();
-
+        // bytes memory initData = IFerrumDeployer(msg.sender).initData();
     }
 
     /**
@@ -106,19 +96,19 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     @dev sets the router
-     @param _router is the FiberRouter address
+     @dev sets the fiberRouter
+     @param _fiberRouter is the FiberRouter address
      */
-    function setRouter(address _router) external onlyOwner {
-        require(_router != address(0), "FM: router requried");
-        router = _router;
+    function setRouter(address _fiberRouter) external onlyOwner {
+        require(_fiberRouter != address(0), "FM: fiberRouter requried");
+        fiberRouter = _fiberRouter;
     }
 
     /**
      @dev sets the signer
      @param _signer is the address that generate signatures
      */
-    function addSigner(address _signer) external onlyOwner {
+    function addSigner(address _signer) public onlyOwner {
         require(_signer != address(0), "Bad signer");
         signers[_signer] = true;
     }
@@ -150,24 +140,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     @dev sets the allowed target chain & token on nonEVM chain
-     @param token is the address of foundry token on source network
-     @param chainId target non EVM network's chain ID
-     @param targetToken target non EVM network's foundry token address
-     */
-    function nonEvmAllowTarget(
-        address token,
-        string memory chainId,
-        string memory targetToken
-    ) external onlyAdmin {
-        require(token != address(0), "Bad token");
-        require(bytes(chainId).length != 0, "Chain ID cannot be empty");
-        require(bytes(targetToken).length != 0, "Target token cannot be empty");
-
-        nonEvmAllowedTargets[token][chainId] = targetToken;
-    }
-
-    /**
      @dev removes the allowed target chain & token
      @param token is the address of foundry token on source network
      @param chainId target network's chain ID
@@ -176,20 +148,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(token != address(0), "Bad token");
         require(chainId != 0, "Bad chainId");
         delete allowedTargets[token][chainId];
-    }
-
-    /**
-     @dev removes the allowed target chain & token on nonEVM chain
-     @param token is the address of foundry token on source network
-     @param chainId target non EVM network's chain ID
-     */
-    function nonEvmDisallowTarget(address token, string memory chainId)
-        external
-        onlyAdmin
-    {
-        require(token != address(0), "Bad token");
-        require(bytes(chainId).length != 0, "Chain ID cannot be empty");
-        delete nonEvmAllowedTargets[token][chainId];
     }
 
     /**
@@ -243,55 +201,14 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         );
         return amount;
     }
-
-    /**
-     * @dev Initiates a non-EVM token swap, exclusive to the router
-     * @notice Ensure valid parameters and router setup
-     * @param token The address of the token to be swapped
-     * @param amount The amount of tokens to be swapped
-     * @param targetNetwork The identifier of the target network for the swap
-     * @param targetToken The identifier of the target token on the non-EVM network
-     * @param targetAddress The address on the target network where the swapped tokens will be sent
-     * @return The actual amount of tokens swapped
-     */
-    function nonEvmSwapToAddress(
-        address token,
-        uint256 amount,
-        string memory targetNetwork,
-        string memory targetToken,
-        string memory targetAddress
-    ) external onlyRouter returns (uint256) {
-        require(msg.sender != address(0), "FM: bad from");
-        require(token != address(0), "FM: bad token");
-        require(amount != 0, "FM: bad amount");
-        require(bytes(targetNetwork).length != 0, "FM: empty target network");
-        require(bytes(targetToken).length != 0, "FM: empty target token");
-        require(bytes(targetAddress).length != 0, "FM: empty target address");
-        require(
-            keccak256(
-                abi.encodePacked(nonEvmAllowedTargets[token][targetNetwork])
-            ) == keccak256(abi.encodePacked(targetToken)),
-            "FM: target not allowed"
-        );
-        amount = TokenReceivable.sync(token);
-        emit nonEvmBridgeSwap(
-            msg.sender,
-            token,
-            targetNetwork,
-            targetToken,
-            targetAddress,
-            amount
-        );
-        return amount;
-    }
-    
+ 
     /**
      * @dev Initiates a signed token withdrawal, exclusive to the router
      * @notice Ensure valid parameters and router setup
      * @param token The token to withdraw
      * @param payee Address for where to send the tokens to
      * @param amount The amount
-     * @param salt The salt for unique tx 
+     * @param salt The salt for unique tx
      * @param expiry The expiration time for the signature
      * @param signature The multisig validator signature
      * @return The actual amount of tokens withdrawn
@@ -314,7 +231,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                 abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
             );
         address _signer = signerUnique(message, signature);
-        
+
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
@@ -374,8 +291,8 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
-        TokenReceivable.sendToken(foundryToken, router, amountIn);
-        emit TransferBySignature(_signer, router, foundryToken, amountIn);
+        TokenReceivable.sendToken(foundryToken, fiberRouter, amountIn);
+        emit TransferBySignature(_signer, fiberRouter, foundryToken, amountIn);
         return amountIn;
     }
 
