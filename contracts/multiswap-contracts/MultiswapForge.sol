@@ -28,6 +28,7 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
+        bool cctpType,
         bytes memory multiSignature
     ) public override {
         revert("Not Supported");
@@ -39,6 +40,7 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
+        bool cctpType,
         bytes memory multiSignature
     ) external {
         super.withdrawSigned(
@@ -47,14 +49,15 @@ contract MultiSwapForge is FiberRouter {
             amount,
             salt,
             expiry,
+            cctpType,
             multiSignature
         );
 
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
     }
 
-    // Override and revert the 'withdrawSignedAndSwapOneInch' function
-    function withdrawSignedWithSwap(
+    // Override and revert the 'withdrawSignedAndSwapRouter' function
+    function withdrawSignedAndSwapRouter(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -64,13 +67,14 @@ contract MultiSwapForge is FiberRouter {
         bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
+        bool cctpType,
         bytes memory multiSignature
     ) public override {
        revert("Not Supported");
     }
 
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
-    function withdrawSignedAndSwapOneInchForGasEstimation(
+    function withdrawSignedAndSwapRouterForGasEstimation(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -80,10 +84,11 @@ contract MultiSwapForge is FiberRouter {
         bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
+        bool cctpType,
         bytes memory multiSignature
     ) external {
         // Call the original function from FiberRouter
-        super.withdrawSignedWithSwap(
+        super.withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,
@@ -93,6 +98,7 @@ contract MultiSwapForge is FiberRouter {
             routerCallData,
             salt,
             expiry,
+            cctpType,
             multiSignature
         );
 

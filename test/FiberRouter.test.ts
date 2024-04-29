@@ -92,7 +92,7 @@ describe('FiberRouter', () => {
         })
 
         it("should not swap if it fails slippage checks", async () => {
-            await expect(fiberRouter.swapTokensLocallyAndCross(
+            await expect(fiberRouter.swapAndCrossRouter(
                 amountIn,                                       // amountIn
                 9900,                                           // minAmountOut
                 await weth.getAddress(),                        // fromToken
@@ -103,12 +103,13 @@ describe('FiberRouter', () => {
                 await foundry.getAddress(),                     // crossTargetToken
                 await signer.getAddress(),                      // crossTargetAddress
                 id("some withdrawal data"),                     // withdrawalData
+                false,                                          // cctpType
                 { value: 1000 }                                 // gas fee charge
             )).to.be.revertedWith("FR: Slippage check failed")
         })
 
         it("should swap token if all checks pass", async () => {
-            const tx = fiberRouter.swapTokensLocallyAndCross(
+            const tx = fiberRouter.swapAndCrossRouter(
                 amountIn,                                       // amountIn
                 9700,                                           // minAmountOut
                 await weth.getAddress(),                        // fromToken
@@ -119,6 +120,7 @@ describe('FiberRouter', () => {
                 await foundry.getAddress(),                     // crossTargetToken
                 signer,                                         // crossTargetAddress
                 id("some withdrawal data"),                     // withdrawalData
+                false,                                          // cctpType
                 { value: 1000 }                                 // gas fee charge
             )
             
@@ -152,7 +154,7 @@ describe('FiberRouter', () => {
         it("should swap ETH if all checks pass", async () => {
             const minAmountOut = 9700
             const gasFee = 100
-            const tx = fiberRouter.swapETHLocallyAndCross(      
+            const tx = fiberRouter.swapAndCrossRouterETH(      
                 minAmountOut,                                   // minAmountOut
                 await foundry.getAddress(),                     // foundryToken
                 gasFee,                                         // gas fee
@@ -162,6 +164,7 @@ describe('FiberRouter', () => {
                 await foundry.getAddress(),                     // crossTargetToken
                 signer,                                         // crossTargetAddress
                 id("some withdrawal data"),                     // withdrawalData
+                false,                                          // cctpType
                 { value: amountIn + gasFee }                    // amountIn
             )
             
@@ -206,6 +209,7 @@ describe('FiberRouter', () => {
                 weth,
                 signer,
                 id("some withdrawal data"),
+                false,
                 { value: 100 }
             )
             
@@ -239,10 +243,10 @@ describe('FiberRouter', () => {
             await foundry.approve(await fundManager.getAddress(), amount)
             await fundManager.addLiquidityByManager(await foundry.getAddress(), amount)
             
-            const expiry = Math.floor(Date.now() / 1000) + 3600
             const token = await foundry.getAddress()
             const payee = await signer.getAddress()
             const salt = id("some salt")
+            const expiry = Math.floor(Date.now() / 1000) + 3600
             
             const domain = {
                 name: "FUND_MANAGER",
@@ -257,7 +261,7 @@ describe('FiberRouter', () => {
                     { name: "payee", type: "address" },
                     { name: "amount", type: "uint256" },
                     { name: "salt", type: "bytes32" },
-                    { name: "expiry", type: "uint256" }
+                    { name: "expiry", type: "uint256" },
                 ]
             }
 
@@ -266,7 +270,7 @@ describe('FiberRouter', () => {
                 payee,
                 amount,
                 salt,
-                expiry
+                expiry,
             }
             
             const signature = await signer.signTypedData(domain, types, values)
@@ -276,6 +280,7 @@ describe('FiberRouter', () => {
                 amount,
                 salt,
                 expiry,
+                false,
                 signature
             )
             
@@ -347,7 +352,7 @@ describe('FiberRouter', () => {
             }
             
             const signature = await signer.signTypedData(domain, types, values)
-            const tx = fiberRouter.withdrawSignedWithSwap(
+            const tx = fiberRouter.withdrawSignedAndSwapRouter(
                 user,
                 amountIn,
                 9700, // slippage
@@ -357,6 +362,7 @@ describe('FiberRouter', () => {
                 mockRouterSelector + routerCallData.slice(2),
                 salt,
                 expiry,
+                false,
                 signature
             )
 

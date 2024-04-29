@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
 
 // Simple mock contract to simulate some aggregator/dex behaviour
@@ -15,7 +14,6 @@ contract SwapRouter {
         address outToken,
         address to
     ) external returns (uint256) {
-        console.log(IERC20(inToken).balanceOf(address(msg.sender)));
         IERC20(inToken).transferFrom(msg.sender, address(this), amountIn);
         IERC20(outToken).transfer(to, amountOut);
         return amountOut;

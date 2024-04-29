@@ -18,7 +18,7 @@ export const multiswap = async function (
     const ferrumDeployer = await hre.ethers.deployContract("FerrumDeployer")
 
     // Deploy contracts
-    const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "ForgeFundManager"]
+    const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "ForgeFundManager", "CCTPFundManager"]
     for (const contract of contracts) {
         const factory = await hre.ethers.getContractFactory(contract)
         const tx = await ferrumDeployer.deployOwnable(salt, signer[0].address, "0x", factory.bytecode)
@@ -31,6 +31,7 @@ export const multiswap = async function (
     const fiberRouter = contractInstances['FiberRouter']
     const multiswapForge = contractInstances['MultiSwapForge']
     const forgeManager = contractInstances['ForgeFundManager']
+    const cctpFundManager = contractInstances['CCTPFundManager']
 
     // Post deploy configs
     console.log("\n##### FiberRouter configs #####")
