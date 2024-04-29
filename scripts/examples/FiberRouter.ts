@@ -19,7 +19,7 @@ const main = async () => {
     const router = `1inchAddress`
     const routerCallData = `0x1111111111111111111111111111111111111111` // Replace with actual router call data
 
-    // e.g. SwapOnSameNetwork()
+    ///// e.g. SwapOnSameNetwork() /////
     let tx = await fiberRouter.swap(
         amountIn,
         minAmountOut,
@@ -30,9 +30,8 @@ const main = async () => {
         routerCallData
     
     )
-    await tx.wait()
 
-    // e.g. SwapOnSameNetworkETH()
+    ///// e.g. SwapOnSameNetworkETH() /////
     tx = await fiberRouter.swapOnSameNetworkETH(
         minAmountOut,
         toToken,
@@ -42,8 +41,8 @@ const main = async () => {
         { value: BigInt(amountIn) } // ETH amount in wei
     )
 
-    // ethers v6 makes it slightly easier to do EIP712 signatures:
-    // e.g. WithdrawSigned()
+    ///// ethers v6 makes it slightly easier to do EIP712 signatures:
+    ///// e.g. WithdrawSigned() /////
     const domain = {
         name: "FUND_MANAGER",
         version: "000.004",
@@ -79,7 +78,7 @@ const main = async () => {
         signature
     )
 
-    // e.g. WithdrawSignedWithSwap=    
+    ///// e.g. WithdrawSignedWithSwap /////
     const types2 = {
         WithdrawSignedWithSwap: [
             { name: "to", type: "address" },
@@ -88,7 +87,7 @@ const main = async () => {
             { name: "foundryToken", type: "address" },
             { name: "targetToken", type: "address" },
             { name: "router", type: "address" },
-            { name: "routerCallData", type: "bytes32" },
+            { name: "routerCalldata", type: "bytes32" },
             { name: "salt", type: "bytes32" },
             { name: "expiry", type: "uint256" }
         ]

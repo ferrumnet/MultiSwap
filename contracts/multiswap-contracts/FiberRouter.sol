@@ -74,7 +74,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         address foundryToken,
         address targetToken,
         address router,
-        bytes routerCallData,
+        bytes routerCalldata,
         bytes32 salt,
         bytes multiSignature
     );
@@ -138,37 +138,37 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param minAmountOut The minimum amount out accounting for slippage
      * @param fromToken The token to be swapped
      * @param toToken The token to receive after the swap
-     * @param recipient The receiver address
+     * @param targetAddress The receiver address
      * @param router The router address
-     * @param routerCallData Calldata for the router
+     * @param routerCalldata Calldata for the router
      */
     function swapOnSameNetwork(
         uint256 amountIn,
         uint256 minAmountOut,
         address fromToken,
         address toToken,
-        address recipient,
+        address targetAddress,
         address router,
-        bytes memory routerCallData
+        bytes memory routerCalldata
     ) external nonReentrant {
         // Validation checks
         require(fromToken != address(0), "FR: From token address cannot be zero");
         require(toToken != address(0), "FR: To token address cannot be zero");
         require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
-        require(recipient != address(0), "FR: Target address cannot be zero");
+        require(targetAddress != address(0), "FR: Target address cannot be zero");
 
         amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
 
         // Perform the token swap
         uint256 amountOut = _swapAndCheckSlippage(
-            recipient,
+            targetAddress,
             fromToken,
             toToken,
             amountIn,
             minAmountOut,
             router,
-            routerCallData
+            routerCalldata
         );
 
         // Emit Swap event
@@ -178,7 +178,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             amountIn,
             amountOut,
             _msgSender(),
-            recipient
+            targetAddress
         );
     }
 
@@ -186,36 +186,36 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @dev Performs a swap from native currency to specified token
      * @param minAmountOut The minimum amount of tokens expected after the swap
      * @param toToken The token to receive after the swap
-     * @param recipient The receiver address for the token
+     * @param targetAddress The receiver address for the token
      * @param router The router address
-     * @param routerCallData Calldata for the router
+     * @param routerCalldata Calldata for the router
      */
     function swapOnSameNetworkETH(
         uint256 minAmountOut,
         address toToken,
-        address recipient,
+        address targetAddress,
         address router,
-        bytes memory routerCallData
+        bytes memory routerCalldata
     ) external payable {
         uint256 amountIn = msg.value;
         // Validation checks
         require(toToken != address(0), "FR: To token address cannot be zero");
         require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
-        require(recipient != address(0), "FR: Target address cannot be zero");
-        require(bytes(routerCallData).length != 0, "FR: Calldata cannot be empty");
+        require(targetAddress != address(0), "FR: Target address cannot be zero");
+        require(bytes(routerCalldata).length != 0, "FR: Calldata cannot be empty");
 
         // Deposit ETH and get WETH
         IWETH(weth).deposit{value: amountIn}();
 
         uint256 amountOut = _swapAndCheckSlippage(
-            recipient,
+            targetAddress,
             weth,
             toToken,
             amountIn,
             minAmountOut,
             router,
-            routerCallData
+            routerCalldata
         );
 
         // Emit Swap event
@@ -225,7 +225,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             amountIn,
             amountOut,
             _msgSender(),
-            recipient
+            targetAddress
         );
     }
     /**
@@ -347,7 +347,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param fromToken The token to be swapped
      * @param foundryToken The foundry token used for the swap
      * @param router The router address
-     * @param routerCallData The calldata for the swap
+     * @param routerCalldata The calldata for the swap
      * @param crossTargetNetwork The target network for the swap
      * @param crossTargetToken The target token for the cross-chain swap
      * @param crossTargetAddress The target address for the cross-chain swap
@@ -360,7 +360,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         address fromToken,
         address foundryToken,
         address router,
-        bytes memory routerCallData,
+        bytes memory routerCalldata,
         uint256 crossTargetNetwork,
         address crossTargetToken,
         address crossTargetAddress,
@@ -391,7 +391,7 @@ contract FiberRouter is Ownable, TokenReceivable {
                 amountIn,
                 minAmountOut,
                 router,
-                routerCallData
+                routerCalldata
             );
 
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
@@ -417,7 +417,7 @@ contract FiberRouter is Ownable, TokenReceivable {
                 amountIn,
                 minAmountOut,
                 router,
-                routerCallData
+                routerCalldata
             );
 
             // Update pool inventory and emit cross chain event
@@ -454,7 +454,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param foundryToken The foundry token used for the swap
      * @param gasFee The gas fee being charged on withdrawal
      * @param router The router address
-     * @param routerCallData The calldata for the swap
+     * @param routerCalldata The calldata for the swap
      * @param crossTargetNetwork The target network for the swap
      * @param crossTargetToken The target token for the cross-chain swap
      * @param crossTargetAddress The target address for the cross-chain swap
@@ -466,7 +466,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         address foundryToken,
         uint256 gasFee,
         address router,
-        bytes memory routerCallData,
+        bytes memory routerCalldata,
         uint256 crossTargetNetwork,
         address crossTargetToken,
         address crossTargetAddress,
@@ -494,7 +494,7 @@ contract FiberRouter is Ownable, TokenReceivable {
                 amountIn,
                 _minAmountOut,
                 router,
-                routerCallData
+                routerCalldata
             );
 
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
@@ -520,7 +520,7 @@ contract FiberRouter is Ownable, TokenReceivable {
                 amountIn,
                 _minAmountOut,
                 router,
-                routerCallData
+                routerCalldata
             );
 
             // Update pool inventory and emit cross chain event
@@ -568,8 +568,8 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bool cctpType,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public virtual nonReentrant {
         // Validate input parameters
         require(token != address(0), "FR: Token address cannot be zero");
@@ -600,24 +600,24 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
      * @param router The router address
-     * @param routerCallData The calldata for the swap
+     * @param routerCalldata The calldata for the swap
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param cctpType Boolean indicating if swap to CCTP
      * @param multiSignature The multi-signature data
      */
-    function withdrawSignedAndSwapRouter(
+    function withdrawSignedWithSwap(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCallData,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
-        bool cctpType,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public virtual nonReentrant {
         require(foundryToken != address(0), "Bad Token Address");
         require(targetToken != address(0), "FR: Target token address cannot be zero");
@@ -634,7 +634,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             foundryToken,
             targetToken,
             router,
-            routerCallData,
+            routerCalldata,
             salt,
             expiry,
             multiSignature
@@ -647,7 +647,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             amountIn,
             minAmountOut,
             router,
-            routerCallData
+            routerCalldata
         );
 
         emit WithdrawWithSwap(
@@ -657,7 +657,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             foundryToken,
             targetToken,
             router,
-            routerCallData,
+            routerCalldata,
             salt,
             multiSignature
         );
@@ -668,13 +668,13 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param router The router address
      * @param selector The selector for the router
      */
-    function isAllowListed(address router, bytes calldata selector) external view returns (bool) {
+    function isAllowListed(address router, bytes memory selector) public view returns (bool) {
         return routerAllowList[_getKey(router, selector)];
     }
 
     /**
      * @notice Helper function for executing token swaps through provided router
-     * @param recipient The recipient address to receive the swapped tokens
+     * @param targetAddress The recipient address to receive the swapped tokens
      * @param fromToken The address of the input token for the swap
      * @param toToken The address of the output token from the swap
      * @param amountIn The exact amount of input tokens to be swapped
@@ -683,7 +683,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param data The calldata for the swap
      */
     function _swapAndCheckSlippage(
-        address recipient,
+        address targetAddress,
         address fromToken,
         address toToken,
         uint256 amountIn,
@@ -691,11 +691,11 @@ contract FiberRouter is Ownable, TokenReceivable {
         address router,
         bytes memory data
     ) internal returns (uint256) {
-        require(routerAllowList[_getKey(router, data)], "FR: Router and selector not whitelisted");
+        require(isAllowListed(router, data), "FR: Router and selector not whitelisted");
         _approveRouter(fromToken, router, amountIn);
-        uint256 balanceBefore = _getBalance(toToken, recipient);
+        uint256 balanceBefore = _getBalance(toToken, targetAddress);
         _makeRouterCall(router, data);
-        uint256 amountOut = _getBalance(toToken, recipient) - balanceBefore;
+        uint256 amountOut = _getBalance(toToken, targetAddress) - balanceBefore;
         require(amountOut >= minAmountOut, "FR: Slippage check failed");
         // TODO for failed slippage checks: On-chain settlement. Option are:
         // 1/ Receive USDC on dst chain

@@ -62,7 +62,7 @@ describe('FiberRouter', () => {
     })
 
     describe("local swap then cross", async () => {
-        let routerCallData:string,
+        let routerCalldata:string,
             fiberRouter:Contract,
             fundManager:Contract,
             amountIn = 10000,
@@ -85,7 +85,7 @@ describe('FiberRouter', () => {
             // Approve and encode the calldata
             await weth.approve(await fiberRouter.getAddress(), amountIn)
             let abiCoder = AbiCoder.defaultAbiCoder()
-            routerCallData = abiCoder.encode(
+            routerCalldata = abiCoder.encode(
                 ["uint256", "uint256", "address", "address", "address"],
                 [amountIn, amountOut, await weth.getAddress(), await foundry.getAddress(), await fundManager.getAddress()]
             )
@@ -98,7 +98,7 @@ describe('FiberRouter', () => {
                 await weth.getAddress(),                        // fromToken
                 await foundry.getAddress(),                     // foundryToken
                 await swapRouter.getAddress(),                  // router
-                mockRouterSelector + routerCallData.slice(2),   // routerCallData
+                mockRouterSelector + routerCalldata.slice(2),   // routerCalldata
                 otherChainId,                                   // crossTargetNetwork
                 await foundry.getAddress(),                     // crossTargetToken
                 await signer.getAddress(),                      // crossTargetAddress
@@ -115,7 +115,7 @@ describe('FiberRouter', () => {
                 await weth.getAddress(),                        // fromToken
                 await foundry.getAddress(),                     // foundryToken
                 await swapRouter.getAddress(),                  // router
-                mockRouterSelector + routerCallData.slice(2),   // routerCallData
+                mockRouterSelector + routerCalldata.slice(2),   // routerCalldata
                 otherChainId,                                   // crossTargetNetwork
                 await foundry.getAddress(),                     // crossTargetToken
                 signer,                                         // crossTargetAddress
@@ -159,7 +159,7 @@ describe('FiberRouter', () => {
                 await foundry.getAddress(),                     // foundryToken
                 gasFee,                                         // gas fee
                 await swapRouter.getAddress(),                  // router
-                mockRouterSelector + routerCallData.slice(2),   // routerCallData
+                mockRouterSelector + routerCalldata.slice(2),   // routerCalldata
                 otherChainId,                                   // crossTargetNetwork
                 await foundry.getAddress(),                     // crossTargetToken
                 signer,                                         // crossTargetAddress
@@ -280,8 +280,8 @@ describe('FiberRouter', () => {
                 amount,
                 salt,
                 expiry,
-                false,
-                signature
+                signature,
+                false
             )
             
             await expect(tx).to.changeTokenBalances(
@@ -311,7 +311,7 @@ describe('FiberRouter', () => {
             const amountIn = 10000
             const amountOut = 9800
             const abiCoder = AbiCoder.defaultAbiCoder()
-            const routerCallData = abiCoder.encode(
+            const routerCalldata = abiCoder.encode(
                 ["uint256", "uint256", "address", "address", "address"],
                 [amountIn, amountOut, await foundry.getAddress(), await weth.getAddress(), await user.getAddress()]
             )
@@ -333,7 +333,7 @@ describe('FiberRouter', () => {
                     { name: "foundryToken", type: "address" },
                     { name: "targetToken", type: "address" },
                     { name: "router", type: "address" },
-                    { name: "routerCallData", type: "bytes32" },
+                    { name: "routerCalldata", type: "bytes32" },
                     { name: "salt", type: "bytes32" },
                     { name: "expiry", type: "uint256" }
                 ]
@@ -346,24 +346,24 @@ describe('FiberRouter', () => {
                 foundryToken: await foundry.getAddress(),
                 targetToken: await weth.getAddress(),
                 router: await swapRouter.getAddress(),
-                routerCallData: keccak256(mockRouterSelector + routerCallData.slice(2)),
+                routerCalldata: keccak256(mockRouterSelector + routerCalldata.slice(2)),
                 salt,
                 expiry                
             }
             
             const signature = await signer.signTypedData(domain, types, values)
-            const tx = fiberRouter.withdrawSignedAndSwapRouter(
+            const tx = fiberRouter.withdrawSignedWithSwap(
                 user,
                 amountIn,
                 9700, // slippage
                 foundry,
                 weth,
                 swapRouter,
-                mockRouterSelector + routerCallData.slice(2),
+                mockRouterSelector + routerCalldata.slice(2),
                 salt,
                 expiry,
-                false,
-                signature
+                signature,
+                false
             )
 
             await expect(tx).to.changeTokenBalances(
@@ -385,7 +385,7 @@ describe('FiberRouter', () => {
                 foundry,
                 weth,
                 swapRouter,
-                mockRouterSelector + routerCallData.slice(2),
+                mockRouterSelector + routerCalldata.slice(2),
                 salt,
                 signature
             )
@@ -405,7 +405,7 @@ describe('FiberRouter', () => {
 
             const amountOut = 9800
             const abiCoder = AbiCoder.defaultAbiCoder()
-            const routerCallData = mockRouterSelector + abiCoder.encode(
+            const routerCalldata = mockRouterSelector + abiCoder.encode(
                 ["uint256", "uint256", "address", "address", "address"],
                 [amount, amountOut, await foundry.getAddress(), await weth.getAddress(), await signer.getAddress()]
             ).slice(2)
@@ -417,7 +417,7 @@ describe('FiberRouter', () => {
                 weth,
                 signer,
                 swapRouter,
-                routerCallData
+                routerCalldata
             )
 
             await expect(tx).to.changeTokenBalances(
@@ -453,7 +453,7 @@ describe('FiberRouter', () => {
 
             const amountOut = 9800
             const abiCoder = AbiCoder.defaultAbiCoder()
-            const routerCallData = mockRouterSelector + abiCoder.encode(
+            const routerCalldata = mockRouterSelector + abiCoder.encode(
                 ["uint256", "uint256", "address", "address", "address"],
                 [amount, amountOut, await weth.getAddress(), await foundry.getAddress(), await signer.getAddress()]
             ).slice(2)
@@ -463,7 +463,7 @@ describe('FiberRouter', () => {
                 foundry,
                 signer,
                 swapRouter,
-                routerCallData,
+                routerCalldata,
                 { value: amount }
             )
 

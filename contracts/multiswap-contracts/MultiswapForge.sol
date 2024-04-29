@@ -28,8 +28,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bool cctpType,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public override {
         revert("Not Supported");
     }
@@ -40,8 +40,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bool cctpType,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) external {
         super.withdrawSigned(
             token,
@@ -49,15 +49,15 @@ contract MultiSwapForge is FiberRouter {
             amount,
             salt,
             expiry,
-            cctpType,
-            multiSignature
+            multiSignature,
+            cctpType
         );
 
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
     }
 
-    // Override and revert the 'withdrawSignedAndSwapRouter' function
-    function withdrawSignedAndSwapRouter(
+    // Override and revert the 'withdrawSignedWithSwap' function
+    function withdrawSignedWithSwap(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -67,14 +67,14 @@ contract MultiSwapForge is FiberRouter {
         bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
-        bool cctpType,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public override {
        revert("Not Supported");
     }
 
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
-    function withdrawSignedAndSwapRouterForGasEstimation(
+    function withdrawSignedWithSwapForGasEstimation(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -84,11 +84,11 @@ contract MultiSwapForge is FiberRouter {
         bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
-        bool cctpType,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) external {
         // Call the original function from FiberRouter
-        super.withdrawSignedAndSwapRouter(
+        super.withdrawSignedWithSwap(
             to,
             amountIn,
             minAmountOut,
@@ -98,8 +98,8 @@ contract MultiSwapForge is FiberRouter {
             routerCallData,
             salt,
             expiry,
-            cctpType,
-            multiSignature
+            multiSignature,
+            cctpType
         );
 
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
