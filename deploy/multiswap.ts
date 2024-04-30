@@ -5,8 +5,8 @@ import hre from "hardhat"
 
 export const multiswap = async function (
     // Default values. Should only take the passed in value in unit tests
-    foundry = addresses.networks["hardhat"].foundry,
-    weth = addresses.networks["hardhat"].weth
+    foundry = addresses.networks[hre.network.name].foundry,
+    weth = addresses.networks[hre.network.name].weth,
 ) {
     const thisNetwork = hre.network.name
     console.log(`Deploying on network: ${thisNetwork}`)
@@ -72,18 +72,24 @@ export const multiswap = async function (
 
     // Allow targets for other networks
     console.log("\n##### Allowing targets to other networks #####")
-    const otherNetworks = Object.keys(addresses.networks).filter((network) => network !== thisNetwork && network !== "hardhat");
+    let otherNetworks = Object.keys(addresses.networks).filter((network) => network !== thisNetwork && network !== "hardhat");
     for (const otherNetwork of otherNetworks) {
-        await sendTx(fundManager.allowTarget(foundry, addresses.networks[otherNetwork].chainId, addresses.networks[otherNetwork].foundry), `allowTarget to chainId ${addresses.networks[otherNetwork].chainId} successful`);
+        await sendTx(fundManager.allowTarget(
+            foundry,
+            addresses.networks[otherNetwork].chainId,
+            addresses.networks[otherNetwork].foundry),
+            `allowTarget to chainId ${addresses.networks[otherNetwork].chainId} successful`
+        );
     }
 
     console.log("\n##### Contract Addresses #####")
     console.log("FiberRouter:\t\t", fiberRouter.target)
     console.log("FundManager:\t\t", fundManager.target)
+    console.log("CCPTFundManager:\t", cctpFundManager.target)
     console.log("MultiSwapForge:\t\t", multiswapForge.target)
     console.log("ForgeFundManager:\t", forgeManager.target)
 
-    return { fiberRouter, fundManager, multiswapForge, forgeManager }
+    return { fiberRouter, fundManager,cctpFundManager, multiswapForge, forgeManager }
 }
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {
