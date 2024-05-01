@@ -7,9 +7,7 @@ contract MultiSwapForge is FiberRouter {
     
     address public gasEstimationAddress;
 
-    constructor() 
-        FiberRouter() {
-     }
+    constructor() {}
 
     /**
      @dev Sets address authorized to execute gas estimations
@@ -30,7 +28,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public override {
         revert("Not Supported");
     }
@@ -41,7 +40,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) external {
         super.withdrawSigned(
             token,
@@ -49,53 +49,57 @@ contract MultiSwapForge is FiberRouter {
             amount,
             salt,
             expiry,
-            multiSignature
+            multiSignature,
+            cctpType
         );
 
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
     }
 
-    // Override and revert the 'withdrawSignedAndSwapOneInch' function
-    function withdrawSignedAndSwapOneInch(
+    // Override and revert the 'withdrawSignedWithSwap' function
+    function withdrawSignedWithSwap(
         address payable to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
-        OneInchFunction funcSelector, // Add the enum parameter
+        address router,
+        bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public override {
        revert("Not Supported");
     }
 
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
-    function withdrawSignedAndSwapOneInchForGasEstimation(
+    function withdrawSignedWithSwapForGasEstimation(
         address payable to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
-        OneInchFunction funcSelector, // Add the enum parameter
+        address router,
+        bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) external {
         // Call the original function from FiberRouter
-        super.withdrawSignedAndSwapOneInch(
+        super.withdrawSignedWithSwap(
             to,
             amountIn,
-            amountOut,
+            minAmountOut,
             foundryToken,
             targetToken,
-            oneInchData,
-            funcSelector,
+            router,
+            routerCallData,
             salt,
             expiry,
-            multiSignature
+            multiSignature,
+            cctpType
         );
 
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");

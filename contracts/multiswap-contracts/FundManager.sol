@@ -9,7 +9,7 @@ import "./LiquidityManagerRole.sol";
 contract FundManager is SigCheckable, LiquidityManagerRole {
     using SafeERC20 for IERC20;
 
-    address public router;
+    address public fiberRouter;
     address public settlementManager;
     uint32 constant WEEK = 3600 * 24 * 7;
     string public constant NAME = "FUND_MANAGER";
@@ -18,9 +18,9 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         keccak256(
             "WithdrawSigned(address token,address payee,uint256 amount,bytes32 salt,uint256 expiry)"
         );
-    bytes32 constant WITHDRAW_SIGNED_ONEINCH__METHOD =
+    bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "WithdrawSignedOneInch(address to,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,bytes32 salt,uint256 expiry)"
+            "WithdrawSignedWithSwap(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -46,29 +46,20 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         address targetAddrdess,
         uint256 amount
     );
-    event nonEvmBridgeSwap(
-        address from,
-        address indexed token,
-        string targetNetwork,
-        string targetToken,
-        string targetAddrdess,
-        uint256 amount
-    );
 
     mapping(address => bool) public signers;
     mapping(address => mapping(address => uint256)) private liquidities;
     mapping(address => mapping(uint256 => address)) public allowedTargets;
-    mapping(address => mapping(string => string)) public nonEvmAllowedTargets;
     mapping(address => bool) public isFoundryAsset;
     mapping(bytes32=>bool) public usedSalt;
 
     /**
-     * @dev Modifier that allows only the designated router to execute the function.
-     * It checks if the sender is equal to the `router` address.
-     * @notice Ensure that `router` is set before using this modifier.
+     * @dev Modifier that allows only the designated fiberRouter to execute the function.
+     * It checks if the sender is equal to the `fiberRouter` address.
+     * @notice Ensure that `fiberRouter` is set before using this modifier.
      */
     modifier onlyRouter() {
-        require(msg.sender == router, "FM: Only router method");
+        require(msg.sender == fiberRouter, "FM: Only fiberRouter method");
         _;
     }
 
@@ -86,10 +77,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @dev Contract constructor that initializes the EIP-712 domain with the specified NAME, VERSION.
      * @notice This constructor is called only once during the deployment of the contract.
      */
-    constructor() EIP712(NAME, VERSION) {
-        bytes memory initData = IFerrumDeployer(msg.sender).initData();
-
-    }
+    constructor() EIP712(NAME, VERSION) {}
 
     /**
      *************** Owner only operations ***************
@@ -105,14 +93,13 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         settlementManager = _settlementManager;
     }
 
-
     /**
-     @dev sets the router
-     @param _router is the FiberRouter address
+     @dev sets the fiberRouter
+     @param _fiberRouter is the FiberRouter address
      */
-    function setRouter(address _router) external onlyOwner {
-        require(_router != address(0), "FM: router requried");
-        router = _router;
+    function setRouter(address _fiberRouter) external onlyOwner {
+        require(_fiberRouter != address(0), "FM: fiberRouter required");
+        fiberRouter = _fiberRouter;
     }
 
     /**
@@ -151,24 +138,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     @dev sets the allowed target chain & token on nonEVM chain
-     @param token is the address of foundry token on source network
-     @param chainId target non EVM network's chain ID
-     @param targetToken target non EVM network's foundry token address
-     */
-    function nonEvmAllowTarget(
-        address token,
-        string memory chainId,
-        string memory targetToken
-    ) external onlyAdmin {
-        require(token != address(0), "Bad token");
-        require(bytes(chainId).length != 0, "Chain ID cannot be empty");
-        require(bytes(targetToken).length != 0, "Target token cannot be empty");
-
-        nonEvmAllowedTargets[token][chainId] = targetToken;
-    }
-
-    /**
      @dev removes the allowed target chain & token
      @param token is the address of foundry token on source network
      @param chainId target network's chain ID
@@ -177,20 +146,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(token != address(0), "Bad token");
         require(chainId != 0, "Bad chainId");
         delete allowedTargets[token][chainId];
-    }
-
-    /**
-     @dev removes the allowed target chain & token on nonEVM chain
-     @param token is the address of foundry token on source network
-     @param chainId target non EVM network's chain ID
-     */
-    function nonEvmDisallowTarget(address token, string memory chainId)
-        external
-        onlyAdmin
-    {
-        require(token != address(0), "Bad token");
-        require(bytes(chainId).length != 0, "Chain ID cannot be empty");
-        delete nonEvmAllowedTargets[token][chainId];
     }
 
     /**
@@ -227,7 +182,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         address targetAddress
     ) external onlyRouter returns(uint256) {
         address targetToken = allowedTargets[token][targetNetwork];
-        require(msg.sender != address(0), "FM: bad from");
         require(token != address(0), "FM: bad token");
         require(targetNetwork != 0, "FM: targetNetwork is requried");
         require(targetToken != address(0), "FM: bad target token");
@@ -244,55 +198,14 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         );
         return amount;
     }
-
-    /**
-     * @dev Initiates a non-EVM token swap, exclusive to the router
-     * @notice Ensure valid parameters and router setup
-     * @param token The address of the token to be swapped
-     * @param amount The amount of tokens to be swapped
-     * @param targetNetwork The identifier of the target network for the swap
-     * @param targetToken The identifier of the target token on the non-EVM network
-     * @param targetAddress The address on the target network where the swapped tokens will be sent
-     * @return The actual amount of tokens swapped
-     */
-    function nonEvmSwapToAddress(
-        address token,
-        uint256 amount,
-        string memory targetNetwork,
-        string memory targetToken,
-        string memory targetAddress
-    ) external onlyRouter returns (uint256) {
-        require(msg.sender != address(0), "FM: bad from");
-        require(token != address(0), "FM: bad token");
-        require(amount != 0, "FM: bad amount");
-        require(bytes(targetNetwork).length != 0, "FM: empty target network");
-        require(bytes(targetToken).length != 0, "FM: empty target token");
-        require(bytes(targetAddress).length != 0, "FM: empty target address");
-        require(
-            keccak256(
-                abi.encodePacked(nonEvmAllowedTargets[token][targetNetwork])
-            ) == keccak256(abi.encodePacked(targetToken)),
-            "FM: target not allowed"
-        );
-        amount = TokenReceivable.sync(token);
-        emit nonEvmBridgeSwap(
-            msg.sender,
-            token,
-            targetNetwork,
-            targetToken,
-            targetAddress,
-            amount
-        );
-        return amount;
-    }
-
+ 
     /**
      * @dev Initiates a signed token withdrawal, exclusive to the router
      * @notice Ensure valid parameters and router setup
      * @param token The token to withdraw
      * @param payee Address for where to send the tokens to
      * @param amount The amount
-     * @param salt The salt for unique tx 
+     * @param salt The salt for unique tx
      * @param expiry The expiration time for the signature
      * @param signature The multisig validator signature
      * @return The actual amount of tokens withdrawn
@@ -311,11 +224,8 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(amount != 0, "FM: bad amount");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
-        bytes32 message =  keccak256(
-                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
-            );
+        bytes32 message =  keccak256(abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry));
         address _signer = signerUnique(message, signature);
-        
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
@@ -325,26 +235,28 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     * @dev Initiates a signed OneInch token withdrawal, exclusive to the router
+     * @dev Initiates a signed token withdrawal with swap, exclusive to the router
      * @notice Ensure valid parameters and router setup
      * @param to The address to withdraw to
      * @param amountIn The amount to be swapped in
-     * @param amountOut The expected amount out in the OneInch swap
+     * @param minAmountOut The minimum amount out from the swap
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
-     * @param oneInchData The data containing information for the 1inch swap
+     * @param router The router address
+     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
      * @return The actual amount of tokens withdrawn from Foundry
      */
-    function withdrawSignedOneInch(
+    function withdrawSignedWithSwap(
         address to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -354,19 +266,20 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(to != address(0), "FM: bad payee");
         require(salt != 0, "FM: bad salt");
         require(amountIn != 0, "FM: bad amount");
-        require(amountOut != 0, "FM: bad amount");
+        require(minAmountOut != 0, "FM: bad amount");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
 
         bytes32 message =  keccak256(
                 abi.encode(
-                    WITHDRAW_SIGNED_ONEINCH__METHOD,
+                    WITHDRAW_SIGNED_WITH_SWAP_METHOD,
                     to,
                     amountIn,
-                    amountOut,
+                    minAmountOut,
                     foundryToken,
                     targetToken,
-                    oneInchData,
+                    router,
+                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -375,8 +288,8 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
-        TokenReceivable.sendToken(foundryToken, router, amountIn);
-        emit TransferBySignature(_signer, router, foundryToken, amountIn);
+        TokenReceivable.sendToken(foundryToken, msg.sender, amountIn);
+        emit TransferBySignature(_signer, msg.sender, foundryToken, amountIn);
         return amountIn;
     }
 
@@ -406,38 +319,41 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     * @dev Verifies details of a signed OneInch token withdrawal without execution
+     * @dev Verifies details of a signed token swap withdrawal without execution
      * @param to Recipient address on the target network
      * @param amountIn Tokens withdrawn from Foundry
-     * @param amountOut Expected tokens on the target network
+     * @param minAmountOut The minimum tokens on the target network
      * @param foundryToken Token withdrawn from Foundry
      * @param targetToken Token on the target network
-     * @param oneInchData The data containing information for the 1inch swap
+     * @param router The router address
+     * @param routerCalldata The data containing information for the 1inch swap
      * @param salt Unique identifier to prevent replay attacks
      * @param expiry Expiration timestamp of the withdrawal signature
      * @param signature Cryptographic signature for verification
      * @return Digest and signer's address from the provided signature
      */
-    function withdrawSignedOneInchVerify(
+    function withdrawSignedWithSwapVerify(
         address to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
     ) external view returns (bytes32, address) {
         bytes32 message =  keccak256(
                 abi.encode(
-                    WITHDRAW_SIGNED_ONEINCH__METHOD,
+                    WITHDRAW_SIGNED_WITH_SWAP_METHOD,
                     to,
                     amountIn,
-                    amountOut,
+                    minAmountOut,
                     foundryToken,
                     targetToken,
-                    oneInchData,
+                    router,
+                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -482,25 +398,27 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     * @dev Cancels a signed OneInch token withdrawal
+     * @dev Cancels a signed token swap withdrawal
      * @notice Ensure valid parameters and router setup
      * @param to The address to withdraw to
      * @param amountIn The amount to be swapped in
-     * @param amountOut The expected amount out in the OneInch swap
+     * @param minAmountOut The minimum amount out from the swap
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
-     * @param oneInchData The data containing information for the 1inch swap
+     * @param router The router address
+     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
      */
-    function cancelFailedWithdrawSignedOneInch(
+    function cancelFailedWithdrawSignedWithSwap(
         address to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -510,19 +428,20 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(to != address(0), "FM: bad payee");
         require(salt != 0, "FM: bad salt");
         require(amountIn != 0, "FM: bad amount");
-        require(amountOut != 0, "FM: bad amount");
+        require(minAmountOut != 0, "FM: bad amount");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
 
         bytes32 message =  keccak256(
                 abi.encode(
-                    WITHDRAW_SIGNED_ONEINCH__METHOD,
+                    WITHDRAW_SIGNED_WITH_SWAP_METHOD,
                     to,
                     amountIn,
-                    amountOut,
+                    minAmountOut,
                     foundryToken,
                     targetToken,
-                    oneInchData,
+                    router,
+                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )

@@ -16,6 +16,18 @@ async function main() {
   });
   console.log("Contract verified successfully !");
 
+  const CCTPFundManager = await ethers.getContractFactory('CCTPFundManager');
+  const cctpFundManager = await CCTPFundManager.deploy();
+  await cctpFundManager.deployed();
+  console.log('CCTPFundManager deployed to:', cctpFundManager.address);
+  console.log("Verifing...");
+  await hre.run("verify:verify", {
+    address: cctpFundManager.address,
+    constructorArguments: [],
+    contract: "contracts/multiswap-contracts/CCTPFundManager.sol:CCTPFundManager"
+  });
+  console.log("Contract verified successfully !");
+  
   // Deploy ForgeManager (Child)
   const ForgeManager = await ethers.getContractFactory('ForgeFundManager');
   const forgeManager = await ForgeManager.deploy();

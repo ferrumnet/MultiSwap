@@ -1,4 +1,5 @@
 node_modules
+package-lock.json
 .env
 coverage
 coverage.json
@@ -7,6 +8,10 @@ typechain-types
 .openzeppelin
 Network
 #Hardhat files
-cache
 artifacts
+cache
+artifacts-zk
+cache-zk
+deployments-zk
+era_test_node.log
 .DS_Store
