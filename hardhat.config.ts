@@ -78,7 +78,7 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY0!]
     },
     binance: {
-      url: "https://binance.llamarpc.com",
+      url: "https://bsc-dataseed2.defibit.io",
       accounts: [process.env.PRIVATE_KEY0!]
     },
     kava: {
@@ -143,7 +143,7 @@ const config: HardhatUserConfig = {
       scroll: "8PT9SH3QX8NENRAXGE3MGEXB58TWXEHR3V",
       bsc: process.env.BSCSCAN_API_KEY!,
       optimism: process.env.OPTIMISTIC_ETHERSCAN_API_KEY!,
-      arbitrum: process.env.ARBISCAN_API_KEY!,
+      arbitrumOne: process.env.ARBISCAN_API_KEY!,
     },
     customChains: [
       {

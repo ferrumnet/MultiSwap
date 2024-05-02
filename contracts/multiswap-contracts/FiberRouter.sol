@@ -67,7 +67,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         bytes signature
     );
 
-    event WithdrawWithSwap(
+    event WithdrawRouter(
         address to,
         uint256 amountIn,
         uint256 amountOut,
@@ -650,7 +650,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             routerCalldata
         );
 
-        emit WithdrawWithSwap(
+        emit WithdrawRouter(
             to,
             amountIn,
             amountOut,

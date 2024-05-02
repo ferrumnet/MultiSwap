@@ -60,7 +60,7 @@
         "arbitrum": {
             "chainId": 42161,
             "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-            "foundry": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
+            "foundry": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
             "cctp": {
                 "tokenMessenger": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
                 "domain": 3

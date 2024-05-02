@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment, HttpNetworkConfig } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 import { Provider, Contract } from "zksync-ethers";
-import addresses from "../constants/addresses.json";
+import addresses from "../constants/addresses_full.json";
 
 
 const deployScript = async function (hre: HardhatRuntimeEnvironment) {
