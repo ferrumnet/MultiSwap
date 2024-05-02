@@ -1,11 +1,11 @@
 {
-    "signer": "0x0aee4E03645bB13b49Bb4e5784f7efB8Ee332073",
+    "signer": "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B",
     "liquidityManager": "0x5dAC22dB4dEaCfab7e9A0A1425f25D6B18e9839C",
     "liquidityManagerBot": "0x9B7C800DCca6273CB6DDb861764cFB95BDAb15cc",
     "withdrawal": "0x1370172Ed69Ec231cDB8E59d928D42824094c0C6",
     "settlementManager": "0x5912cE9327C2F8BE2Ffce1e8E521F6a65A870a19",
     "gasWallet": "0xBFBFE0e25835625efa98161e3286Ca1290057E1a",
-    "gasEstimationWallet": "0x896aa74980f510e17Ec22A9906b6ce82Ef84C49F",
+    "gasEstimationWallet": "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B",
 
     "networks": {
         "arbitrum": {
@@ -51,6 +51,24 @@
                 {
                     "router": "0x111111125421ca6dc452d289314280a0f8842a65",
                     "selectors" : [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
                         "0xf7a70056"
                     ]
                 }

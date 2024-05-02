@@ -50,11 +50,19 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    localhost: {
+      chainId: 31337,
+      accounts: [process.env.PRIVATE_KEY0!],
+      forking: {
+        url: "https://bsc-dataseed2.defibit.io",
+        // blockNumber: 5282922
+      },
+    },
     hardhat: {
       chainId: 31337,
       forking: {
-        url: `https://scroll-mainnet.core.chainstack.com/26406aa9a6209c7577a5ab1ff15243cd`,
-        blockNumber: 5282922
+        url: "https://bsc-dataseed2.defibit.io",
+        // blockNumber: 5282922
       },
     },
     baseSepolia: {
