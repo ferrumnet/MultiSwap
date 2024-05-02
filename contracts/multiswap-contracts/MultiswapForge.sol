@@ -56,8 +56,8 @@ contract MultiSwapForge is FiberRouter {
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
     }
 
-    // Override and revert the 'withdrawSignedWithSwap' function
-    function withdrawSignedWithSwap(
+    // Override and revert the 'withdrawSignedAndSwapRouter function
+    function withdrawSignedAndSwapRouter(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -74,7 +74,7 @@ contract MultiSwapForge is FiberRouter {
     }
 
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
-    function withdrawSignedWithSwapForGasEstimation(
+    function withdrawSignedAndSwapRouterForGasEstimation(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -88,7 +88,7 @@ contract MultiSwapForge is FiberRouter {
         bool cctpType
     ) external {
         // Call the original function from FiberRouter
-        super.withdrawSignedWithSwap(
+        super.withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,

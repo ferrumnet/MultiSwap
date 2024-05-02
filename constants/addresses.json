@@ -8,29 +8,6 @@
     "gasEstimationWallet": "0x896aa74980f510e17Ec22A9906b6ce82Ef84C49F",
 
     "networks": {
-        "ethereum": {
-            "chainId": 1,
-            "weth": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-            "foundry": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-            "cctp": {
-                "tokenMessenger": "0xbd3fa81b58ba92a82136038b25adec7066af3155",
-                "domain": 0
-            }
-        },
-        "bsc": {
-            "chainId": 56,
-            "weth": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-            "foundry": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
-        },
-        "avalanche": {
-            "chainId": 43114,
-            "weth": "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
-            "foundry": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
-            "cctp": {
-                "tokenMessenger": "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
-                "domain": 1
-            }
-        },
         "arbitrum": {
             "chainId": 42161,
             "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
@@ -38,28 +15,10 @@
             "cctp": {
                 "tokenMessenger": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
                 "domain": 3
-            }
-        },
-        "optimism": {
-            "chainId": 10,
-            "weth": "0x4200000000000000000000000000000000000006",
-            "foundry": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
-            "cctp": {
-                "tokenMessenger": "0x2B4069517957735bE00ceE0fadAE88a26365528f",
-                "domain": 2
-            }
-        },
-        "base": {
-            "chainId": 8453,
-            "weth": "0x4200000000000000000000000000000000000006",
-            "foundry": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-            "cctp": {
-                "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
-                "domain": 6
             },
             "routers": [
                 {
-                    "router": "0x111111125421cA6dc452d289314280a0f8842A65",
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
                     "selectors" : [
                         "0xd2d374e5",
                         "0xc4d652af",
@@ -84,14 +43,20 @@
                 }
             ]
         },
-        "zksync": {
-            "chainId": 324,
-            "weth": "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91",
-            "foundry": "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4",
+        "optimism": {
+            "chainId": 10,
+            "weth": "0x4200000000000000000000000000000000000006",
+            "foundry": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+            "cctp": {
+                "tokenMessenger": "0x2B4069517957735bE00ceE0fadAE88a26365528f",
+                "domain": 2
+            },
             "routers": [
                 {
-                    "router": "0x6fd4383cB451173D5f9304F041C7BCBf27d561fF",
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
                     "selectors" : [
+                        "0xd2d374e5",
+                        "0xc4d652af",
                         "0xa76dfc3b",
                         "0x89af926a",
                         "0x188ac35d",
@@ -113,8 +78,8 @@
                 }
             ]
         },
-        "scroll": {
-            "chainId": 534352,
+        "localhost": {
+            "chainId": 11155111,
             "weth": "0x5300000000000000000000000000000000000004",
             "foundry": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
             "routers": [
@@ -124,20 +89,6 @@
                         "0xe21fd0e9",
                         "0x59e50fed",
                         "0x8af033fb"
-                    ]
-                }
-            ]
-        },
-        "hardhat": {
-            "chainId": 31337,
-            "weth": "0x1111111111111111111111111111111111111111",
-            "foundry": "0x1111111111111111111111111111111111111111",
-            "routers": [
-                {
-                    "router": "0x1111111111111111111111111111111111111111",
-                    "selectors" : [
-                        "0x11111111",
-                        "0x22222222"
                     ]
                 }
             ]

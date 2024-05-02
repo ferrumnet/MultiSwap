@@ -15,11 +15,12 @@ export const multiswap = async function (
 
     // Deploy FerrumDeployer
     const signer = await hre.ethers.getSigners()
-    const ferrumDeployer = await hre.ethers.deployContract("FerrumDeployer")
+    const ferrumDeployer = await (await hre.ethers.deployContract("FerrumDeployer")).waitForDeployment()
 
     // Deploy contracts
-    const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "ForgeFundManager", "CCTPFundManager"]
+    const contracts = ["FundManager", "FiberRouter", "CCTPFundManager", "MultiSwapForge", "ForgeFundManager"]
     for (const contract of contracts) {
+        console.log(`Deploying ${contract}`)
         const factory = await hre.ethers.getContractFactory(contract)
         const tx = await ferrumDeployer.deployOwnable(salt, signer[0].address, "0x", factory.bytecode)
         const receipt = await tx.wait()
@@ -47,6 +48,10 @@ export const multiswap = async function (
     await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
     await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
 
+    console.log("\n##### CCTPFundManager configs #####")
+    await sendTx(cctpFundManager.setRouter(fiberRouter), "setRouter successful")
+    await sendTx(cctpFundManager.addSigner(addresses.signer), "addSigner successful")
+
     console.log("\n##### MultiSwapForge configs #####")
     await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
     await sendTx(multiswapForge.setPool(forgeManager), "setPool successful")
@@ -72,7 +77,7 @@ export const multiswap = async function (
 
     // Allow targets for other networks
     console.log("\n##### Allowing targets to other networks #####")
-    let otherNetworks = Object.keys(addresses.networks).filter((network) => network !== thisNetwork && network !== "hardhat");
+    let otherNetworks = Object.keys(addresses.networks).filter((network) => network !== thisNetwork && network !== "hardhat" && network !== "localhost");
     for (const otherNetwork of otherNetworks) {
         await sendTx(fundManager.allowTarget(
             foundry,
@@ -94,9 +99,12 @@ export const multiswap = async function (
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {
     const receipt = await (await txResponse).wait()
+    await delay(5000)
     if (receipt?.status == 1) {
         successMessage ? console.log(successMessage) : null
     } else {
         console.error("Transaction failed: " + receipt);
     }
 }
+
+const delay = (ms: number) => new Promise(res => setTimeout(res, ms))

@@ -477,7 +477,7 @@ describe('FiberRouter', () => {
             }
             
             const types = {
-                WithdrawSignedWithSwap: [
+                withdrawSignedAndSwapRouter: [
                     { name: "to", type: "address" },
                     { name: "amountIn", type: "uint256" },
                     { name: "minAmountOut", type: "uint256" },
@@ -503,7 +503,7 @@ describe('FiberRouter', () => {
             }
             
             const signature = await signer.signTypedData(domain, types, values)
-            const tx = fiberRouter.withdrawSignedWithSwap(
+            const tx = fiberRouter.withdrawSignedAndSwapRouter(
                 user,
                 amountIn,
                 9700, // slippage

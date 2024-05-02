@@ -23,7 +23,7 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
         );
     bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "WithdrawSignedWithSwap(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCallData,bytes32 salt,uint256 expiry)"
+            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCallData,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -134,7 +134,7 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
      * @param signature The multi-signature data
      * @return The actual amount of tokens withdrawn from Foundry
      */
-    function withdrawSignedWithSwap(
+    function withdrawSignedAndSwapRouter(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -217,7 +217,7 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
      * @param signature Cryptographic signature for verification
      * @return Digest and signer's address from the provided signature
      */
-    function withdrawSignedWithSwapVerify(
+    function withdrawSignedAndSwapRouterVerify(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,

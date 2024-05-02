@@ -606,7 +606,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param cctpType Boolean indicating if swap to CCTP
      * @param multiSignature The multi-signature data
      */
-    function withdrawSignedWithSwap(
+    function withdrawSignedAndSwapRouter(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -627,7 +627,7 @@ contract FiberRouter is Ownable, TokenReceivable {
 
         address _pool = cctpType ? sourceCCTPFundManager : pool;
         
-        amountIn = FundManager(_pool).withdrawSignedWithSwap( // MAKE AN INTERFACE FOR FUND MANAGERS. ALSO CONSIDER INHERTIANCE FOR FUND MANAGERS
+        amountIn = FundManager(_pool).withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,

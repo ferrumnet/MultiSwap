@@ -50,12 +50,23 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    hardhat: {
+      chainId: 31337,
+      forking: {
+        url: `https://scroll-mainnet.core.chainstack.com/26406aa9a6209c7577a5ab1ff15243cd`,
+        blockNumber: 5282922
+      },
+    },
+    baseSepolia: {
+      url: 'https://base-sepolia.g.alchemy.com/v2/uPXJr7oN2Ayz-84TDwKU3ZHCtE9zKuXv',
+      accounts: [process.env.PRIVATE_KEY0!],
+    },
     goerli: {
       url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
       accounts: [process.env.PRIVATE_KEY0!],
     },
     sepolia: {
-      url: `https://ethereum-sepolia-rpc.publicnode.com`,
+      url: `https://eth-sepolia.g.alchemy.com/v2/ARKLz20KVHlYxrljqZ1dhoEZGsZ7QuRm`,
       accounts: [process.env.PRIVATE_KEY0!]
     },
     mumbai: {
@@ -63,23 +74,23 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY0!]
     },
     polygon: {
-      url: `https://polygon-rpc.com`,
+      url: `https://polygon-mainnet.g.alchemy.com/v2/b08AJeGVJqVkLAyuyvC-seOyG9fxoD_t`,
       accounts: [process.env.PRIVATE_KEY0!]
     },
     binance: {
-      url: "https://nd-049-483-298.p2pify.com/819ef21ecdd17a29a2ed1e856c7980ec",
+      url: "https://binance.llamarpc.com",
       accounts: [process.env.PRIVATE_KEY0!]
     },
     kava: {
       url: 'https://evm2.kava.io',
       accounts: [process.env.PRIVATE_KEY0!]
     },
-    AvalancheMainnet: {
+    avalanche: {
       url: 'https://nd-118-315-546.p2pify.com/048dd2e7493f4804ffed70b2acfffe8b/ext/bc/C/rpc',
       accounts: [process.env.PRIVATE_KEY0!]
     },
-    optimismMainnet: {
-      url: 'https://optimism-mainnet.core.chainstack.com/7cb5109bd1c125224315d9b753cc0e45',
+    optimism: {
+      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
       accounts: [process.env.PRIVATE_KEY0!]
     },
     ethereum: {
@@ -128,11 +139,22 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    // apiKey: process.env.ARBITRUM_API_KEY,
-    // apiKey: process.env.BINANCE_API_KEY,
-    // apiKey: process.env.MUMBAI_API_KEY,
-    // apiKey: process.env.AVALANCHE_API_KEY,
-    // apiKey: process.env.OPTIMISM_API_KEY,
+    apiKey: {
+      scroll: "8PT9SH3QX8NENRAXGE3MGEXB58TWXEHR3V",
+      bsc: process.env.BSCSCAN_API_KEY!,
+      optimism: process.env.OPTIMISTIC_ETHERSCAN_API_KEY!,
+      arbitrum: process.env.ARBISCAN_API_KEY!,
+    },
+    customChains: [
+      {
+        network: "scroll",
+        chainId: 534352,
+        urls: {
+          apiURL: "https://api.scrollscan.com/api",
+          browserURL: "https://scrollscan.com"
+        }
+      }
+    ]
   },
   ignition: {
     strategyConfig: {
