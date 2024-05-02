@@ -5,7 +5,7 @@ require('dotenv').config();
 const forgeManagerABI = require('../../artifacts/contracts/multiswap-contracts/ForgeManager.sol/ForgeFundManager.json');
 const fundManagerABI = require('../../artifacts/contracts/multiswap-contracts/FundManager.sol/FundManager.json');
 const fiberRouterABI = require("../../artifacts/contracts/multiswap-contracts/FiberRouter.sol/FiberRouter.json");
-const multiswapForgeABI = require('../../artifacts/contracts/multiswap-contracts/MultiswapForge.sol/MultiswapForge.json');
+const multiswapForgeABI = require('../../artifacts/contracts/multiswap-contracts/MultiSwapForge.sol/MultiSwapForge.json');
 
 // Replace these with your actual contract addresses
 const forgeManagerAddress = '';

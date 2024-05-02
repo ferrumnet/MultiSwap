@@ -18,9 +18,9 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         keccak256(
             "WithdrawSigned(address token,address payee,uint256 amount,bytes32 salt,uint256 expiry)"
         );
-    bytes32 constant WITHDRAW_SIGNED_ONEINCH__METHOD =
+    bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "WithdrawSignedOneInch(address to,uint256 amountIn,uint256 amountOut,address foundryToken,address targetToken,bytes oneInchData,bytes32 salt,uint256 expiry)"
+            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -77,9 +77,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @dev Contract constructor that initializes the EIP-712 domain with the specified NAME, VERSION.
      * @notice This constructor is called only once during the deployment of the contract.
      */
-    constructor() EIP712(NAME, VERSION) {
-        // bytes memory initData = IFerrumDeployer(msg.sender).initData();
-    }
+    constructor() EIP712(NAME, VERSION) {}
 
     /**
      *************** Owner only operations ***************
@@ -100,7 +98,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      @param _fiberRouter is the FiberRouter address
      */
     function setRouter(address _fiberRouter) external onlyOwner {
-        require(_fiberRouter != address(0), "FM: fiberRouter requried");
+        require(_fiberRouter != address(0), "FM: fiberRouter required");
         fiberRouter = _fiberRouter;
     }
 
@@ -184,7 +182,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         address targetAddress
     ) external onlyRouter returns(uint256) {
         address targetToken = allowedTargets[token][targetNetwork];
-        require(msg.sender != address(0), "FM: bad from");
         require(token != address(0), "FM: bad token");
         require(targetNetwork != 0, "FM: targetNetwork is requried");
         require(targetToken != address(0), "FM: bad target token");
@@ -227,11 +224,8 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(amount != 0, "FM: bad amount");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
-        bytes32 message =  keccak256(
-                abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry)
-            );
+        bytes32 message =  keccak256(abi.encode(WITHDRAW_SIGNED_METHOD, token, payee, amount, salt, expiry));
         address _signer = signerUnique(message, signature);
-
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
@@ -241,26 +235,28 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     * @dev Initiates a signed OneInch token withdrawal, exclusive to the router
+     * @dev Initiates a signed token withdrawal with swap, exclusive to the router
      * @notice Ensure valid parameters and router setup
      * @param to The address to withdraw to
      * @param amountIn The amount to be swapped in
-     * @param amountOut The expected amount out in the OneInch swap
+     * @param minAmountOut The minimum amount out from the swap
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
-     * @param oneInchData The data containing information for the 1inch swap
+     * @param router The router address
+     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
      * @return The actual amount of tokens withdrawn from Foundry
      */
-    function withdrawSignedOneInch(
+    function withdrawSignedAndSwapRouter(
         address to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -270,19 +266,20 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(to != address(0), "FM: bad payee");
         require(salt != 0, "FM: bad salt");
         require(amountIn != 0, "FM: bad amount");
-        require(amountOut != 0, "FM: bad amount");
+        require(minAmountOut != 0, "FM: bad amount");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
 
         bytes32 message =  keccak256(
                 abi.encode(
-                    WITHDRAW_SIGNED_ONEINCH__METHOD,
+                    WITHDRAW_SIGNED_WITH_SWAP_METHOD,
                     to,
                     amountIn,
-                    amountOut,
+                    minAmountOut,
                     foundryToken,
                     targetToken,
-                    oneInchData,
+                    router,
+                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -291,8 +288,8 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
-        TokenReceivable.sendToken(foundryToken, fiberRouter, amountIn);
-        emit TransferBySignature(_signer, fiberRouter, foundryToken, amountIn);
+        TokenReceivable.sendToken(foundryToken, msg.sender, amountIn);
+        emit TransferBySignature(_signer, msg.sender, foundryToken, amountIn);
         return amountIn;
     }
 
@@ -322,38 +319,41 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     * @dev Verifies details of a signed OneInch token withdrawal without execution
+     * @dev Verifies details of a signed token swap withdrawal without execution
      * @param to Recipient address on the target network
      * @param amountIn Tokens withdrawn from Foundry
-     * @param amountOut Expected tokens on the target network
+     * @param minAmountOut The minimum tokens on the target network
      * @param foundryToken Token withdrawn from Foundry
      * @param targetToken Token on the target network
-     * @param oneInchData The data containing information for the 1inch swap
+     * @param router The router address
+     * @param routerCalldata The data containing information for the 1inch swap
      * @param salt Unique identifier to prevent replay attacks
      * @param expiry Expiration timestamp of the withdrawal signature
      * @param signature Cryptographic signature for verification
      * @return Digest and signer's address from the provided signature
      */
-    function withdrawSignedOneInchVerify(
+    function withdrawSignedAndSwapRouterVerify(
         address to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
     ) external view returns (bytes32, address) {
         bytes32 message =  keccak256(
                 abi.encode(
-                    WITHDRAW_SIGNED_ONEINCH__METHOD,
+                    WITHDRAW_SIGNED_WITH_SWAP_METHOD,
                     to,
                     amountIn,
-                    amountOut,
+                    minAmountOut,
                     foundryToken,
                     targetToken,
-                    oneInchData,
+                    router,
+                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -398,25 +398,27 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
-     * @dev Cancels a signed OneInch token withdrawal
+     * @dev Cancels a signed token swap withdrawal
      * @notice Ensure valid parameters and router setup
      * @param to The address to withdraw to
      * @param amountIn The amount to be swapped in
-     * @param amountOut The expected amount out in the OneInch swap
+     * @param minAmountOut The minimum amount out from the swap
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
-     * @param oneInchData The data containing information for the 1inch swap
+     * @param router The router address
+     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
      */
-    function cancelFailedWithdrawSignedOneInch(
+    function cancelFailedwithdrawSignedAndSwapRouter(
         address to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -426,19 +428,20 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         require(to != address(0), "FM: bad payee");
         require(salt != 0, "FM: bad salt");
         require(amountIn != 0, "FM: bad amount");
-        require(amountOut != 0, "FM: bad amount");
+        require(minAmountOut != 0, "FM: bad amount");
         require(block.timestamp < expiry, "FM: signature timed out");
         require(expiry < block.timestamp + WEEK, "FM: expiry too far");
 
         bytes32 message =  keccak256(
                 abi.encode(
-                    WITHDRAW_SIGNED_ONEINCH__METHOD,
+                    WITHDRAW_SIGNED_WITH_SWAP_METHOD,
                     to,
                     amountIn,
-                    amountOut,
+                    minAmountOut,
                     foundryToken,
                     targetToken,
-                    oneInchData,
+                    router,
+                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
