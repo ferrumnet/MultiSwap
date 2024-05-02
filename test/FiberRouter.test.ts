@@ -1,6 +1,6 @@
 import hre from "hardhat"
 import { loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers"
-import addresses from "../constants/addresses.json"
+import addresses from "../constants/addresses_full.json"
 import { expect } from "chai";
 import { Contract, AbiCoder, id, Signer, keccak256 } from "ethers";
 import { multiswap } from "../deploy/multiswap"

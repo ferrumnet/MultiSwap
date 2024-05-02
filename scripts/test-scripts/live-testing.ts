@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ContractTransactionResponse } from "ethers"
-import addresses from "../../constants/addresses.json"
+import addresses from "../../constants/addresses_full.json"
 import fiberRouterArtifact from "../../artifacts/contracts/multiswap-contracts/FiberRouter.sol/FiberRouter.json"
 import usdcAbi from "../abis/Usdc.json"
 import wethAbi from "../abis/Weth.json"
