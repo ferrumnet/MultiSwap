@@ -20,7 +20,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         );
     bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "WithdrawSignedWithSwap(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
+            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -249,7 +249,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param signature The multi-signature data
      * @return The actual amount of tokens withdrawn from Foundry
      */
-    function withdrawSignedWithSwap(
+    function withdrawSignedAndSwapRouter(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -332,7 +332,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param signature Cryptographic signature for verification
      * @return Digest and signer's address from the provided signature
      */
-    function withdrawSignedWithSwapVerify(
+    function withdrawSignedAndSwapRouterVerify(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -411,7 +411,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
      */
-    function cancelFailedWithdrawSignedWithSwap(
+    function cancelFailedwithdrawSignedAndSwapRouter(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,
