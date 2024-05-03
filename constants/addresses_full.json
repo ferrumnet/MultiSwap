@@ -165,7 +165,7 @@
         "zksync": {
             "chainId": 324,
             "weth": "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91",
-            "foundry": "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4",
+            "foundry": "0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4",
             "routers": [
                 {
                     "router": "0x6fd4383cB451173D5f9304F041C7BCBf27d561fF",
