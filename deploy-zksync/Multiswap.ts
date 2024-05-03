@@ -55,7 +55,7 @@ const deployScript = async function (hre: HardhatRuntimeEnvironment) {
     // await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
     // await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
 
-    let amount = "5000000"
+    let amount = "1"
     // // await sendTx(usdc.approve(fundManager, MaxUint256), "Approve successful")
     await sendTx(fundManager.addLiquidityByManager(foundry, BigInt(amount)), "addLiquidity successful")
 

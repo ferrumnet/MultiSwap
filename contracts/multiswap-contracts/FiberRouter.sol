@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.2;
+pragma solidity ^0.8.24;
 
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
@@ -24,6 +24,12 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
     address payable public gasWallet;
     mapping(bytes32 => bool) private routerAllowList;
     mapping(uint256 => TargetNetwork) public targetNetworks;
+
+    struct SwapCrossData {
+        uint256 targetNetwork;
+        address targetToken;
+        address targetAddress;
+    }
 
     struct TargetNetwork {
         uint32 targetNetworkDomain;
@@ -263,27 +269,22 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @dev Initiates a token swap.
      * @param token The token to be swapped.
      * @param amount The amount to be swapped.
-     * @param targetNetwork The target network for the swap.
-     * @param targetToken The target token for the swap.
-     * @param targetAddress The target address for the swap.
      * @param withdrawalData Data related to the withdrawal.
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
     function swapSigned(
         address token,
         uint256 amount,
-        uint256 targetNetwork,
-        address targetToken,
-        address targetAddress,
+        SwapCrossData memory sd,
         bytes32 withdrawalData,
         bool cctpType,
         FeeDistributionData memory feeDistributionData
     ) external payable nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
-        require(targetToken != address(0), "FR: Target token address cannot be zero");
-        require(targetNetwork != 0, "FR: Target network is required");
-        require(targetAddress != address(0), "FR: Target address cannot be zero");
+        require(sd.targetToken != address(0), "FR: Target token address cannot be zero");
+        require(sd.targetNetwork != 0, "FR: Target network is required");
+        require(sd.targetAddress != address(0), "FR: Target address cannot be zero");
         require(amount != 0, "FR: Amount must be greater than zero");
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
@@ -297,7 +298,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
 
         // Perform the token swap based on swapCCTP flag
         if (cctpType) {
-            TargetNetwork storage target = targetNetworks[targetNetwork];
+            TargetNetwork storage target = targetNetworks[sd.targetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
             require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
             require(token == usdcToken, "FR: Only USDC deposits allowed for CCTP swaps");
@@ -319,19 +320,19 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             amount = FundManager(pool).swapToAddress(
                 token,
                 amount,
-                targetNetwork,
-                targetAddress
+                sd.targetNetwork,
+                sd.targetAddress
             );
 
             // Emit normal swap event
             emit Swap(
                 token,
-                targetToken,
+                sd.targetToken,
                 block.chainid,
-                targetNetwork,
+                sd.targetNetwork,
                 amount,
                 _msgSender(),
-                targetAddress,
+                sd.targetAddress,
                 amount,
                 withdrawalData,
                 msg.value
@@ -347,9 +348,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @param foundryToken The foundry token used for the swap
      * @param router The router address
      * @param routerCalldata The calldata for the swap
-     * @param crossTargetNetwork The target network for the swap
-     * @param crossTargetToken The target token for the cross-chain swap
-     * @param crossTargetAddress The target address for the cross-chain swap
      * @param withdrawalData Data related to the withdrawal
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
@@ -360,9 +358,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         address foundryToken,
         address router,
         bytes memory routerCalldata,
-        uint256 crossTargetNetwork,
-        address crossTargetToken,
-        address crossTargetAddress,
+        SwapCrossData memory sd,
         bytes32 withdrawalData,
         bool cctpType,
         FeeDistributionData memory feeDistributionData
@@ -370,17 +366,17 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(fromToken != address(0), "FR: From token address cannot be zero");
         require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
-        require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
+        require(sd.targetToken != address(0), "FR: Cross target token address cannot be zero");
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
         require(withdrawalData != 0, "FR: withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
 
-        amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
+        uint256 _amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
         uint256 amountOut = _swapAndCheckSlippage(
             address(this),
             fromToken,
             foundryToken,
-            amountIn,
+            _amountIn,
             minAmountOut,
             router,
             routerCalldata
@@ -388,7 +384,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
 
         if (cctpType) {
-            TargetNetwork storage target = targetNetworks[crossTargetNetwork];
+            TargetNetwork storage target = targetNetworks[sd.targetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
             require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
             uint64 depositNonce = _swapCCTP(amountOut, foundryToken, target.targetNetworkDomain, target.targetFundManager);
@@ -408,8 +404,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             FundManager(pool).swapToAddress(
                 foundryToken,
                 amountOut,
-                crossTargetNetwork,
-                crossTargetAddress
+                sd.targetNetwork,
+                sd.targetAddress
             );
         }
 
@@ -419,12 +415,12 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
 
         emit Swap(
             fromToken,
-            crossTargetToken,
+            sd.targetToken,
             block.chainid,
-            crossTargetNetwork,
-            amountIn,
+            sd.targetNetwork,
+            _amountIn,
             _msgSender(),
-            crossTargetAddress,
+            sd.targetAddress,
             amountOut,
             withdrawalData,
             msg.value
@@ -438,9 +434,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @param gasFee The gas fee being charged on withdrawal
      * @param router The router address
      * @param routerCalldata The calldata for the swap
-     * @param crossTargetNetwork The target network for the swap
-     * @param crossTargetToken The target token for the cross-chain swap
-     * @param crossTargetAddress The target address for the cross-chain swap
      * @param withdrawalData Data related to the withdrawal
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
@@ -450,9 +443,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         uint256 gasFee,
         address router,
         bytes memory routerCalldata,
-        uint256 crossTargetNetwork,
-        address crossTargetToken,
-        address crossTargetAddress,
+        SwapCrossData memory sd,
         bytes32 withdrawalData,
         bool cctpType,
         FeeDistributionData memory feeDistributionData
@@ -461,7 +452,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(msg.value - gasFee != 0, "FR: Amount in must be greater than zero");
         require(gasFee != 0, "FR: Gas fee must be greater than zero");
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
-        require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
+        require(sd.targetToken != address(0), "FR: Cross target token address cannot be zero");
         require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
 
@@ -480,7 +471,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
 
         if (cctpType) {
-            TargetNetwork storage target = targetNetworks[crossTargetNetwork];
+            TargetNetwork storage target = targetNetworks[sd.targetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
             require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
             uint64 depositNonce = _swapCCTP(amountOut, foundryToken, target.targetNetworkDomain, target.targetFundManager);
@@ -500,8 +491,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             FundManager(pool).swapToAddress(
                 foundryToken,
                 amountOut,
-                crossTargetNetwork,
-                crossTargetAddress
+                sd.targetNetwork,
+                sd.targetAddress
             );
         }
 
@@ -512,12 +503,12 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         uint256 _gasFee = gasFee; // to avoid stack too deep error
         emit Swap(
             weth,
-            crossTargetToken,
+            sd.targetToken,
             block.chainid,
-            crossTargetNetwork,
+            sd.targetNetwork,
             msg.value - _gasFee,
             _msgSender(),
-            crossTargetAddress,
+            sd.targetAddress,
             amountOut,
             withdrawalData,
             _gasFee

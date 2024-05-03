@@ -53,17 +53,17 @@ const config: HardhatUserConfig = {
     localhost: {
       chainId: 31337,
       accounts: [process.env.PRIVATE_KEY0!],
-      forking: {
-        url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
-        // blockNumber: 5282922
-      },
+      // forking: {
+      //   url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
+      //   // blockNumber: 5282922
+      // },
     },
     hardhat: {
       chainId: 31337,
-      forking: {
-        url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
-        // blockNumber: 5282922
-      },
+      // forking: {
+      //   url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
+      //   // blockNumber: 5282922
+      // },
     },
     baseSepolia: {
       url: 'https://base-sepolia.g.alchemy.com/v2/uPXJr7oN2Ayz-84TDwKU3ZHCtE9zKuXv',
@@ -161,6 +161,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.scrollscan.com/api",
           browserURL: "https://scrollscan.com"
+        }
+      },
+      {
+        network: "zkCustom",
+        chainId: 324,
+        urls: {
+          apiURL: "https://api-era.zksync.network/api",
+          browserURL: "https://era.zksync.network/"
         }
       }
     ]

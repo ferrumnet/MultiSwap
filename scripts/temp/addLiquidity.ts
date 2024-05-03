@@ -21,9 +21,9 @@ const addLiquidity = async function () {
     // ForgeFundManager:     0xc7F2c8472f4cCE8a11373203B5B55586CB030928
     // CCTPFundManager:     0xa1F125c53c08B36659ebBA4faAb8046a82cF5C21
 
-    const fundManagerAddress = "0x2AB6D6c328978D0DCC5a9ac0BA04E45e358e3B9a"
+    const fundManagerAddress = "0xB4A5D95BFEC6AFd359e05aA982718C11bF04a7Ff"
     const forgeFundManagerAddress = "0xc7F2c8472f4cCE8a11373203B5B55586CB030928"
-    const multiswapForgeAddress = "0x699ed12c8B40f8F7d2b2cCB6Ab922193c0e8064A"
+    const multiswapForgeAddress = "0x065b063aB44D26B51321dAb28b71D2290B43dDc4"
     const fiberRouterAddress = "0xbB1886FA834917716049094090387DEa0680BFFc"
 
     const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
@@ -55,7 +55,7 @@ const addLiquidity = async function () {
     //     );
     // }
 
-    await sendTx(fundManager.addSigner("0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B"), "addSigner successful")
+    await sendTx(multiswapForge.setGasEstimationAddress(addresses.gasEstimationWallet), "setGasEstimationAddress successful")
     // await sendTx(fiberRouter.addSiger(signer[0].address), "addSigner successful")
 }
 
