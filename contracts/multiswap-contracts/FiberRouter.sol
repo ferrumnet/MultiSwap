@@ -2,6 +2,7 @@
 pragma solidity 0.8.2;
 
 import "./FundManager.sol";
+import "./CCTPFundManager.sol";
 import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
 import "../common/oneInch/IOneInchSwap.sol";
@@ -22,9 +23,10 @@ contract FiberRouter is Ownable, TokenReceivable {
     mapping(bytes32 => bool) private routerAllowList;
     address public usdcToken;
     address public cctpTokenMessenger;
+    address public sourceCCTPFundManager;
     struct TargetNetwork {
         uint32 targetNetworkDomain;
-        address targetFundManager;
+        address targetCCTPFundManager;
     }
     mapping(uint256 => TargetNetwork) public targetNetworks;
 
@@ -65,7 +67,7 @@ contract FiberRouter is Ownable, TokenReceivable {
         bytes signature
     );
 
-    event WithdrawRouter(
+    event WithdrawWithSwap(
         address to,
         uint256 amountIn,
         uint256 amountOut,
@@ -230,14 +232,14 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @notice Add a new target CCTP network.
      * @param _chainID The target network chain ID
      * @param _targetNetworkDomain The domain of the target network.
-     * @param _targetFundManager The fund manager address for the target network.
+     * @param _targetCCTPFundManager The fund manager address for the target network.
      */
-    function setTargetCCTPNetwork(uint256 _chainID, uint32 _targetNetworkDomain, address _targetFundManager) external {
+    function setTargetCCTPNetwork(uint256 _chainID, uint32 _targetNetworkDomain, address _targetCCTPFundManager) external {
         require(_targetNetworkDomain != 0, "FR: Invalid Target Network Domain");
         require(_chainID != 0, "FR: Invalid Target Network ChainID");
-        require(_targetFundManager != address(0), "FR: Invalid Target CCTP Fund Manager address");
+        require(_targetCCTPFundManager != address(0), "FR: Invalid Target CCTP Fund Manager address");
 
-        targetNetworks[_chainID] = TargetNetwork(_targetNetworkDomain, _targetFundManager);
+        targetNetworks[_chainID] = TargetNetwork(_targetNetworkDomain, _targetCCTPFundManager);
     }
 
     /**
@@ -245,16 +247,20 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @dev This function should be called by the contract owner to set the necessary parameters for CCTP.
      * @param _cctpTokenMessenger The address of the CCTP Token Messenger contract.
      * @param _usdcToken The address of the USDC token contract.
+     * @param _sourceCCTPFundManager The address of the fund manager on the source network.
      **/
     function initCCTP(
         address _cctpTokenMessenger,
-        address _usdcToken
+        address _usdcToken,
+        address _sourceCCTPFundManager
     ) external onlyOwner {
         require(_cctpTokenMessenger != address(0), "FR: Invalid CCTP Token Messenger address");
         require(_usdcToken != address(0), "FR: Invalid USDC Token address");
+        require(_sourceCCTPFundManager != address(0), "FR: Invalid Source CCTP Fund Manager address");
 
         cctpTokenMessenger = _cctpTokenMessenger;
         usdcToken = _usdcToken;
+        sourceCCTPFundManager = _sourceCCTPFundManager;
     }
 
     /**
@@ -293,11 +299,11 @@ contract FiberRouter is Ownable, TokenReceivable {
         if (cctpType) {
             TargetNetwork storage target = targetNetworks[targetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
-            require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
+            require(target.targetCCTPFundManager != address(0), "FR: Target CCTP FundManager address not found");
             require(token == usdcToken, "FR: Only USDC deposits allowed for CCTP swaps");
             // Proceed with the CCTP swap logic
             amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
-            uint64 depositNonce = _swapCCTP(amount, token, target.targetNetworkDomain, target.targetFundManager);
+            uint64 depositNonce = _swapCCTP(amount, token, target.targetNetworkDomain, target.targetCCTPFundManager);
 
             emit CCTPSwap(
                 token,
@@ -305,7 +311,7 @@ contract FiberRouter is Ownable, TokenReceivable {
                 block.chainid,
                 target.targetNetworkDomain,
                 _msgSender(),
-                target.targetFundManager,
+                target.targetCCTPFundManager,
                 depositNonce
             );
         } else {
@@ -390,8 +396,8 @@ contract FiberRouter is Ownable, TokenReceivable {
 
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
-            require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
-            uint64 depositNonce = _swapCCTP(amountOut, foundryToken, target.targetNetworkDomain, target.targetFundManager);
+            require(target.targetCCTPFundManager != address(0), "FR: Target CCTP FundManager address not found");
+            uint64 depositNonce = _swapCCTP(amountOut, foundryToken, target.targetNetworkDomain, target.targetCCTPFundManager);
 
             emit CCTPSwap(
                 foundryToken,
@@ -399,7 +405,7 @@ contract FiberRouter is Ownable, TokenReceivable {
                 block.chainid,
                 target.targetNetworkDomain,
                 _msgSender(),
-                target.targetFundManager,
+                target.targetCCTPFundManager,
                 depositNonce
             );
         
@@ -493,8 +499,8 @@ contract FiberRouter is Ownable, TokenReceivable {
 
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
-            require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
-            uint64 depositNonce = _swapCCTP(amountOut, foundryToken, target.targetNetworkDomain, target.targetFundManager);
+            require(target.targetCCTPFundManager != address(0), "FR: Target CCTP FundManager address not found");
+            uint64 depositNonce = _swapCCTP(amountOut, foundryToken, target.targetNetworkDomain, target.targetCCTPFundManager);
 
             emit CCTPSwap(
                 foundryToken,
@@ -502,7 +508,7 @@ contract FiberRouter is Ownable, TokenReceivable {
                 block.chainid,
                 target.targetNetworkDomain,
                 _msgSender(),
-                target.targetFundManager,
+                target.targetCCTPFundManager,
                 depositNonce
             );
 
@@ -553,6 +559,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param amount The amount
      * @param salt The salt for unique tx 
      * @param expiry The expiration time for the signature
+     * @param cctpType Type of withdrawal: true for CCTP, false for normal
      * @param multiSignature The multisig validator signature
      */
     function withdrawSigned(
@@ -561,7 +568,8 @@ contract FiberRouter is Ownable, TokenReceivable {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public virtual nonReentrant {
         // Validate input parameters
         require(token != address(0), "FR: Token address cannot be zero");
@@ -569,7 +577,9 @@ contract FiberRouter is Ownable, TokenReceivable {
         require(amount != 0, "FR: Amount must be greater than zero");
         require(salt > bytes32(0), "FR: Salt must be greater than zero bytes");
 
-        amount = FundManager(pool).withdrawSigned(
+        address _pool = cctpType ? sourceCCTPFundManager : pool;
+
+        amount = FundManager(_pool).withdrawSigned(
             token,
             payee,
             amount,
@@ -593,6 +603,7 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param routerCalldata The calldata for the swap
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
+     * @param cctpType Boolean indicating if swap to CCTP
      * @param multiSignature The multi-signature data
      */
     function withdrawSignedAndSwapRouter(
@@ -605,7 +616,8 @@ contract FiberRouter is Ownable, TokenReceivable {
         bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public virtual nonReentrant {
         require(foundryToken != address(0), "Bad Token Address");
         require(targetToken != address(0), "FR: Target token address cannot be zero");
@@ -613,7 +625,9 @@ contract FiberRouter is Ownable, TokenReceivable {
         require(minAmountOut != 0, "Amount out minimum must be greater than zero");
         require(foundryToken != address(0), "Bad Token Address");
 
-        amountIn = FundManager(pool).withdrawSignedAndSwapRouter(
+        address _pool = cctpType ? sourceCCTPFundManager : pool;
+        
+        amountIn = FundManager(_pool).withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,
@@ -636,7 +650,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             routerCalldata
         );
 
-        emit WithdrawRouter(
+        emit WithdrawWithSwap(
             to,
             amountIn,
             amountOut,
@@ -706,16 +720,16 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param amountIn The amount of tokens to be swapped.
      * @param fromToken The token be burned on source network & deposited on target
      * @param targetNetworkDomain The domain of the target network.
-     * @param targetFundManager The target network CCTP FundManager address
+     * @param targetCCTPFundManager The target network CCTP FundManager address
      */
-    function _swapCCTP(uint256 amountIn, address fromToken, uint32 targetNetworkDomain, address targetFundManager) internal returns (uint64 depositNonce){
+    function _swapCCTP(uint256 amountIn, address fromToken, uint32 targetNetworkDomain, address targetCCTPFundManager) internal returns (uint64 depositNonce){
 
         require(IERC20(fromToken).approve(cctpTokenMessenger, amountIn), "Approval failed");
 
         depositNonce = ICCTPTokenMessenger(cctpTokenMessenger).depositForBurn(
             amountIn,
             targetNetworkDomain,
-            bytes32(uint256(uint160(targetFundManager))),
+            bytes32(uint256(uint160(targetCCTPFundManager))),
             usdcToken
         );
     }        

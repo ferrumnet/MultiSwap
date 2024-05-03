@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
-import "hardhat/console.sol";
 
 abstract contract LiquidityManagerRole is WithAdmin, TokenReceivable {
     using SafeERC20 for IERC20;
@@ -58,7 +57,6 @@ abstract contract LiquidityManagerRole is WithAdmin, TokenReceivable {
         require(amount != 0, "FM: Amount must be positive");
         require(token != address(0), "FM: Bad token");
         // Transfer tokens from the sender to the FundManager
-        console.log(token);
         SafeAmount.safeTransferFrom(token, msg.sender, address(this), amount);
         // Update the inventory using sync
         amount = TokenReceivable.sync(token);
