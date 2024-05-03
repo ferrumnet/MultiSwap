@@ -66,9 +66,9 @@ export const multiswap = async function (
     await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
     await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
 
-    let amount = "5000000"
+    let amount = "50000000"
     await sendTx(usdc.approve(fundManager, MaxUint256), "Approve successful")
-    await sendTx(fundManager.addLiquidityByManager(foundry, BigInt(amount)), "addLiquidity successful")
+    // await sendTx(fundManager.addLiquidityByManager(foundry, BigInt(amount)), "addLiquidity successful")
 
     console.log("\n##### MultiSwapForge configs #####")
     await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
@@ -79,10 +79,10 @@ export const multiswap = async function (
     await sendTx(forgeManager.setRouter(multiswapForge), "setRouter successful")
     await sendTx(forgeManager.addFoundryAsset(foundry), "addFoundryAsset successful")
 
-    amount = "1000000"
+    amount = "10000000"
     await sendTx(forgeManager.setLiquidityManagers(signer[0], addresses.liquidityManagerBot), "setLiquidityManagers successful")
     await sendTx(usdc.approve(forgeManager, MaxUint256), "Approve successful")
-    await sendTx(forgeManager.addLiquidityByManager(usdc, BigInt(amount)), "addLiquidity successful")
+    // await sendTx(forgeManager.addLiquidityByManager(usdc, BigInt(amount)), "addLiquidity successful")
 
     // Add routers and selectors. Selectors need to be computed with scripts/computeSelectors.ts and added to constants/addresses.json beforehand
     console.log("\n##### Adding routers and selectors #####")
