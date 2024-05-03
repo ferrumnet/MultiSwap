@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.2;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -24,7 +24,14 @@ contract FeeDistributor is EIP712, Ownable {
 
     struct FeeAllocation {
         address recipient;
-        uint256 rateInBps;
+        uint16 rateInBps;
+    }
+
+    struct FeeDistributionData {
+        FeeAllocation[] feeAllocations;
+        bytes32 salt;
+        uint256 expiry;
+        bytes signature;
     }
 
     constructor() EIP712(NAME, VERSION) {}
@@ -49,22 +56,16 @@ contract FeeDistributor is EIP712, Ownable {
     function _distributeFees(
         address token,
         uint256 preFeeAmount,
-        FeeAllocation[] calldata feeAllocations,
-        bytes32 salt,
-        uint256 expiry,
-        bytes calldata signature
+        FeeDistributionData memory fdd
     ) internal returns (uint256) {
-        require(
-            _verify(token, feeAllocations, salt, expiry, signature),
-            "FD: Invalid signature"
-        );
+        require(_verify(token, fdd), "FD: Invalid signature");
 
         uint256 totalBps;
         uint256 totalFees;
-        for (uint256 i = 0; i < feeAllocations.length; i++) {
-            uint256 amount = (preFeeAmount * feeAllocations[i].rateInBps) / FEE_DENOMINATOR;
-            IERC20(token).safeTransferFrom(address(this), feeAllocations[i].recipient, amount);
-            totalBps += feeAllocations[i].rateInBps;
+        for (uint256 i = 0; i < fdd.feeAllocations.length; i++) {
+            uint256 amount = (preFeeAmount * fdd.feeAllocations[i].rateInBps) / FEE_DENOMINATOR;
+            IERC20(token).safeTransferFrom(address(this), fdd.feeAllocations[i].recipient, amount);
+            totalBps += fdd.feeAllocations[i].rateInBps;
             totalFees += amount;
         }
         require(totalBps <= MAX_FEE_BPS, "FD: exceeds MAX_FEE_BPS");
@@ -73,32 +74,29 @@ contract FeeDistributor is EIP712, Ownable {
 
     function _verify(
         address token,
-        FeeAllocation[] calldata feeAllocations,
-        bytes32 salt,
-        uint256 expiry,
-        bytes calldata signature
+        FeeDistributionData memory fdd
     ) private returns (bool) {
-        require(block.timestamp < expiry, "FD: signature timed out");
-        require(expiry < block.timestamp + (30 * MINUTE) , "FD: expiry too far"); // 30 minutes probably too generous. Users should be submitting tx soon after quote on source chain
-        require(!usedSalt[salt], "FM: salt already used");
-        usedSalt[salt] = true;
+        require(block.timestamp < fdd.expiry, "FD: signature timed out");
+        require(fdd.expiry < block.timestamp + (30 * MINUTE) , "FD: expiry too far"); // 30 minutes probably too generous. Users should be submitting tx soon after quote on source chain
+        require(!usedSalt[fdd.salt], "FM: salt already used");
+        usedSalt[fdd.salt] = true;
 
         bytes32 structHash = keccak256(
             abi.encode(
                 DISTRIBUTE_FEES_TYPEHASH,
                 token,
-                keccak256(_encodeFeeAllocations(feeAllocations)),
-                salt,
-                expiry
+                keccak256(_encodeFeeAllocations(fdd.feeAllocations)),
+                fdd.salt,
+                fdd.expiry
             )
         );
 
         bytes32 digest = _hashTypedDataV4(structHash);
-        address signer = ECDSA.recover(digest, signature);
+        address signer = ECDSA.recover(digest, fdd.signature);
         return signers[signer];
     }
 
-    function _encodeFeeAllocations(FeeAllocation[] calldata feeAllocations) private pure returns (bytes memory) {
+    function _encodeFeeAllocations(FeeAllocation[] memory feeAllocations) private pure returns (bytes memory) {
         bytes32[] memory encodedFeeAllocations = new bytes32[](feeAllocations.length);
         for (uint256 i = 0; i < feeAllocations.length; i++) {
             encodedFeeAllocations[i] = keccak256(abi.encode(FEE_ALLOCATION_TYPEHASH, feeAllocations[i].recipient, feeAllocations[i].rateInBps));

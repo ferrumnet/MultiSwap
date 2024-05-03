@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+pragma solidity ^0.8.2;
 
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
@@ -277,10 +277,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         address targetAddress,
         bytes32 withdrawalData,
         bool cctpType,
-        FeeAllocation[] calldata feeAllocations,
-        bytes32 salt,
-        uint256 expiry,
-        bytes calldata signature
+        FeeDistributionData memory feeDistributionData
     ) external payable nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -296,7 +293,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(success, "FR: Gas fee transfer failed");
 
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
-        amount = _distributeFees(token, amount, feeAllocations, salt, expiry, signature);
+        amount = _distributeFees(token, amount, feeDistributionData);
 
         // Perform the token swap based on swapCCTP flag
         if (cctpType) {
@@ -368,10 +365,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         address crossTargetAddress,
         bytes32 withdrawalData,
         bool cctpType,
-        FeeAllocation[] calldata feeAllocations,
-        bytes32 salt,
-        uint256 expiry,
-        bytes calldata signature
+        FeeDistributionData memory feeDistributionData
     ) external payable nonReentrant {
         require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(fromToken != address(0), "FR: From token address cannot be zero");
@@ -380,7 +374,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
         require(withdrawalData != 0, "FR: withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
-
 
         amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
         uint256 amountOut = _swapAndCheckSlippage(
@@ -392,7 +385,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             router,
             routerCalldata
         );
-        amountOut = _distributeFees(foundryToken, amountOut, feeAllocations, salt, expiry, signature);
+        amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
 
         if (cctpType) {
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
@@ -424,13 +417,12 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         (bool success, ) = payable(gasWallet).call{value: msg.value}("");
         require(success, "FR: Gas fee transfer failed");
 
-        uint256 _amountIn = amountIn; // to avoid stack too deep error
         emit Swap(
             fromToken,
             crossTargetToken,
             block.chainid,
             crossTargetNetwork,
-            _amountIn,
+            amountIn,
             _msgSender(),
             crossTargetAddress,
             amountOut,
@@ -463,14 +455,10 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         address crossTargetAddress,
         bytes32 withdrawalData,
         bool cctpType,
-        FeeAllocation[] calldata feeAllocations,
-        bytes32 salt,
-        uint256 expiry,
-        bytes calldata signature
+        FeeDistributionData memory feeDistributionData
     ) external payable {
-        uint256 amountIn = msg.value - gasFee;
 
-        require(amountIn != 0, "FR: Amount in must be greater than zero");
+        require(msg.value - gasFee != 0, "FR: Amount in must be greater than zero");
         require(gasFee != 0, "FR: Gas fee must be greater than zero");
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
         require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
@@ -478,18 +466,18 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
 
         // Deposit ETH (excluding gas fee) for WETH and swap
-        IWETH(weth).deposit{value: amountIn}();
+        IWETH(weth).deposit{value: msg.value - gasFee}();
         uint256 _minAmountOut = minAmountOut; // to avoid stack too deep error
         uint256 amountOut = _swapAndCheckSlippage(
             address(this),
             weth,
             foundryToken,
-            amountIn,
+            msg.value - gasFee,
             _minAmountOut,
             router,
             routerCalldata
         );
-        amountOut = _distributeFees(foundryToken, amountOut, feeAllocations, salt, expiry, signature);
+        amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
 
         if (cctpType) {
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
@@ -527,7 +515,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             crossTargetToken,
             block.chainid,
             crossTargetNetwork,
-            amountIn,
+            msg.value - _gasFee,
             _msgSender(),
             crossTargetAddress,
             amountOut,
