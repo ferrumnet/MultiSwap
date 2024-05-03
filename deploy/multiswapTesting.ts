@@ -22,126 +22,127 @@ export const multiswap = async function (
 
     // Deploy FerrumDeployer
     const signer = await hre.ethers.getSigners()
-    // const ferrumDeployer = await (await hre.ethers.deployContract("FerrumDeployer")).waitForDeployment()
+    const ferrumDeployer = await (await hre.ethers.deployContract("FerrumDeployer")).waitForDeployment()
 
     // Deploy contracts
-    // const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "ForgeFundManager"]
-    // for (const contract of contracts) {
-    //     console.log(`Deploying ${contract}`)
-    //     const factory = await hre.ethers.getContractFactory(contract)
-    //     const tx = await ferrumDeployer.deployOwnable(salt, signer[0].address, "0x", factory.bytecode)
-    //     const receipt = await tx.wait()
-    //     const address = (receipt.logs[0].address)
-    //     contractInstances[contract] = new hre.ethers.Contract(address, factory.interface, signer[0])
-    // }
-    // const fundManager = contractInstances['FundManager']
-    // const fiberRouter = contractInstances['FiberRouter']
-    // const multiswapForge = contractInstances['MultiSwapForge']
-    // const forgeManager = contractInstances['ForgeFundManager']
+    const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "ForgeFundManager"]
+    for (const contract of contracts) {
+        console.log(`Deploying ${contract}`)
+        const factory = await hre.ethers.getContractFactory(contract)
+        const tx = await ferrumDeployer.deployOwnable(salt, signer[0].address, "0x", factory.bytecode)
+        const receipt = await tx.wait()
+        const address = (receipt.logs[0].address)
+        console.log("Address: "+ address)
+        contractInstances[contract] = new hre.ethers.Contract(address, factory.interface, signer[0])
+    }
+    const fundManager = contractInstances['FundManager']
+    const fiberRouter = contractInstances['FiberRouter']
+    const multiswapForge = contractInstances['MultiSwapForge']
+    const forgeManager = contractInstances['ForgeFundManager']
 
-    const fundManagerAddress = "0x089DD5F8c7d3d59E6E88e3AEde61825589206f24"
-    const fiberRouterAddress = "0xa071f481B56d6d137eE851C44D703A0d0BE8d353"
-    const multiswapForgeAddress = "0x7Ec6ac6Ec1aA2caCbe7da122CFff15206c5bC8bF"
-    const forgeFundManagerAddress = "0x1738710f51b56ca23A8DBC800044Bd0404FFA5d9"
+    // const fundManagerAddress = "0x089DD5F8c7d3d59E6E88e3AEde61825589206f24"
+    // const fiberRouterAddress = "0xa071f481B56d6d137eE851C44D703A0d0BE8d353"
+    // const multiswapForgeAddress = "0x7Ec6ac6Ec1aA2caCbe7da122CFff15206c5bC8bF"
+    // const forgeFundManagerAddress = "0x1738710f51b56ca23A8DBC800044Bd0404FFA5d9"
 
-    const fiberRouter = new hre.ethers.Contract(fiberRouterAddress, fiberRouterArtifact.abi, signer[0])
-    const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
-    const multiswapForge = new hre.ethers.Contract(multiswapForgeAddress, multiswapForgeArtifact.abi, signer[0])
-    const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
+    // const fiberRouter = new hre.ethers.Contract(fiberRouterAddress, fiberRouterArtifact.abi, signer[0])
+    // const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
+    // const multiswapForge = new hre.ethers.Contract(multiswapForgeAddress, multiswapForgeArtifact.abi, signer[0])
+    // const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
     
     const usdc = new hre.ethers.Contract(foundry, usdcAbi, signer[0])
 
-    // // Post deploy configs
-    // console.log("\n##### FiberRouter configs #####")
-    // await sendTx(fiberRouter.setWeth(weth), "setWeth successful")
-    // await sendTx(fiberRouter.setPool(fundManager), "setPool successful")
-    // await sendTx(fiberRouter.setGasWallet(addresses.gasWallet), "setGasWallet successful")
+    // Post deploy configs
+    console.log("\n##### FiberRouter configs #####")
+    await sendTx(fiberRouter.setWeth(weth), "setWeth successful")
+    await sendTx(fiberRouter.setPool(fundManager), "setPool successful")
+    await sendTx(fiberRouter.setGasWallet(addresses.gasWallet), "setGasWallet successful")
     
-    // console.log("\n##### FundManager configs #####")
-    // await sendTx(fundManager.setRouter(fiberRouter), "setRouter successful")
-    // await sendTx(fundManager.addFoundryAsset(foundry), "addFoundryAsset successful")
-    // await sendTx(fundManager.addSigner(addresses.signer), "addSigner successful")
-    // await sendTx(fundManager.setLiquidityManagers(signer[0], addresses.liquidityManagerBot), "setLiquidityManagers successful")
-    // await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
-    // await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
+    console.log("\n##### FundManager configs #####")
+    await sendTx(fundManager.setRouter(fiberRouter), "setRouter successful")
+    await sendTx(fundManager.addFoundryAsset(foundry), "addFoundryAsset successful")
+    await sendTx(fundManager.addSigner(addresses.signer), "addSigner successful")
+    await sendTx(fundManager.setLiquidityManagers(signer[0], addresses.liquidityManagerBot), "setLiquidityManagers successful")
+    await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
+    await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
 
-    // let amount = thisNetwork == "binance" ? "5000000000000000000" : "5000000"
-    // await sendTx(usdc.approve(fundManager, MaxUint256), "Approve successful")
-    // await sendTx(fundManager.addLiquidityByManager(foundry, BigInt(amount)), "addLiquidity successful")
+    let amount = "5000000"
+    await sendTx(usdc.approve(fundManager, MaxUint256), "Approve successful")
+    await sendTx(fundManager.addLiquidityByManager(foundry, BigInt(amount)), "addLiquidity successful")
 
-    // console.log("\n##### MultiSwapForge configs #####")
-    // await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
-    // await sendTx(multiswapForge.setPool(forgeManager), "setPool successful")
-    // await sendTx(multiswapForge.setGasEstimationAddress(addresses.gasEstimationWallet), "setGasEstimationAddress successful")
+    console.log("\n##### MultiSwapForge configs #####")
+    await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
+    await sendTx(multiswapForge.setPool(forgeManager), "setPool successful")
+    await sendTx(multiswapForge.setGasEstimationAddress(addresses.gasEstimationWallet), "setGasEstimationAddress successful")
 
-    // console.log("\n##### ForgeFundManager configs #####")
-    // await sendTx(forgeManager.setRouter(multiswapForge), "setRouter successful")
-    // await sendTx(forgeManager.addFoundryAsset(foundry), "addFoundryAsset successful")
+    console.log("\n##### ForgeFundManager configs #####")
+    await sendTx(forgeManager.setRouter(multiswapForge), "setRouter successful")
+    await sendTx(forgeManager.addFoundryAsset(foundry), "addFoundryAsset successful")
 
-    // amount = thisNetwork == "binance" ? "1000000000000000000" : "1000000"
-    // await sendTx(forgeManager.setLiquidityManagers(signer[0], addresses.liquidityManagerBot), "setLiquidityManagers successful")
-    // await sendTx(usdc.approve(forgeManager, MaxUint256), "Approve successful")
-    // await sendTx(forgeManager.addLiquidityByManager(usdc, BigInt(amount)), "addLiquidity successful")
+    amount = "1000000"
+    await sendTx(forgeManager.setLiquidityManagers(signer[0], addresses.liquidityManagerBot), "setLiquidityManagers successful")
+    await sendTx(usdc.approve(forgeManager, MaxUint256), "Approve successful")
+    await sendTx(forgeManager.addLiquidityByManager(usdc, BigInt(amount)), "addLiquidity successful")
 
-    // // Add routers and selectors. Selectors need to be computed with scripts/computeSelectors.ts and added to constants/addresses.json beforehand
-    // console.log("\n##### Adding routers and selectors #####")
-    // const swapRouters = addresses.networks[thisNetwork].routers
-    // for (const swapRouter of swapRouters) {
-    //     console.log(`For router: ${swapRouter.router}`)
-    //     const router = swapRouter.router
-    //     const selectors = swapRouter.selectors
-    //     for (const selector of selectors) {
-    //         console.log(`\tAdding selector: ${selector}`)
-    //         await sendTx(fiberRouter.addRouterAndSelector(router, selector))
-    //         await sendTx(multiswapForge.addRouterAndSelector(router, selector))
+    // Add routers and selectors. Selectors need to be computed with scripts/computeSelectors.ts and added to constants/addresses.json beforehand
+    console.log("\n##### Adding routers and selectors #####")
+    const swapRouters = addresses.networks[thisNetwork].routers
+    for (const swapRouter of swapRouters) {
+        console.log(`For router: ${swapRouter.router}`)
+        const router = swapRouter.router
+        const selectors = swapRouter.selectors
+        for (const selector of selectors) {
+            console.log(`\tAdding selector: ${selector}`)
+            await sendTx(fiberRouter.addRouterAndSelector(router, selector))
+            await sendTx(multiswapForge.addRouterAndSelector(router, selector))
+        }
+    }
+
+    // Allow targets for other networks
+    console.log("\n##### Allowing targets to other networks #####")
+    let otherNetworks = Object.keys(addresses.networks).filter((network) => network !== thisNetwork && network !== "hardhat" && network !== "localhost");
+    for (const otherNetwork of otherNetworks) {
+        await sendTx(fundManager.allowTarget(
+            foundry,
+            addresses.networks[otherNetwork].chainId,
+            addresses.networks[otherNetwork].foundry),
+            `allowTarget to chainId ${addresses.networks[otherNetwork].chainId} successful`
+        );
+    }
+
+    console.log("\n##### Contract Addresses #####")
+    console.log("FiberRouter:\t\t", fiberRouter.target)
+    console.log("FundManager:\t\t", fundManager.target)
+    console.log("MultiSwapForge:\t\t", multiswapForge.target)
+    console.log("ForgeFundManager:\t", forgeManager.target)
+
+    await hre.run("verify:verify", {
+        address: fiberRouter.target,
+        constructorArguments: [],
+    });
+
+    await hre.run("verify:verify", {
+        address: multiswapForge.target,
+        constructorArguments: [],
+    });
+
+    // exec(`hh verify ${fundManager.target} --network arbitrum --contract contracts/multiswap-contracts/FundManager.sol:FundManager`, (err, stdout, stderr) => {
+    //     if (err) {
+    //         console.error(stderr)
+    //         return
     //     }
-    // }
 
-    // // Allow targets for other networks
-    // console.log("\n##### Allowing targets to other networks #####")
-    // let otherNetworks = Object.keys(addresses.networks).filter((network) => network !== thisNetwork && network !== "hardhat" && network !== "localhost");
-    // for (const otherNetwork of otherNetworks) {
-    //     await sendTx(fundManager.allowTarget(
-    //         foundry,
-    //         addresses.networks[otherNetwork].chainId,
-    //         addresses.networks[otherNetwork].foundry),
-    //         `allowTarget to chainId ${addresses.networks[otherNetwork].chainId} successful`
-    //     );
-    // }
-
-    // console.log("\n##### Contract Addresses #####")
-    // console.log("FiberRouter:\t\t", fiberRouter.target)
-    // console.log("FundManager:\t\t", fundManager.target)
-    // console.log("MultiSwapForge:\t\t", multiswapForge.target)
-    // console.log("ForgeFundManager:\t", forgeManager.target)
-
-    // await hre.run("verify:verify", {
-    //     address: fiberRouter.target,
-    //     constructorArguments: [],
+    //     console.log(stdout)
     // });
 
-    // await hre.run("verify:verify", {
-    //     address: multiswapForge.target,
-    //     constructorArguments: [],
+    // exec(`hh verify ${forgeManager.target} --network arbitrum --contract contracts/multiswap-contracts/ForgeFundManager.sol:ForgeFundManager`, (err, stdout, stderr) => {
+    //     if (err) {
+    //         console.error(stderr)
+    //         return
+    //     }
+
+    //     console.log(stdout)
     // });
-
-    exec(`hh verify ${fundManager.target} --network arbitrum --contract contracts/multiswap-contracts/FundManager.sol:FundManager`, (err, stdout, stderr) => {
-        if (err) {
-            console.error(stderr)
-            return
-        }
-
-        console.log(stdout)
-    });
-
-    exec(`hh verify ${forgeManager.target} --network arbitrum --contract contracts/multiswap-contracts/ForgeFundManager.sol:ForgeFundManager`, (err, stdout, stderr) => {
-        if (err) {
-            console.error(stderr)
-            return
-        }
-
-        console.log(stdout)
-    });
 
     return { fiberRouter, fundManager, multiswapForge, forgeManager }
 }

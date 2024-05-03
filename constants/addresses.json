@@ -74,6 +74,70 @@
                 }
             ]
         },
+        "base": {
+            "chainId": 8453,
+            "weth": "0x4200000000000000000000000000000000000006",
+            "foundry": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "cctp": {
+                "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+                "domain": 6
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421cA6dc452d289314280a0f8842A65",
+                    "selectors" : [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "zksync": {
+            "chainId": 324,
+            "weth": "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91",
+            "foundry": "0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4",
+            "routers": [
+                {
+                    "router": "0x6fd4383cB451173D5f9304F041C7BCBf27d561fF",
+                    "selectors" : [
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
         "localhost": {
             "chainId": 11155111,
             "weth": "0x5300000000000000000000000000000000000004",

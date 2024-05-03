@@ -32,16 +32,6 @@ export const multiswap = async function (
         contractInstances[contract] = new hre.ethers.Contract(address, factory.interface, signer[0])
     }
 
-    // const fiberRouterAddress = "0xbB1886FA834917716049094090387DEa0680BFFc"
-    // const fundManagerAddress = "0xB4A5D95BFEC6AFd359e05aA982718C11bF04a7Ff"
-    // const multiswapForgeAddress = "0x065b063aB44D26B51321dAb28b71D2290B43dDc4"
-    // const forgeFundManagerAddress = "0xc7F2c8472f4cCE8a11373203B5B55586CB030928"
-
-    // const fiberRouter = new hre.ethers.Contract(fiberRouterAddress, fiberRouterArtifact.abi, signer[0])
-    // const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
-    // const multiswapForge = new hre.ethers.Contract(multiswapForgeAddress, multiswapForgeArtifact.abi, signer[0])
-    // const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
-
     const fundManager = contractInstances['FundManager']
     const fiberRouter = contractInstances['FiberRouter']
     const multiswapForge = contractInstances['MultiSwapForge']
@@ -108,7 +98,7 @@ export const multiswap = async function (
     console.log("MultiSwapForge:\t\t", multiswapForge.target)
     console.log("ForgeFundManager:\t", forgeManager.target)
 
-    return { fiberRouter, fundManager,cctpFundManager, multiswapForge, forgeManager }
+    return { fiberRouter, fundManager, cctpFundManager, multiswapForge, forgeManager }
 }
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {

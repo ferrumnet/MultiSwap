@@ -54,14 +54,14 @@ const config: HardhatUserConfig = {
       chainId: 31337,
       accounts: [process.env.PRIVATE_KEY0!],
       forking: {
-        url: "https://bsc-dataseed2.defibit.io",
+        url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
         // blockNumber: 5282922
       },
     },
     hardhat: {
       chainId: 31337,
       forking: {
-        url: "https://bsc-dataseed2.defibit.io",
+        url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
         // blockNumber: 5282922
       },
     },
@@ -152,6 +152,7 @@ const config: HardhatUserConfig = {
       bsc: process.env.BSCSCAN_API_KEY!,
       optimism: process.env.OPTIMISTIC_ETHERSCAN_API_KEY!,
       arbitrumOne: process.env.ARBISCAN_API_KEY!,
+      base: process.env.BASESCAN_API_KEY!,
     },
     customChains: [
       {
