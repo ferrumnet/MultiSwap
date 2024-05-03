@@ -1,5 +1,5 @@
 import { ContractTransactionResponse } from "ethers"
-import addresses from "../constants/addresses.json"
+import addresses from "../constants/addresses_full.json"
 import hre from "hardhat"
 import fiberRouterArtifact from "../artifacts/contracts/multiswap-contracts/FiberRouter.sol/FiberRouter.json"
 import fundManagerArtifact from "../artifacts/contracts/multiswap-contracts/FundManager.sol/FundManager.json"
@@ -22,7 +22,7 @@ export const multiswap = async function (
     const ferrumDeployer = await (await hre.ethers.deployContract("FerrumDeployer")).waitForDeployment()
 
     // Deploy contracts
-    const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "ForgeFundManager"]
+    const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "CCTPFundManager", "ForgeFundManager"]
     for (const contract of contracts) {
         console.log(`Deploying ${contract}`)
         const factory = await hre.ethers.getContractFactory(contract)
@@ -103,7 +103,7 @@ export const multiswap = async function (
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {
     const receipt = await (await txResponse).wait()
-    await delay(3000)
+    await delay(100)
     if (receipt?.status == 1) {
         successMessage ? console.log(successMessage) : null
     } else {

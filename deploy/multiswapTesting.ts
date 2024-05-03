@@ -116,15 +116,15 @@ export const multiswap = async function (
     console.log("MultiSwapForge:\t\t", multiswapForge.target)
     console.log("ForgeFundManager:\t", forgeManager.target)
 
-    await hre.run("verify:verify", {
-        address: fiberRouter.target,
-        constructorArguments: [],
-    });
+    // await hre.run("verify:verify", {
+    //     address: fiberRouter.target,
+    //     constructorArguments: [],
+    // });
 
-    await hre.run("verify:verify", {
-        address: multiswapForge.target,
-        constructorArguments: [],
-    });
+    // await hre.run("verify:verify", {
+    //     address: multiswapForge.target,
+    //     constructorArguments: [],
+    // });
 
     // exec(`hh verify ${fundManager.target} --network arbitrum --contract contracts/multiswap-contracts/FundManager.sol:FundManager`, (err, stdout, stderr) => {
     //     if (err) {
