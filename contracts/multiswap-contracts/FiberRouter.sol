@@ -4,7 +4,7 @@ pragma solidity 0.8.2;
 import "./FundManager.sol";
 import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
-import "../common/oneInch/IOneInchSwap.sol";
+import "./FeeDistributor.sol";
 import "../common/cctp/ITokenMessenger.sol";
 import "../common/IWETH.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -13,20 +13,22 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  @author The ferrum network.
  @title This is a routing contract named as FiberRouter.
 */
-contract FiberRouter is Ownable, TokenReceivable {
+contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
     using SafeERC20 for IERC20;
     address private constant NATIVE_CURRENCY = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    uint256 private constant FEE_DENOMINATOR = 10000;
     address public weth;
     address public pool;
-    address payable public gasWallet;
-    mapping(bytes32 => bool) private routerAllowList;
     address public usdcToken;
     address public cctpTokenMessenger;
+    address payable public gasWallet;
+    mapping(bytes32 => bool) private routerAllowList;
+    mapping(uint256 => TargetNetwork) public targetNetworks;
+
     struct TargetNetwork {
         uint32 targetNetworkDomain;
         address targetFundManager;
     }
-    mapping(uint256 => TargetNetwork) public targetNetworks;
 
     event Swap(
         address sourceToken,
@@ -267,14 +269,18 @@ contract FiberRouter is Ownable, TokenReceivable {
      * @param withdrawalData Data related to the withdrawal.
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
-    function swap(
+    function swapSigned(
         address token,
         uint256 amount,
         uint256 targetNetwork,
         address targetToken,
         address targetAddress,
         bytes32 withdrawalData,
-        bool cctpType
+        bool cctpType,
+        FeeAllocation[] calldata feeAllocations,
+        bytes32 salt,
+        uint256 expiry,
+        bytes calldata signature
     ) external payable nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -289,6 +295,9 @@ contract FiberRouter is Ownable, TokenReceivable {
         (bool success, ) = payable(gasWallet).call{value: msg.value}("");
         require(success, "FR: Gas fee transfer failed");
 
+        amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
+        amount = _distributeFees(token, amount, feeAllocations, salt, expiry, signature);
+
         // Perform the token swap based on swapCCTP flag
         if (cctpType) {
             TargetNetwork storage target = targetNetworks[targetNetwork];
@@ -296,7 +305,7 @@ contract FiberRouter is Ownable, TokenReceivable {
             require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
             require(token == usdcToken, "FR: Only USDC deposits allowed for CCTP swaps");
             // Proceed with the CCTP swap logic
-            amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
+            
             uint64 depositNonce = _swapCCTP(amount, token, target.targetNetworkDomain, target.targetFundManager);
 
             emit CCTPSwap(
@@ -310,7 +319,6 @@ contract FiberRouter is Ownable, TokenReceivable {
             );
         } else {
             // Proceed with the normal swap logic
-            amount = SafeAmount.safeTransferFrom(token, _msgSender(), pool, amount);
             amount = FundManager(pool).swapToAddress(
                 token,
                 amount,
@@ -359,35 +367,34 @@ contract FiberRouter is Ownable, TokenReceivable {
         address crossTargetToken,
         address crossTargetAddress,
         bytes32 withdrawalData,
-        bool cctpType
+        bool cctpType,
+        FeeAllocation[] calldata feeAllocations,
+        bytes32 salt,
+        uint256 expiry,
+        bytes calldata signature
     ) external payable nonReentrant {
+        require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(fromToken != address(0), "FR: From token address cannot be zero");
         require(foundryToken != address(0), "FR: Foundry token address cannot be zero");
         require(crossTargetToken != address(0), "FR: Cross target token address cannot be zero");
-        require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
         require(withdrawalData != 0, "FR: withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
 
-        amountIn = SafeAmount.safeTransferFrom(
-            fromToken,
-            _msgSender(),
+
+        amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
+        uint256 amountOut = _swapAndCheckSlippage(
             address(this),
-            amountIn
+            fromToken,
+            foundryToken,
+            amountIn,
+            minAmountOut,
+            router,
+            routerCalldata
         );
+        amountOut = _distributeFees(foundryToken, amountOut, feeAllocations, salt, expiry, signature);
 
-        uint256 amountOut;
         if (cctpType) {
-            amountOut = _swapAndCheckSlippage(
-                address(this),
-                fromToken,
-                foundryToken,
-                amountIn,
-                minAmountOut,
-                router,
-                routerCalldata
-            );
-
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
             require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
@@ -404,16 +411,6 @@ contract FiberRouter is Ownable, TokenReceivable {
             );
         
         } else {
-            amountOut = _swapAndCheckSlippage(
-                pool,
-                fromToken,
-                foundryToken,
-                amountIn,
-                minAmountOut,
-                router,
-                routerCalldata
-            );
-
             // Update pool inventory and emit cross chain event
             FundManager(pool).swapToAddress(
                 foundryToken,
@@ -465,7 +462,11 @@ contract FiberRouter is Ownable, TokenReceivable {
         address crossTargetToken,
         address crossTargetAddress,
         bytes32 withdrawalData,
-        bool cctpType
+        bool cctpType,
+        FeeAllocation[] calldata feeAllocations,
+        bytes32 salt,
+        uint256 expiry,
+        bytes calldata signature
     ) external payable {
         uint256 amountIn = msg.value - gasFee;
 
@@ -478,19 +479,19 @@ contract FiberRouter is Ownable, TokenReceivable {
 
         // Deposit ETH (excluding gas fee) for WETH and swap
         IWETH(weth).deposit{value: amountIn}();
-        uint256 amountOut;
         uint256 _minAmountOut = minAmountOut; // to avoid stack too deep error
-        if (cctpType) {
-            amountOut = _swapAndCheckSlippage(
-                address(this),
-                weth,
-                foundryToken,
-                amountIn,
-                _minAmountOut,
-                router,
-                routerCalldata
-            );
+        uint256 amountOut = _swapAndCheckSlippage(
+            address(this),
+            weth,
+            foundryToken,
+            amountIn,
+            _minAmountOut,
+            router,
+            routerCalldata
+        );
+        amountOut = _distributeFees(foundryToken, amountOut, feeAllocations, salt, expiry, signature);
 
+        if (cctpType) {
             TargetNetwork storage target = targetNetworks[crossTargetNetwork];
             require(target.targetNetworkDomain != 0, "FR: Target network not found");
             require(target.targetFundManager != address(0), "FR: Target FundManager address not found");
@@ -507,16 +508,6 @@ contract FiberRouter is Ownable, TokenReceivable {
             );
 
         } else {
-            amountOut = _swapAndCheckSlippage(
-                pool,
-                weth,
-                foundryToken,
-                amountIn,
-                _minAmountOut,
-                router,
-                routerCalldata
-            );
-
             // Update pool inventory and emit cross chain event
             FundManager(pool).swapToAddress(
                 foundryToken,
