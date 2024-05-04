@@ -8,13 +8,14 @@
     "gasEstimationWallet": "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B",
 
     "networks": {
-        "optimism": {
-            "chainId": 10,
-            "weth": "0x4200000000000000000000000000000000000006",
-            "foundry": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+        "arbitrum": {
+            "chainId": 42161,
+            "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+            "foundry": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
             "cctp": {
-                "tokenMessenger": "0x2B4069517957735bE00ceE0fadAE88a26365528f",
-                "domain": 2
+                "tokenMessenger": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+                "domain": 3,
+                "cctpFundManager": "0xF91F67F4b3e38B1fd35b72475d421c95a874dF9f"
             },
             "routers": [
                 {
@@ -49,7 +50,8 @@
             "foundry": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             "cctp": {
                 "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
-                "domain": 6
+                "domain": 6,
+                "cctpFundManager": "0x8da99E9464e09911efDE6e716DeB341001F34af0"
             },
             "routers": [
                 {

@@ -1,10 +1,11 @@
 import { ContractTransactionResponse } from "ethers"
-import addresses from "../constants/addresses_full.json"
+import addresses from "../constants/addresses.json"
 import hre from "hardhat"
 import fiberRouterArtifact from "../artifacts/contracts/multiswap-contracts/FiberRouter.sol/FiberRouter.json"
 import fundManagerArtifact from "../artifacts/contracts/multiswap-contracts/FundManager.sol/FundManager.json"
 import multiswapForgeArtifact from "../artifacts/contracts/multiswap-contracts/MultiSwapForge.sol/MultiSwapForge.json"
 import forgeFundManagerArtifact from "../artifacts/contracts/multiswap-contracts/ForgeFundManager.sol/ForgeFundManager.json"
+import usdcAbi from "../scripts/abis/Usdc.json"
 
 
 export const multiswap = async function (
@@ -26,7 +27,7 @@ export const multiswap = async function (
     const ferrumDeployer = await (await hre.ethers.deployContract("FerrumDeployer")).waitForDeployment()
 
     // Deploy contracts
-    const contracts = ["FundManager", "FiberRouter", "MultiSwapForge", "CCTPFundManager", "ForgeFundManager"]
+    const contracts = ["FiberRouter", "FundManager", "MultiSwapForge", "CCTPFundManager", "ForgeFundManager"]
     for (const contract of contracts) {
         if (contract === "CCTPFundManager" && !cctpNetworks.includes(thisNetwork)) {
             continue
@@ -39,11 +40,23 @@ export const multiswap = async function (
         contractInstances[contract] = new hre.ethers.Contract(address, factory.interface, signer[0])
     }
 
-    const fundManager = contractInstances['FundManager']
     const fiberRouter = contractInstances['FiberRouter']
+    const fundManager = contractInstances['FundManager']
     const multiswapForge = contractInstances['MultiSwapForge']
     const forgeManager = contractInstances['ForgeFundManager']
     const cctpFundManager = contractInstances['CCTPFundManager']
+
+    // const fundManagerAddress = "0x089DD5F8c7d3d59E6E88e3AEde61825589206f24"
+    // const fiberRouterAddress = "0xa071f481B56d6d137eE851C44D703A0d0BE8d353"
+    // const multiswapForgeAddress = "0x7Ec6ac6Ec1aA2caCbe7da122CFff15206c5bC8bF"
+    // const forgeFundManagerAddress = "0x1738710f51b56ca23A8DBC800044Bd0404FFA5d9"
+
+    // const fiberRouter = new hre.ethers.Contract(fiberRouterAddress, fiberRouterArtifact.abi, signer[0])
+    // const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
+    // const multiswapForge = new hre.ethers.Contract(multiswapForgeAddress, multiswapForgeArtifact.abi, signer[0])
+    // const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
+    
+    const usdc = new hre.ethers.Contract(foundry, usdcAbi, signer[0])
 
     // Post deploy configs
     console.log("\n##### FiberRouter configs #####")
@@ -55,13 +68,18 @@ export const multiswap = async function (
     await sendTx(fundManager.setRouter(fiberRouter), "setRouter successful")
     await sendTx(fundManager.addFoundryAsset(foundry), "addFoundryAsset successful")
     await sendTx(fundManager.addSigner(addresses.signer), "addSigner successful")
-    await sendTx(fundManager.setLiquidityManagers(addresses.liquidityManager, addresses.liquidityManagerBot), "setLiquidityManagers successful")
+    await sendTx(fundManager.setLiquidityManagers(signer[0], addresses.liquidityManagerBot), "setLiquidityManagers successful")
     await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
     await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
+    console.log(signer[0].address)
+    // console.log("USDC balance: ", await usdc.balanceOf(signer[0]))
+    await sendTx(usdc.approve(fundManager.target, "3000000"), "Approval successful")
+    // await sendTx(fundManager.addLiquidityByManager(foundry, "3000000"), "addLiquidityByManager successful")
 
     console.log("\n##### CCTPFundManager configs #####")
     await sendTx(cctpFundManager.setRouter(fiberRouter), "setRouter successful")
     await sendTx(cctpFundManager.addSigner(addresses.signer), "addSigner successful")
+    await sendTx(usdc.approve(cctpFundManager.target, "1000000"), "Approval successful")
 
     console.log("\n##### MultiSwapForge configs #####")
     await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
@@ -71,6 +89,8 @@ export const multiswap = async function (
     console.log("\n##### ForgeFundManager configs #####")
     await sendTx(forgeManager.setRouter(multiswapForge), "setRouter successful")
     await sendTx(forgeManager.addFoundryAsset(foundry), "addFoundryAsset successful")
+    await sendTx(usdc.approve(forgeManager.target, "1000000"), "Approval successful")
+    // await sendTx(forgeManager.addLiquidityByManager(foundry, "1000000"), "addLiquidityByManager successful")
 
     // Add routers and selectors. Selectors need to be computed with scripts/computeSelectors.ts and added to constants/addresses.json beforehand
     console.log("\n##### Adding routers and selectors #####")
@@ -125,7 +145,7 @@ export const multiswap = async function (
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {
     const receipt = await (await txResponse).wait()
-    await delay(100)
+    await delay(200)
     if (receipt?.status == 1) {
         successMessage ? console.log(successMessage) : null
     } else {

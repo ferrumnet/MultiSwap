@@ -54,14 +54,14 @@ const config: HardhatUserConfig = {
       chainId: 31337,
       accounts: [process.env.PRIVATE_KEY0!],
       forking: {
-        url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
+        url: "https://nd-829-997-700.p2pify.com/790712c620e64556719c7c9f19ef56e3",
         // blockNumber: 5282922
       },
     },
     hardhat: {
       chainId: 31337,
       forking: {
-        url: "https://base-mainnet.core.chainstack.com/e7aa01c976c532ebf8e2480a27f18278",
+        url: "https://nd-829-997-700.p2pify.com/790712c620e64556719c7c9f19ef56e3",
         // blockNumber: 5282922
       },
     },
