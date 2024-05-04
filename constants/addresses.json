@@ -8,45 +8,14 @@
     "gasEstimationWallet": "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B",
 
     "networks": {
-        "arbitrum": {
-            "chainId": 42161,
-            "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-            "foundry": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        "optimism": {
+            "chainId": 10,
+            "weth": "0x4200000000000000000000000000000000000006",
+            "foundry": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
             "cctp": {
-                "tokenMessenger": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
-                "domain": 3
+                "tokenMessenger": "0x2B4069517957735bE00ceE0fadAE88a26365528f",
+                "domain": 2
             },
-            "routers": [
-                {
-                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
-                    "selectors" : [
-                        "0xd2d374e5",
-                        "0xc4d652af",
-                        "0xa76dfc3b",
-                        "0x89af926a",
-                        "0x188ac35d",
-                        "0x175accdc",
-                        "0x0f449d71",
-                        "0x493189f0",
-                        "0xcc713a04",
-                        "0x56a75868",
-                        "0x9fda64bd",
-                        "0xf497df75",
-                        "0x07ed2379",
-                        "0x83800a8e",
-                        "0x8770ba91",
-                        "0x19367472",
-                        "0xe2c95c82",
-                        "0xea76dddf",
-                        "0xf7a70056"
-                    ]
-                }
-            ]
-        },
-        "binance": {
-            "chainId": 56,
-            "weth": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-            "foundry": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
             "routers": [
                 {
                     "router": "0x111111125421ca6dc452d289314280a0f8842a65",
@@ -88,35 +57,6 @@
                     "selectors" : [
                         "0xd2d374e5",
                         "0xc4d652af",
-                        "0xa76dfc3b",
-                        "0x89af926a",
-                        "0x188ac35d",
-                        "0x175accdc",
-                        "0x0f449d71",
-                        "0x493189f0",
-                        "0xcc713a04",
-                        "0x56a75868",
-                        "0x9fda64bd",
-                        "0xf497df75",
-                        "0x07ed2379",
-                        "0x83800a8e",
-                        "0x8770ba91",
-                        "0x19367472",
-                        "0xe2c95c82",
-                        "0xea76dddf",
-                        "0xf7a70056"
-                    ]
-                }
-            ]
-        },
-        "zksync": {
-            "chainId": 324,
-            "weth": "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91",
-            "foundry": "0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4",
-            "routers": [
-                {
-                    "router": "0x6fd4383cB451173D5f9304F041C7BCBf27d561fF",
-                    "selectors" : [
                         "0xa76dfc3b",
                         "0x89af926a",
                         "0x188ac35d",
