@@ -36,7 +36,6 @@ export const multiswap = async function (
     const fiberRouter = contractInstances['FiberRouter']
     const multiswapForge = contractInstances['MultiSwapForge']
     const forgeManager = contractInstances['ForgeFundManager']
-    const cctpFundManager = contractInstances['CCTPFundManager']
 
     // Post deploy configs
     console.log("\n##### FiberRouter configs #####")
@@ -51,10 +50,6 @@ export const multiswap = async function (
     await sendTx(fundManager.setLiquidityManagers(addresses.liquidityManager, addresses.liquidityManagerBot), "setLiquidityManagers successful")
     await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
     await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
-
-    console.log("\n##### CCTPFundManager configs #####")
-    await sendTx(cctpFundManager.setRouter(fiberRouter), "setRouter successful")
-    await sendTx(cctpFundManager.addSigner(addresses.signer), "addSigner successful")
 
     console.log("\n##### MultiSwapForge configs #####")
     await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
@@ -94,16 +89,15 @@ export const multiswap = async function (
     console.log("\n##### Contract Addresses #####")
     console.log("FiberRouter:\t\t", fiberRouter.target)
     console.log("FundManager:\t\t", fundManager.target)
-    console.log("CCPTFundManager:\t", cctpFundManager.target)
     console.log("MultiSwapForge:\t\t", multiswapForge.target)
     console.log("ForgeFundManager:\t", forgeManager.target)
 
-    return { fiberRouter, fundManager, cctpFundManager, multiswapForge, forgeManager }
+    return { fiberRouter, fundManager, multiswapForge, forgeManager }
 }
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {
     const receipt = await (await txResponse).wait()
-    await delay(100)
+    await delay(10)
     if (receipt?.status == 1) {
         successMessage ? console.log(successMessage) : null
     } else {

@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment, HttpNetworkConfig } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
 import { Provider, Contract } from "zksync-ethers";
-import addresses from "../constants/addresses.json";
+import addresses from "../constants/addresses_full.json";
 import { MaxUint256 } from "ethers"
 import usdcAbi from "../scripts/abis/Usdc.json"
 import fiberRouterArtifact from "../artifacts-zk/contracts/multiswap-contracts/FiberRouter.sol/FiberRouter.json"
@@ -59,6 +59,7 @@ const deployScript = async function (hre: HardhatRuntimeEnvironment) {
 
     let amount = "3000000"
     await sendTx(usdc.approve(fundManager, MaxUint256), "Approve successful")
+    // // await sendTx(usdc.approve(fundManager, MaxUint256), "Approve successful")
     await sendTx(fundManager.addLiquidityByManager(foundry, BigInt(amount)), "addLiquidity successful")
 
     console.log("\n##### MultiSwapForge configs #####")

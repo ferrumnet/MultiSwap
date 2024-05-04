@@ -74,7 +74,7 @@ describe('FiberRouter', () => {
             targetNetwork = addresses.networks.hardhat.chainId
 
         beforeEach(async () => {
-            ({ fiberRouter, fundManager, cctpFundManager } = await loadFixture(multiswapDeploymentFixture))
+            ({ fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture))
 
             // Allow itself to be a target for testing
             const otherChainFoundry = addresses.networks.hardhat.foundry
@@ -166,7 +166,7 @@ describe('FiberRouter', () => {
             abiCoder = AbiCoder.defaultAbiCoder()
 
         beforeEach(async () => {
-            ({ fiberRouter, fundManager, cctpFundManager } = await loadFixture(multiswapDeploymentFixture))
+            ({ fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture))
             // Whitelist the mock router and selector
             await fiberRouter.addRouterAndSelector(await swapRouter.getAddress(), mockRouterSelector)
 

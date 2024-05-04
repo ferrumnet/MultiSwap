@@ -162,6 +162,14 @@ const config: HardhatUserConfig = {
           apiURL: "https://api.scrollscan.com/api",
           browserURL: "https://scrollscan.com"
         }
+      },
+      {
+        network: "zkCustom",
+        chainId: 324,
+        urls: {
+          apiURL: "https://api-era.zksync.network/api",
+          browserURL: "https://era.zksync.network/"
+        }
       }
     ]
   },
