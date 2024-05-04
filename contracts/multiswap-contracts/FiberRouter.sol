@@ -357,7 +357,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @param withdrawalData Data related to the withdrawal
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
-    function swapAndCrossRouter(
+    function swapAndCrossRouterSigned(
         uint256 amountIn,
         uint256 minAmountOut,
         address fromToken,
@@ -443,7 +443,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @param withdrawalData Data related to the withdrawal
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
-    function swapAndCrossRouterETH(
+    function swapAndCrossRouterETHSigned(
         uint256 minAmountOut,
         address foundryToken,
         uint256 gasFee,
