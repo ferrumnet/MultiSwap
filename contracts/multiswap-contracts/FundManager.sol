@@ -317,6 +317,10 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         return (digest, _signer);
     }
 
+    function withdrawRouter(address token, uint256 amount, address recipient) external onlyRouter {
+        IERC20(token).transfer(recipient, amount);
+    }
+
     /**
      * @dev Verifies details of a signed token swap withdrawal without execution
      * @param to Recipient address on the target network
