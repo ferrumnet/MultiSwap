@@ -77,7 +77,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         bytes multiSignature
     );
 
-    event RouterAndSelectorWhitelisted(address router, bytes selector);
+    event RouterAndSelectorWhitelisted(address router, bytes4 selector);
     event RouterAndSelectorRemoved(address router, bytes selector);
 
     /**
@@ -122,11 +122,13 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
     /**
      * @notice Whitelists the router and selector combination
      * @param router The router address
-     * @param selector The selector for the router
+     * @param selectors The selectors for the router
      */
-    function addRouterAndSelector(address router, bytes calldata selector) external onlyOwner {
-        routerAllowList[_getKey(router, selector)] = true;
-        emit RouterAndSelectorWhitelisted(router, selector);
+    function addRouterAndSelectors(address router, bytes4[] memory selectors) external onlyOwner {
+        for (uint256 i = 0; i < selectors.length; i++) {
+            routerAllowList[_getKey(router, abi.encodePacked(selectors[i]))] = true;
+            emit RouterAndSelectorWhitelisted(router, selectors[i]);
+        }
     }
 
     /**

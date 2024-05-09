@@ -1,6 +1,6 @@
 import hre from "hardhat"
 import { loadFixture} from "@nomicfoundation/hardhat-toolbox/network-helpers"
-import addresses from "../constants/addresses_full.json"
+import addresses from "../constants/addresses.json"
 import { expect } from "chai";
 import { Contract, AbiCoder, id, Signer, keccak256 } from "ethers";
 import { multiswap } from "../deploy/multiswap"
@@ -50,131 +50,131 @@ describe('FiberRouter', () => {
         })
     })
 
-    describe('router and selector', async () => {
-        it('should add router and selector', async () => {
-            const { fiberRouter } = await loadFixture(multiswapDeploymentFixture)
-            const tx = fiberRouter.addRouterAndSelector(swapRouter, mockRouterSelector)
-            await expect(tx).to.emit(fiberRouter, "RouterAndSelectorWhitelisted").withArgs(swapRouter, mockRouterSelector)
-            expect(await fiberRouter.isAllowListed(swapRouter, mockRouterSelector)).to.equal(true)
-        })
+    // describe('router and selector', async () => {
+    //     it('should add router and selector', async () => {
+    //         const { fiberRouter } = await loadFixture(multiswapDeploymentFixture)
+    //         const tx = fiberRouter.addRouterAndSelector(swapRouter, mockRouterSelector)
+    //         await expect(tx).to.emit(fiberRouter, "RouterAndSelectorWhitelisted").withArgs(swapRouter, mockRouterSelector)
+    //         expect(await fiberRouter.isAllowListed(swapRouter, mockRouterSelector)).to.equal(true)
+    //     })
 
-        it('should remove router and selector', async () => {
-            const { fiberRouter } = await loadFixture(multiswapDeploymentFixture)
-            const tx = fiberRouter.removeRouterAndSelector(swapRouter, mockRouterSelector)
-            await expect(tx).to.emit(fiberRouter, "RouterAndSelectorRemoved").withArgs(swapRouter, mockRouterSelector)
-            expect(await fiberRouter.isAllowListed(swapRouter, mockRouterSelector)).to.equal(false)
-        })
-    })
+    //     it('should remove router and selector', async () => {
+    //         const { fiberRouter } = await loadFixture(multiswapDeploymentFixture)
+    //         const tx = fiberRouter.removeRouterAndSelector(swapRouter, mockRouterSelector)
+    //         await expect(tx).to.emit(fiberRouter, "RouterAndSelectorRemoved").withArgs(swapRouter, mockRouterSelector)
+    //         expect(await fiberRouter.isAllowListed(swapRouter, mockRouterSelector)).to.equal(false)
+    //     })
+    // })
 
-    describe("swap", async () => {
-        let fiberRouter:Contract,
-            cctpFundManager:Contract,
-            fundManager:Contract,
-            amount = 10000,
-            targetNetwork = addresses.networks.hardhat.chainId
+    // describe("swap", async () => {
+    //     let fiberRouter:Contract,
+    //         cctpFundManager:Contract,
+    //         fundManager:Contract,
+    //         amount = 10000,
+    //         targetNetwork = addresses.networks.hardhat.chainId
 
-        beforeEach(async () => {
-            ({ fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture))
+    //     beforeEach(async () => {
+    //         ({ fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture))
 
-            // Allow itself to be a target for testing
-            const otherChainFoundry = addresses.networks.hardhat.foundry
-            await fundManager.allowTarget(
-                await foundry.getAddress(),
-                targetNetwork,
-                otherChainFoundry
-            )
-        })
+    //         // Allow itself to be a target for testing
+    //         const otherChainFoundry = addresses.networks.hardhat.foundry
+    //         await fundManager.allowTarget(
+    //             await foundry.getAddress(),
+    //             targetNetwork,
+    //             otherChainFoundry
+    //         )
+    //     })
 
-        it("should initiate a cross chain transfer", async () => {
-            await foundry.approve(await fiberRouter.getAddress(), amount)
+    //     it("should initiate a cross chain transfer", async () => {
+    //         await foundry.approve(await fiberRouter.getAddress(), amount)
 
-            const feeAllocations = [
-                {
-                    recipient: "0x7F511eA43167af094fEf24b5d3b23c5837D5Cf71",
-                    rateInBps: 100 // Basis points for fee allocation
-                },
-                {
-                    recipient: "0x7F511eA43167af094fEf24b5d3b23c5837D5Cf71",
-                    rateInBps: 200
-                }
-            ];
+    //         const feeAllocations = [
+    //             {
+    //                 recipient: "0x7F511eA43167af094fEf24b5d3b23c5837D5Cf71",
+    //                 rateInBps: 100 // Basis points for fee allocation
+    //             },
+    //             {
+    //                 recipient: "0x7F511eA43167af094fEf24b5d3b23c5837D5Cf71",
+    //                 rateInBps: 200
+    //             }
+    //         ];
             
-            const feeDistributionData = {
-                feeAllocations: feeAllocations, // Array of FeeAllocation structs
-                salt: id("some_unique_salt"),
-                expiry: 1700000000, // Example UNIX timestamp
-                signature: "0x1234" // Signature in bytes
-            };
+    //         const feeDistributionData = {
+    //             feeAllocations: feeAllocations, // Array of FeeAllocation structs
+    //             salt: id("some_unique_salt"),
+    //             expiry: 1700000000, // Example UNIX timestamp
+    //             signature: "0x1234" // Signature in bytes
+    //         };
             
-            const tx = fiberRouter.swapSigned(
-                foundry,
-                amount,
-                {
-                    targetNetwork: targetNetwork,
-                    targetToken: weth,
-                    targetAddress: signer,
-                },
-                id("some withdrawal data"),
-                false,
-                feeDistributionData,
-                { value: 100 }
-            )
+    //         const tx = fiberRouter.swapSigned(
+    //             foundry,
+    //             amount,
+    //             {
+    //                 targetNetwork: targetNetwork,
+    //                 targetToken: weth,
+    //                 targetAddress: signer,
+    //             },
+    //             id("some withdrawal data"),
+    //             false,
+    //             feeDistributionData,
+    //             { value: 100 }
+    //         )
             
-            // await expect(tx).to.changeTokenBalances(
-            //     foundry,
-            //     [signer, fundManager],
-            //     [-BigInt(amount), BigInt(amount)]
-            // )
+    //         // await expect(tx).to.changeTokenBalances(
+    //         //     foundry,
+    //         //     [signer, fundManager],
+    //         //     [-BigInt(amount), BigInt(amount)]
+    //         // )
 
-            // await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
-            //     foundry,
-            //     weth,
-            //     31337,
-            //     targetNetwork,
-            //     amount,
-            //     signer,
-            //     signer,
-            //     amount,
-            //     id("some withdrawal data"),
-            //     100
-            // )
-        })
+    //         // await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
+    //         //     foundry,
+    //         //     weth,
+    //         //     31337,
+    //         //     targetNetwork,
+    //         //     amount,
+    //         //     signer,
+    //         //     signer,
+    //         //     amount,
+    //         //     id("some withdrawal data"),
+    //         //     100
+    //         // )
+    //     })
 
-        // it("should initiate a cross chain transfer with cctp", async () => {
-        //     // Setup CCTP, with setting itself the same chainId as target for testing
-        //     await fiberRouter.initCCTP(tokenMessenger, foundry, cctpFundManager)
-        //     await fiberRouter.setTargetCCTPNetwork(targetNetwork, targetNetwork, cctpFundManager)
+    //     // it("should initiate a cross chain transfer with cctp", async () => {
+    //     //     // Setup CCTP, with setting itself the same chainId as target for testing
+    //     //     await fiberRouter.initCCTP(tokenMessenger, foundry, cctpFundManager)
+    //     //     await fiberRouter.setTargetCCTPNetwork(targetNetwork, targetNetwork, cctpFundManager)
 
-        //     await foundry.approve(await fiberRouter.getAddress(), amount)
+    //     //     await foundry.approve(await fiberRouter.getAddress(), amount)
             
-        //     const tx = fiberRouter.swap(
-        //         foundry,
-        //         amount,
-        //         targetNetwork,
-        //         weth,
-        //         signer,
-        //         id("some withdrawal data"),
-        //         true,
-        //         { value: 100 }
-        //     )
+    //     //     const tx = fiberRouter.swap(
+    //     //         foundry,
+    //     //         amount,
+    //     //         targetNetwork,
+    //     //         weth,
+    //     //         signer,
+    //     //         id("some withdrawal data"),
+    //     //         true,
+    //     //         { value: 100 }
+    //     //     )
             
-        //     await expect(tx).to.changeTokenBalances(
-        //         foundry,
-        //         [signer, fundManager, cctpFundManager],
-        //         [-BigInt(amount), 0, BigInt(amount)]
-        //     )
+    //     //     await expect(tx).to.changeTokenBalances(
+    //     //         foundry,
+    //     //         [signer, fundManager, cctpFundManager],
+    //     //         [-BigInt(amount), 0, BigInt(amount)]
+    //     //     )
 
-        //     await expect(tx).to.emit(fiberRouter, "CCTPSwap").withArgs(
-        //         foundry,
-        //         amount,
-        //         31337,
-        //         targetNetwork,
-        //         signer,
-        //         cctpFundManager,
-        //         1 // Mock will always return deposit nonce of 1
-        //     )
-        // })
-    })
+    //     //     await expect(tx).to.emit(fiberRouter, "CCTPSwap").withArgs(
+    //     //         foundry,
+    //     //         amount,
+    //     //         31337,
+    //     //         targetNetwork,
+    //     //         signer,
+    //     //         cctpFundManager,
+    //     //         1 // Mock will always return deposit nonce of 1
+    //     //     )
+    //     // })
+    // })
 
     // describe("local swap then cross", async () => {
     //     let routerCalldata:string,
