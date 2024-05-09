@@ -261,6 +261,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
 
+        amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
         amount = _distributeFees(token, amount, fd);
 
         // Perform the token swap based on swapCCTP flag
@@ -535,9 +536,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(minAmountOut != 0, "Amount out minimum must be greater than zero");
         require(foundryToken != address(0), "Bad Token Address");
 
-        address _pool = cctpType ? cctpFundManager : fundManager;
+        address pool = cctpType ? cctpFundManager : fundManager;
         
-        amountIn = FundManager(_pool).withdrawSignedAndSwapRouter(
+        amountIn = FundManager(pool).withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,
