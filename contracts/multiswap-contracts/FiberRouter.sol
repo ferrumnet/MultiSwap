@@ -260,30 +260,15 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
 
-        // Transfer the gas fee to the gasWallet
-        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
-        require(success, "FR: Gas fee transfer failed");
+        amount = _distributeFees(token, amount, feeDistributionData);
 
         // Perform the token swap based on swapCCTP flag
+        uint64 depositNonce;
         if (cctpType) {
             // Proceed with the CCTP swap logic
-            uint256 _amount = SafeAmount.safeTransferFrom(token, _msgSender(), cctpFundManager, amount);
-            _amount = _distributeFees(token, _amount, feeDistributionData);
-            uint64 depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amount, token, sd.targetNetwork);
+            amount = SafeAmount.safeTransferFrom(token, _msgSender(), cctpFundManager, amount);
+            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amount, token, sd.targetNetwork);
 
-            emit Swap(
-                token,
-                sd.targetToken,
-                block.chainid,
-                sd.targetNetwork,
-                amount,
-                _msgSender(),
-                sd.targetAddress,
-                _amount,
-                withdrawalData,
-                msg.value,
-                depositNonce
-            );
         } else {
             // Proceed with the normal swap logic
             amount = SafeAmount.safeTransferFrom(token, _msgSender(), fundManager, amount);
@@ -293,22 +278,25 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
                 sd.targetNetwork,
                 sd.targetAddress
             );
-
-            // Emit normal swap event
-            emit Swap(
-                token,
-                sd.targetToken,
-                block.chainid,
-                sd.targetNetwork,
-                amount,
-                _msgSender(),
-                sd.targetAddress,
-                amount,
-                withdrawalData,
-                msg.value,
-                0
-            );
         }
+
+        // Transfer the gas fee to the gasWallet
+        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
+        require(success, "FR: Gas fee transfer failed");
+
+        emit Swap(
+            token,
+            sd.targetToken,
+            block.chainid,
+            sd.targetNetwork,
+            amount,
+            _msgSender(),
+            sd.targetAddress,
+            amount,
+            withdrawalData,
+            msg.value,
+            depositNonce // Stays zero for non-CCTP swaps
+        );
     }
 
     /**
@@ -322,7 +310,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @param withdrawalData Data related to the withdrawal
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
-    function swapAndCrossRouter(
+    function swapSignedAndCrossRouter(
         uint256 amountIn,
         uint256 minAmountOut,
         address fromToken,
@@ -343,62 +331,53 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
 
         uint256 _amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
+        
+        // Swap and receive tokens back to FiberRouter
         uint256 amountOut = _swapAndCheckSlippage(
-            fundManager,
+            address(this),
             fromToken,
             foundryToken,
-            amountIn,
+            _amountIn,
             minAmountOut,
             router,
             routerCalldata
         );
+
         amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
 
+        uint64 depositNonce;
         if (cctpType) {
-            FundManager(fundManager).withdrawRouter(foundryToken, amountOut, cctpFundManager);
-            uint64 depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
-
-            emit Swap(
-                fromToken,
-                sd.targetToken,
-                block.chainid,
-                sd.targetNetwork,
-                _amountIn,
-                _msgSender(),
-                sd.targetAddress,
-                amountOut,
-                withdrawalData,
-                msg.value,
-                depositNonce
-            );
-        
+            // Transfer to CCTP FundManager and initiate CCTP swap
+            amountOut = SafeAmount.safeTransferFrom(foundryToken, address(this), cctpFundManager, amountOut);
+            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
         } else {
-            // Update pool inventory and emit cross chain event
+            // Transfer to FundManager and update inventory
+            amountOut = SafeAmount.safeTransferFrom(foundryToken, address(this), fundManager, amountOut);
             FundManager(fundManager).swapToAddress(
                 foundryToken,
                 amountOut,
                 sd.targetNetwork,
                 sd.targetAddress
             );
-
-            emit Swap(
-                fromToken,
-                sd.targetToken,
-                block.chainid,
-                sd.targetNetwork,
-                _amountIn,
-                _msgSender(),
-                sd.targetAddress,
-                amountOut,
-                withdrawalData,
-                msg.value,
-                0
-            );
         }
 
         // Transfer the gas fee to the gasWallet
         (bool success, ) = payable(gasWallet).call{value: msg.value}("");
-        require(success, "FR: Gas fee transfer failed");        
+        require(success, "FR: Gas fee transfer failed");
+
+        emit Swap(
+            fromToken,
+            sd.targetToken,
+            block.chainid,
+            sd.targetNetwork,
+            _amountIn,
+            _msgSender(),
+            sd.targetAddress,
+            amountOut,
+            withdrawalData,
+            msg.value,
+            depositNonce // Stays zero for non-CCTP swaps
+        );    
     }
 
     /**
@@ -411,7 +390,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @param withdrawalData Data related to the withdrawal
      * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
-    function swapAndCrossRouterETH(
+    function swapSignedAndCrossRouterETH(
         uint256 minAmountOut,
         address foundryToken,
         uint256 gasFee,
@@ -422,8 +401,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         bool cctpType,
         FeeDistributionData memory feeDistributionData
     ) external payable {
-
-        require(msg.value - gasFee != 0, "FR: Amount in must be greater than zero");
+        require(msg.value - gasFee != 0, "FR: Amount in must be greater than zero"); // amountIn = msg.value - gasFee, but using directly here 
         require(gasFee != 0, "FR: Gas fee must be greater than zero");
         require(minAmountOut != 0, "FR: Amount out must be greater than zero");
         require(sd.targetToken != address(0), "FR: Cross target token address cannot be zero");
@@ -432,68 +410,54 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
 
         // Deposit ETH (excluding gas fee) for WETH and swap
         IWETH(weth).deposit{value: msg.value - gasFee}();
-        uint256 _minAmountOut = minAmountOut; // to avoid stack too deep error
 
         uint256 amountOut = _swapAndCheckSlippage(
-            fundManager,
+            address(this),
             weth,
             foundryToken,
             msg.value - gasFee,
-            _minAmountOut,
+            minAmountOut,
             router,
             routerCalldata
         );
+
         amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
 
+        uint64 depositNonce;
         if (cctpType) {
-            FundManager(fundManager).withdrawRouter(foundryToken, amountOut, cctpFundManager);
-            uint64 depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
-
-            uint256 _gasFee = gasFee; // to avoid stack too deep error
-            bytes32 _withdrawalData = withdrawalData; // to avoid stack too deep error
-
-            emit Swap(
-                weth,
-                sd.targetToken,
-                block.chainid,
-                sd.targetNetwork,
-                msg.value - _gasFee,
-                _msgSender(),
-                sd.targetAddress,
-                amountOut,
-                _withdrawalData,
-                _gasFee,
-                depositNonce
-            );
-
+            amountOut = SafeAmount.safeTransferFrom(foundryToken, address(this), cctpFundManager, amountOut);
+            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
         } else {
-            // Update pool inventory and emit cross chain event
+            // Transfer and update pool inventory
+            amountOut = SafeAmount.safeTransferFrom(foundryToken, address(this), cctpFundManager, amountOut);
             FundManager(fundManager).swapToAddress(
                 foundryToken,
                 amountOut,
                 sd.targetNetwork,
                 sd.targetAddress
             );
-
-            uint256 _gasFee = gasFee; // to avoid stack too deep error
-            emit Swap(
-                weth,
-                sd.targetToken,
-                block.chainid,
-                sd.targetNetwork,
-                msg.value - gasFee,
-                _msgSender(),
-                sd.targetAddress,
-                amountOut,
-                withdrawalData,
-                _gasFee,
-                0
-            );
         }
 
         // Transfer the gas fee to the gasWallet
         (bool success, ) = payable(gasWallet).call{value: gasFee}("");
         require(success, "FR: Gas fee transfer failed");
+
+        uint256 _gasFee = gasFee; // Stack too deep workaround
+        emit Swap(
+            weth,
+            sd.targetToken,
+            block.chainid,
+            sd.targetNetwork,
+            msg.value - _gasFee,
+            _msgSender(),
+            sd.targetAddress,
+            amountOut,
+            withdrawalData,
+            _gasFee,
+            depositNonce
+        );
+
+        
     }
 
     /**
