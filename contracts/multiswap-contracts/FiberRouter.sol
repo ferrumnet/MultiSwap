@@ -21,17 +21,11 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
     address public cctpFundManager;
     address payable public gasWallet;
     mapping(bytes32 => bool) private routerAllowList;
-    mapping(uint256 => TargetNetwork) public targetNetworks;
 
     struct SwapCrossData {
         uint256 targetNetwork;
         address targetToken;
         address targetAddress;
-    }
-
-    struct TargetNetwork {
-        uint32 targetNetworkDomain;
-        address targetFundManager;
     }
 
     event Swap(
@@ -608,7 +602,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         uint256 amountOut = _getBalance(toToken, targetAddress) - balanceBefore;
 
         require(amountOut >= minAmountOut, "FR: Slippage check failed");
-        // TODO for failed slippage checks: On-chain settlement. Option are:
+        // TODO for failed slippage checks: On-chain settlement. Options are:
         // 1/ Receive USDC on dst chain
         // 2/ ask user about updated quote
         // 3/ get funds back on src chain

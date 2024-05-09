@@ -29,7 +29,7 @@ export const multiswap = async function (
     
     // Deploy contracts
     let contractInstances = {}
-    const contractNames =  ["FiberRouter", "FundManager", "CCTPFundManager", "MultiSwapForge", "ForgeFundManager", "ForgeCCTPFundManager"]
+    const contractNames =  ["FiberRouter"] //, "FundManager", "CCTPFundManager", "MultiSwapForge", "ForgeFundManager", "ForgeCCTPFundManager"]
     console.log("Before loop")
     for (const contractName of contractNames) {
         console.log(`Deploying ${contractName}`)
