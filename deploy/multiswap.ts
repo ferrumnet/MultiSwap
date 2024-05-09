@@ -29,21 +29,14 @@ export const multiswap = async function (
     
     // Deploy contracts
     let contractInstances = {}
-    const ferrumDeployer = await (await hre.ethers.deployContract("FerrumDeployer")).waitForDeployment()
-    console.log("FerrumDeployer deployed successfully")
-    const contracts =  ["FiberRouter", "FundManager", "MultiSwapForge", "ForgeFundManager", "CCTPFundManager", "ForgeCCTPFundManager"]
-    console.log(contracts)
-    for (const contract of contracts) {
-        if ((contract === "CCTPFundManager" || contract === "ForgeCCTPFundManager") && !isCctp) {
-            continue
-        }
-        console.log(`Deploying ${contract}`)
-        const factory = await hre.ethers.getContractFactory(contract)
-        const tx = await ferrumDeployer.deployOwnable(salt, signer[0].address, "0x", factory.bytecode)
-        const receipt = await tx.wait()
-        const address = (receipt.logs[0].address)
-        contractInstances[contract] = new hre.ethers.Contract(address, factory.interface, signer[0])
-        console.log(`Address: ${address}`)
+    const contractNames =  ["FiberRouter", "FundManager", "CCTPFundManager", "MultiSwapForge", "ForgeFundManager", "ForgeCCTPFundManager"]
+    console.log("Before loop")
+    for (const contractName of contractNames) {
+        console.log(`Deploying ${contractName}`)
+        const factory = await hre.ethers.getContractFactory(contractName)
+        const contract = await factory.deploy();
+
+        contractInstances[contractName] = new hre.ethers.Contract(await contract.getAddress(), factory.interface, signer[0])
     }
 
     const fiberRouter = contractInstances['FiberRouter']
@@ -64,20 +57,6 @@ export const multiswap = async function (
 
     const filePath = path.join(__dirname, '../constants/addresses.json');
     writeJsonToFile(filePath, addresses);
-
-    // const fiberRouterAddress = addresses.networks[thisNetwork].deployments.fiberRouter
-    // const fundManagerAddress = addresses.networks[thisNetwork].deployments.fundManager
-    // const cctpFundManagerAddress = addresses.networks[thisNetwork].deployments.cctpFundManager
-    // const multiswapForgeAddress = addresses.networks[thisNetwork].deployments.multiSwapForge
-    // const forgeFundManagerAddress = addresses.networks[thisNetwork].deployments.forgeFundManager
-    // const forgeCctpFundManagerAddress = addresses.networks[thisNetwork].deployments.forgeCCTPFundManager
-
-    // const fiberRouter = new hre.ethers.Contract(fiberRouterAddress, fiberRouterArtifact.abi, signer[0])
-    // const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
-    // const cctpFundManager = new hre.ethers.Contract(cctpFundManagerAddress, cctpFundManagerArtifact.abi, signer[0])
-    // const multiswapForge = new hre.ethers.Contract(multiswapForgeAddress, multiswapForgeArtifact.abi, signer[0])
-    // const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
-    // const forgeCctpFundManager = new hre.ethers.Contract(forgeCctpFundManagerAddress, forgeCctpFundManagerArtifact.abi, signer[0])
     
     // Post deploy configs
     console.log("\n##### FiberRouter configs #####")

@@ -16,7 +16,6 @@ import "../common/IWETH.sol";
 contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
     using SafeERC20 for IERC20;
     address private constant NATIVE_CURRENCY = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    uint256 private constant FEE_DENOMINATOR = 10000;
     address public weth;
     address public fundManager;
     address public cctpFundManager;

@@ -19,19 +19,21 @@ export const postDeployCctp = async function (
 
     // Initiate contract instance
     const signer = await hre.ethers.getSigners()
-    const cctpFundManager = new hre.ethers.Contract(addresses.networks[thisNetwork].cctp.cctpFundManager, cctpFundManagerArtifact.abi, signer[0])
+    const cctpFundManager = new hre.ethers.Contract(addresses.networks[thisNetwork].deployments.cctpFundManager, cctpFundManagerArtifact.abi, signer[0])
 
 
     let otherNetworks = Object.keys(addresses.networks).filter((network) =>
-        network !== thisNetwork
+        network !== thisNetwork &&
+        network !== "hardhat" &&
+        network !== "localhost"
     );
 
     for (const otherNetwork of otherNetworks) {
-        console.log(cctpFundManager)
+        console.log(cctpFundManager.target)
         await sendTx(cctpFundManager.setTargetCCTPNetwork(
             addresses.networks[otherNetwork].chainId,
             addresses.networks[otherNetwork].cctp.domain,
-            addresses.networks[otherNetwork].cctp.cctpFundManager
+            addresses.networks[otherNetwork].deployments.cctpFundManager
         ), `Set target CCTP network for ${otherNetwork} successful`)
     }
 }

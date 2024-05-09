@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import "../common/signature/SigCheckable.sol";
-import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
