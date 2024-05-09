@@ -381,7 +381,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
                 sd.targetAddress
             );
 
-            uint256 _amountIn = amountIn; // to avoid stack too deep error
             emit Swap(
                 fromToken,
                 sd.targetToken,

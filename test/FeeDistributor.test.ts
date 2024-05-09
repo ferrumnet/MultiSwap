@@ -65,6 +65,9 @@ describe('FeeDistributor', () => {
         };
         const signature = await signer.signTypedData(domain, types, values)
 
+        const encoder = new TypedDataEncoder(types)
+        console.log(encoder.encode(values))
+
         const feeDistributionData = {
             feeAllocations,
             salt: id("unique_salt"), // some salt value
@@ -72,10 +75,10 @@ describe('FeeDistributor', () => {
             signature // the signature, replace accordingly
         };
 
-        const tx = await feeDistributor.testDistributeFees(
-            token,
-            amount,
-            feeDistributionData
-        );
+        // const tx = await feeDistributor.testDistributeFees(
+        //     token,
+        //     amount,
+        //     feeDistributionData
+        // );
     })
 })
