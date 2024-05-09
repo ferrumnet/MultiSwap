@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+pragma solidity ^0.8.24;
 
 import "../common/signature/SigCheckable.sol";
-import "foundry-contracts/contracts/common/FerrumDeployer.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./LiquidityManagerRole.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract FundManager is SigCheckable, LiquidityManagerRole {
     using SafeERC20 for IERC20;
@@ -316,6 +315,10 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
             );
         (bytes32 digest, address _signer) = signer(message, signature);
         return (digest, _signer);
+    }
+
+    function withdrawRouter(address token, uint256 amount, address recipient) external onlyRouter {
+        IERC20(token).transfer(recipient, amount);
     }
 
     /**

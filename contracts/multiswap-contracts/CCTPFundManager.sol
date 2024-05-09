@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+pragma solidity ^0.8.24;
 
 import "../common/signature/SigCheckable.sol";
 import "foundry-contracts/contracts/common/FerrumDeployer.sol";
 import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/tokenReceiveable.sol";
+import "../common/cctp/ICCTPTokenMessenger.sol";
 
 contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
     using SafeERC20 for IERC20;
-
+    address public usdcToken;
+    address public cctpTokenMessenger;
     address public fiberRouter;
     uint32 constant WEEK = 3600 * 24 * 7;
-    string public constant NAME = "CCTP_FUND_MANAGER";
+    string public constant NAME = "FUND_MANAGER";
     string public constant VERSION = "000.004";
     mapping(address => bool) public signers;
     mapping(bytes32 => bool) public usedSalt;
+    mapping(uint256 => TargetNetwork) public targetNetworks;
 
     bytes32 constant WITHDRAW_SIGNED_METHOD =
         keccak256(
@@ -23,8 +26,13 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
         );
     bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCallData,bytes32 salt,uint256 expiry)"
+            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
         );
+
+    struct TargetNetwork {
+        uint32 targetNetworkDomain;
+        address targetCCTPFundManager;
+    }
 
     event TransferBySignature(
         address signer,
@@ -64,7 +72,7 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
      @dev sets the signer
      @param _signer is the address that generate signatures
      */
-    function addSigner(address _signer) external onlyOwner {
+    function addSigner(address _signer) public onlyOwner {
         require(_signer != address(0), "Bad signer");
         signers[_signer] = true;
     }
@@ -76,6 +84,37 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
     function removeSigner(address _signer) external onlyOwner {
         require(_signer != address(0), "Bad signer");
         delete signers[_signer];
+    }
+
+    /**
+     * @notice Initializes the Cross-Chain Transfer Protocol (CCTP) parameters.
+     * @dev This function should be called by the contract owner to set the necessary parameters for CCTP.
+     * @param _cctpTokenMessenger The address of the CCTP Token Messenger contract.
+     * @param _usdcToken The address of the USDC token contract.
+     **/
+    function initCCTP(
+        address _cctpTokenMessenger,
+        address _usdcToken
+    ) external onlyOwner {
+        require(_cctpTokenMessenger != address(0), "FR: Invalid CCTP Token Messenger address");
+        require(_usdcToken != address(0), "FR: Invalid USDC Token address");
+
+        cctpTokenMessenger = _cctpTokenMessenger;
+        usdcToken = _usdcToken;
+    }
+
+    /**
+     * @notice Add a new target CCTP network.
+     * @param _chainID The target network chain ID
+     * @param _targetNetworkDomain The domain of the target network.
+     * @param _targetCCTPFundManager The fund manager address for the target network.
+     */
+    function setTargetCCTPNetwork(uint256 _chainID, uint32 _targetNetworkDomain, address _targetCCTPFundManager) external {
+        require(_targetNetworkDomain != 0, "FR: Invalid Target Network Domain");
+        require(_chainID != 0, "FR: Invalid Target Network ChainID");
+        require(_targetCCTPFundManager != address(0), "FR: Invalid Target CCTP Fund Manager address");
+
+        targetNetworks[_chainID] = TargetNetwork(_targetNetworkDomain, _targetCCTPFundManager);
     }
 
     /**
@@ -172,6 +211,8 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
         address _signer = signerUnique(message, signature);
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
+        // sync inventory of token
+        TokenReceivable.sync(foundryToken);
         usedSalt[salt] = true;
         TokenReceivable.sendToken(foundryToken, msg.sender, amountIn);
         emit TransferBySignature(_signer, msg.sender, foundryToken, amountIn);
@@ -246,4 +287,23 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
         (bytes32 digest, address _signer) = signer(message, signature);
         return (digest, _signer);
     }
+
+    /**
+     * @notice Initiates a Cross-Chain Transfer Protocol (CCTP) swap.
+     */
+    function swapCCTP(uint256 amountIn, address token, uint256 targetNetwork) external onlyRouter returns (uint64 depositNonce){
+        TargetNetwork storage target = targetNetworks[targetNetwork];
+        require(target.targetNetworkDomain != 0, "FR: Target network not found");
+        require(target.targetCCTPFundManager != address(0), "FR: Target CCTP FundManager address not found");
+        require(token == usdcToken, "FR: Invalid token");
+
+        require(IERC20(token).approve(cctpTokenMessenger, amountIn), "Approval failed");
+
+        depositNonce = ICCTPTokenMessenger(cctpTokenMessenger).depositForBurn(
+            amountIn,
+            target.targetNetworkDomain,
+            bytes32(uint256(uint160(target.targetCCTPFundManager))),
+            usdcToken
+        );
+    }     
 }
