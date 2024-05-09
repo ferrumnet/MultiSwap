@@ -249,7 +249,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         SwapCrossData memory sd,
         bytes32 withdrawalData,
         bool cctpType,
-        FeeDistributionData memory feeDistributionData
+        FeeDistributionData memory fd
     ) external payable nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -260,7 +260,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
 
-        amount = _distributeFees(token, amount, feeDistributionData);
+        amount = _distributeFees(token, amount, fd);
 
         // Perform the token swap based on swapCCTP flag
         uint64 depositNonce;
@@ -320,7 +320,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         SwapCrossData memory sd,
         bytes32 withdrawalData,
         bool cctpType,
-        FeeDistributionData memory feeDistributionData
+        FeeDistributionData memory fd
     ) external payable nonReentrant {
         require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(fromToken != address(0), "FR: From token address cannot be zero");
@@ -343,7 +343,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             routerCalldata
         );
 
-        amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
+        amountOut = _distributeFees(foundryToken, amountOut, fd);
 
         uint64 depositNonce;
         if (cctpType) {
@@ -399,7 +399,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         SwapCrossData memory sd,
         bytes32 withdrawalData,
         bool cctpType,
-        FeeDistributionData memory feeDistributionData
+        FeeDistributionData memory fd
     ) external payable {
         require(msg.value - gasFee != 0, "FR: Amount in must be greater than zero"); // amountIn = msg.value - gasFee, but using directly here 
         require(gasFee != 0, "FR: Gas fee must be greater than zero");
@@ -421,7 +421,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             routerCalldata
         );
 
-        amountOut = _distributeFees(foundryToken, amountOut, feeDistributionData);
+        amountOut = _distributeFees(foundryToken, amountOut, fd);
 
         uint64 depositNonce;
         if (cctpType) {
