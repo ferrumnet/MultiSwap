@@ -2,18 +2,20 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./FundManager.sol";
-import "./CCTPFundManager.sol";
+import "../common/its/interfaces/IInterchainTokenStandard.sol";
+import "../common/its/InterchainTokenExecutable.sol";
 import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
-import "./FeeDistributor.sol";
 import "../common/IWETH.sol";
+import "./CCTPFundManager.sol";
+import "./FundManager.sol";
+import "./FeeDistributor.sol";
 
 /**
  @author The ferrum network.
  @title This is a routing contract named as FiberRouter.
 */
-contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
+contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainTokenExecutable {
     using SafeERC20 for IERC20;
     address private constant NATIVE_CURRENCY = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     address public weth;
@@ -21,6 +23,23 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
     address public cctpFundManager;
     address payable public gasWallet;
     mapping(bytes32 => bool) private routerAllowList;
+    mapping(bytes32 => FrozenFunds) private frozenFunds;
+
+    enum MultichainTokenStandardType {
+        NONE,
+        ITS
+    }
+
+    struct FrozenFunds {
+        address receiver;
+        address token;
+        uint256 amount;
+    }
+
+    struct MultichainTokenData {
+        MultichainTokenStandardType multichainTokenStandardType;
+        string destinationChain;
+    }
 
     struct SwapCrossData {
         uint256 targetNetwork;
@@ -39,7 +58,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         uint256 settledAmount,
         bytes32 withdrawalData,
         uint256 gasAmount,
-        uint256 depositNonce
+        uint256 depositNonce,
+        MultichainTokenStandardType multichainTokenStandardType
     );
 
     event SwapSameNetwork(
@@ -72,6 +92,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
 
     event RouterAndSelectorWhitelisted(address router, bytes4 selector);
     event RouterAndSelectorRemoved(address router, bytes selector);
+
+    constructor(address interchainTokenService) InterchainTokenExecutable(interchainTokenService) {}
 
     /**
      * @notice Set the weth address
@@ -132,6 +154,15 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
     function removeRouterAndSelector(address router, bytes calldata selector) external onlyOwner {
         routerAllowList[_getKey(router, selector)] = false;
         emit RouterAndSelectorRemoved(router, selector);
+    }
+
+    /**
+     * @notice Checks if the router and selector combination is whitelisted
+     * @param router The router address
+     * @param selector The selector for the router
+     */
+    function isAllowListed(address router, bytes memory selector) public view returns (bool) {
+        return routerAllowList[_getKey(router, selector)];
     }
 
     /**
@@ -243,8 +274,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         uint256 amount,
         SwapCrossData memory sd,
         bytes32 withdrawalData,
+        FeeDistributionData memory fd,
         bool cctpType,
-        FeeDistributionData memory fd
+        MultichainTokenStandardType multichainTokenStandardType
     ) external payable nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -291,7 +323,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             amount,
             withdrawalData,
             msg.value,
-            depositNonce // Stays zero for non-CCTP swaps
+            depositNonce,
+            multichainTokenStandardType // Stays zero for non-CCTP swaps
         );
     }
 
@@ -315,8 +348,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         bytes memory routerCalldata,
         SwapCrossData memory sd,
         bytes32 withdrawalData,
+        FeeDistributionData memory fd,
         bool cctpType,
-        FeeDistributionData memory fd
+        MultichainTokenStandardType multichainTokenStandardType
     ) external payable nonReentrant {
         require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(fromToken != address(0), "FR: From token address cannot be zero");
@@ -372,7 +406,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             amountOut,
             withdrawalData,
             msg.value,
-            depositNonce // Stays zero for non-CCTP swaps
+            depositNonce,
+            multichainTokenStandardType // Stays zero for non-CCTP swaps
         );    
     }
 
@@ -394,8 +429,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         bytes memory routerCalldata,
         SwapCrossData memory sd,
         bytes32 withdrawalData,
+        FeeDistributionData memory fd,
         bool cctpType,
-        FeeDistributionData memory fd
+        MultichainTokenStandardType multichainTokenStandardType
     ) external payable {
         require(msg.value - gasFee != 0, "FR: Amount in must be greater than zero"); // amountIn = msg.value - gasFee, but using directly here 
         require(gasFee != 0, "FR: Gas fee must be greater than zero");
@@ -439,6 +475,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(success, "FR: Gas fee transfer failed");
 
         uint256 _gasFee = gasFee; // Stack too deep workaround
+        bytes32 _withdrawalData = withdrawalData; // Stack too deep workaround
+        
         emit Swap(
             weth,
             sd.targetToken,
@@ -448,12 +486,11 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             _msgSender(),
             sd.targetAddress,
             amountOut,
-            withdrawalData,
+            _withdrawalData,
             _gasFee,
-            depositNonce
+            depositNonce,
+            multichainTokenStandardType
         );
-
-        
     }
 
     /**
@@ -522,8 +559,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature,
-        bool cctpType
-    ) public virtual nonReentrant {
+        bool cctpType,
+        MultichainTokenData memory mtd
+    ) public virtual payable nonReentrant {
         require(foundryToken != address(0), "Bad Token Address");
         require(targetToken != address(0), "FR: Target token address cannot be zero");
         require(amountIn != 0, "Amount in must be greater than zero");
@@ -555,6 +593,12 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             routerCalldata
         );
 
+        if (mtd.multichainTokenStandardType != MultichainTokenStandardType.NONE) {
+            if (mtd.multichainTokenStandardType == MultichainTokenStandardType.ITS){
+                IInterchainTokenStandard(targetToken).interchainTransfer{value: msg.value}(mtd.destinationChain, abi.encodePacked(to), amountOut, "");
+            }
+        }
+
         emit WithdrawRouter(
             to,
             amountIn,
@@ -568,13 +612,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         );
     }
 
-    /**
-     * @notice Checks if the router and selector combination is whitelisted
-     * @param router The router address
-     * @param selector The selector for the router
-     */
-    function isAllowListed(address router, bytes memory selector) public view returns (bool) {
-        return routerAllowList[_getKey(router, selector)];
+    function retryWithdraw(bytes32 commandId, bytes calldata withdrawSignedCalldata ) external {
+        // Retry logic
     }
 
     /**
@@ -643,6 +682,21 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             } else {
                 revert("FR: Call to router failed");
             }
+        }
+    }
+
+    function _executeWithInterchainToken(
+        bytes32 commandId,
+        string calldata sourceChain,
+        bytes calldata sourceAddress,
+        bytes calldata fiberRouterCalldata,
+        bytes32 tokenId,
+        address token,
+        uint256 amount
+    ) internal override {
+        (bool success, bytes memory returnData) = (address(this)).call(fiberRouterCalldata);
+        if (!success) { // We need a re-try mechanism
+            frozenFunds[commandId] = FrozenFunds(address(uint160(bytes20(sourceAddress))), token, amount);
         }
     }
 }

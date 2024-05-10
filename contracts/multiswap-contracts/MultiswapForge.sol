@@ -7,7 +7,7 @@ contract MultiSwapForge is FiberRouter {
     
     address public gasEstimationAddress;
 
-    constructor() {}
+    constructor(address interchainTokenService) FiberRouter(interchainTokenService) {}
 
     /**
      @dev Sets address authorized to execute gas estimations
@@ -68,8 +68,9 @@ contract MultiSwapForge is FiberRouter {
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature,
-        bool cctpType
-    ) public override {
+        bool cctpType,
+        MultichainTokenData memory mtd
+    ) public payable override {
        revert("Not Supported");
     }
 
@@ -85,7 +86,8 @@ contract MultiSwapForge is FiberRouter {
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature,
-        bool cctpType
+        bool cctpType,
+        MultichainTokenData memory mtd
     ) external {
         // Call the original function from FiberRouter
         super.withdrawSignedAndSwapRouter(
@@ -99,7 +101,8 @@ contract MultiSwapForge is FiberRouter {
             salt,
             expiry,
             multiSignature,
-            cctpType
+            cctpType,
+            mtd
         );
 
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
