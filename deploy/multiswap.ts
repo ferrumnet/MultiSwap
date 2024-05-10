@@ -57,11 +57,13 @@ export const multiswap = async function (
 
     const filePath = path.join(__dirname, '../constants/addresses.json');
     writeJsonToFile(filePath, addresses);
-    
+
     // Post deploy configs
     console.log("\n##### FiberRouter configs #####")
     await sendTx(fiberRouter.setWeth(weth), "setWeth successful")
-    await sendTx(fiberRouter.setFundManager(fundManager), "setPool successful")
+    await sendTx(fiberRouter.setFundManager(addresses.networks[thisNetwork].deployments.fundManager), "setPool successful")
+    await sendTx(fiberRouter.setCCTPFundManager(addresses.networks[thisNetwork].deployments.cctpFundManager), "setCCTPPool successful")
+    await sendTx(fiberRouter.addSigner(addresses.signer), "setSignerWallet successful")
     await sendTx(fiberRouter.setGasWallet(addresses.gasWallet), "setGasWallet successful")
     
     console.log("\n##### FundManager configs #####")
@@ -143,7 +145,7 @@ export const multiswap = async function (
         console.log("ForgeCCTPFundManager:\t", forgeCctpFundManager.target)
     }
 
-    return { fiberRouter, fundManager, cctpFundManager, multiswapForge, forgeManager, forgeCctpFundManager }
+    return { fiberRouter}
 }
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {

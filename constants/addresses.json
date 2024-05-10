@@ -12,7 +12,7 @@
             "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
             "foundry": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
             "deployments": {
-                "fiberRouter": "0x90b4C9Cc6AAf15be692d20D409A86bd32897D9b1",
+                "fiberRouter": "0x47Bee1648Eb4B375E27038314738455419B3766b",
                 "fundManager": "0xC7b23d5Da44f3d421aD27863788bEdcce4b34B0d",
                 "cctpFundManager": "0x7bD02622F39E458D5d5eaAD51C304Cac064ACFf4",
                 "multiSwapForge": "0x4118Bd3F2c14C5F17578945C59436ECda57BaADa",
@@ -55,7 +55,7 @@
             "weth": "0x4200000000000000000000000000000000000006",
             "foundry": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             "deployments": {
-                "fiberRouter": "0x17BD1758A7d954AD3a0BD7Cf530932397374273f",
+                "fiberRouter": "0xC7b23d5Da44f3d421aD27863788bEdcce4b34B0d",
                 "fundManager": "0x7022a2dE2434AbA5985e87A84E93E5C9Cc3AB05F",
                 "cctpFundManager": "0x7EA16f3a967db7133D50807e5Fb3ca5FBc4A3dD6",
                 "multiSwapForge": "0x200b08e4fBE3709516F285cB5b07735a6484264F",

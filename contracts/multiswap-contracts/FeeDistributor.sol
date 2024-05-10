@@ -67,7 +67,8 @@ contract FeeDistributor is EIP712, Ownable {
         uint256 totalFees;
         for (uint256 i = 0; i < fdd.feeAllocations.length; i++) {
             uint256 amount = (preFeeAmount * fdd.feeAllocations[i].rateInBps) / FEE_DENOMINATOR;
-            IERC20(token).safeTransferFrom(address(this), fdd.feeAllocations[i].recipient, amount);
+            // Transfer the token fee % to the recipients 
+            SafeERC20.safeTransfer(IERC20(token), fdd.feeAllocations[i].recipient, amount);
             totalBps += fdd.feeAllocations[i].rateInBps;
             totalFees += amount;
         }
