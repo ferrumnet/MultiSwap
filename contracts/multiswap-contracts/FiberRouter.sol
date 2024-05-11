@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import { SwapTypeDecoder as Decoder } from "../common/SwapTypeDecoder.sol";
 import "../common/its/interfaces/IInterchainTokenStandard.sol";
 import "../common/its/InterchainTokenExecutable.sol";
 import "../common/tokenReceiveable.sol";
@@ -23,23 +24,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
     address public cctpFundManager;
     address payable public gasWallet;
     mapping(bytes32 => bool) private routerAllowList;
-    mapping(bytes32 => FrozenFunds) private frozenFunds;
-
-    enum MultichainTokenStandardType {
-        NONE,
-        ITS
-    }
-
-    struct FrozenFunds {
-        address receiver;
-        address token;
-        uint256 amount;
-    }
-
-    struct MultichainTokenData {
-        MultichainTokenStandardType multichainTokenStandardType;
-        string destinationChain;
-    }
 
     struct SwapCrossData {
         uint256 targetNetwork;
@@ -59,7 +43,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         bytes32 withdrawalData,
         uint256 gasAmount,
         uint256 depositNonce,
-        MultichainTokenStandardType multichainTokenStandardType
+        uint256 multiTokenType
     );
 
     event SwapSameNetwork(
@@ -88,6 +72,12 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         bytes routerCalldata,
         bytes32 salt,
         bytes multiSignature
+    );
+
+    event OmniSwapFailed(
+        address token,
+        uint256 amount,
+        address receiver
     );
 
     event RouterAndSelectorWhitelisted(address router, bytes4 selector);
@@ -267,16 +257,14 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
      * @param token The token to be swapped.
      * @param amount The amount to be swapped.
      * @param withdrawalData Data related to the withdrawal.
-     * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
     function swapSigned(
+        bytes32 swapTypes,
         address token,
         uint256 amount,
         SwapCrossData memory sd,
         bytes32 withdrawalData,
-        FeeDistributionData memory fd,
-        bool cctpType,
-        MultichainTokenStandardType multichainTokenStandardType
+        FeeDistributionData memory fd
     ) external payable nonReentrant {
         // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
@@ -292,7 +280,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
 
         // Perform the token swap based on swapCCTP flag
         uint64 depositNonce;
-        if (cctpType) {
+        if (Decoder.isCctp()) {
             // Proceed with the CCTP swap logic
             SafeERC20.safeTransfer(IERC20(token), cctpFundManager, amount);
             depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amount, token, sd.targetNetwork);
@@ -323,8 +311,8 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
             amount,
             withdrawalData,
             msg.value,
-            depositNonce,
-            multichainTokenStandardType // Stays zero for non-CCTP swaps
+            depositNonce, // Stays zero for non-CCTP swaps
+            Decoder.multiTokenType()
         );
     }
 
@@ -337,9 +325,10 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
      * @param router The router address
      * @param routerCalldata The calldata for the swap
      * @param withdrawalData Data related to the withdrawal
-     * @param cctpType Boolean indicating whether it's a CCTP swap.
+     * @param swapTypes Boolean indicating whether it's a CCTP swap.
      */
     function swapSignedAndCrossRouter(
+        bytes32 swapTypes,
         uint256 amountIn,
         uint256 minAmountOut,
         address fromToken,
@@ -348,9 +337,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         bytes memory routerCalldata,
         SwapCrossData memory sd,
         bytes32 withdrawalData,
-        FeeDistributionData memory fd,
-        bool cctpType,
-        MultichainTokenStandardType multichainTokenStandardType
+        FeeDistributionData memory fd
     ) external payable nonReentrant {
         require(amountIn != 0, "FR: Amount in must be greater than zero");
         require(fromToken != address(0), "FR: From token address cannot be zero");
@@ -376,7 +363,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         amountOut = _distributeFees(foundryToken, amountOut, fd);
 
         uint64 depositNonce;
-        if (cctpType) {
+        if (Decoder.isCctp()) {
             // Transfer to CCTP FundManager and initiate CCTP swap
             SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, amountOut);
             depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
@@ -407,7 +394,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
             withdrawalData,
             msg.value,
             depositNonce,
-            multichainTokenStandardType // Stays zero for non-CCTP swaps
+            Decoder.multiTokenType()
         );    
     }
 
@@ -419,9 +406,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
      * @param router The router address
      * @param routerCalldata The calldata for the swap
      * @param withdrawalData Data related to the withdrawal
-     * @param cctpType Boolean indicating whether it's a CCTP swap.
      */
     function swapSignedAndCrossRouterETH(
+        bytes32 swapTypes,
         uint256 minAmountOut,
         address foundryToken,
         uint256 gasFee,
@@ -429,9 +416,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         bytes memory routerCalldata,
         SwapCrossData memory sd,
         bytes32 withdrawalData,
-        FeeDistributionData memory fd,
-        bool cctpType,
-        MultichainTokenStandardType multichainTokenStandardType
+        FeeDistributionData memory fd
     ) external payable {
         require(msg.value - gasFee != 0, "FR: Amount in must be greater than zero"); // amountIn = msg.value - gasFee, but using directly here 
         require(gasFee != 0, "FR: Gas fee must be greater than zero");
@@ -456,7 +441,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         amountOut = _distributeFees(foundryToken, amountOut, fd);
 
         uint64 depositNonce;
-        if (cctpType) {
+        if (Decoder.isCctp()) {
             SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, amountOut);
             depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
         } else {
@@ -489,7 +474,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
             _withdrawalData,
             _gasFee,
             depositNonce,
-            multichainTokenStandardType
+            Decoder.multiTokenType()
         );
     }
 
@@ -545,10 +530,10 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
      * @param routerCalldata The calldata for the swap
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
-     * @param cctpType Boolean indicating if swap to CCTP
      * @param multiSignature The multi-signature data
      */
     function withdrawSignedAndSwapRouter(
+        bytes32 swapTypes,
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
@@ -558,9 +543,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature,
-        bool cctpType,
-        MultichainTokenData memory mtd
+        bytes memory multiSignature
     ) public virtual payable nonReentrant {
         require(foundryToken != address(0), "Bad Token Address");
         require(targetToken != address(0), "FR: Target token address cannot be zero");
@@ -568,9 +551,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         require(minAmountOut != 0, "Amount out minimum must be greater than zero");
         require(foundryToken != address(0), "Bad Token Address");
 
-        address pool = cctpType ? cctpFundManager : fundManager;
+        address pool = Decoder.isCctp() ? cctpFundManager : fundManager;
         
-        amountIn = FundManager(pool).withdrawSignedAndSwapRouter(
+        uint256 _amountIn = FundManager(pool).withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,
@@ -587,21 +570,27 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
             to,
             foundryToken,
             targetToken,
-            amountIn,
+            _amountIn,
             minAmountOut,
             router,
             routerCalldata
         );
 
-        if (mtd.multichainTokenStandardType != MultichainTokenStandardType.NONE) {
-            if (mtd.multichainTokenStandardType == MultichainTokenStandardType.ITS){
-                IInterchainTokenStandard(targetToken).interchainTransfer{value: msg.value}(mtd.destinationChain, abi.encodePacked(to), amountOut, "");
+        if (Decoder.multiTokenType() > 0) {
+            if (Decoder.multiTokenType() == 1){
+                IInterchainTokenStandard(targetToken).interchainTransfer{value: msg.value}(
+                    Decoder.chainIdString(),
+                    abi.encodePacked(_readCalldataAddress(0x04)), // Reads the first argument from calldata. Avoids stack too deep error
+                    amountOut,
+                    ""
+                );
             }
+            // More cases can be added here for future multi-token types
         }
 
         emit WithdrawRouter(
             to,
-            amountIn,
+            _amountIn,
             amountOut,
             foundryToken,
             targetToken,
@@ -610,10 +599,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
             salt,
             multiSignature
         );
-    }
-
-    function retryWithdraw(bytes32 commandId, bytes calldata withdrawSignedCalldata ) external {
-        // Retry logic
     }
 
     /**
@@ -694,9 +679,20 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor, InterchainToke
         address token,
         uint256 amount
     ) internal override {
-        (bool success, bytes memory returnData) = (address(this)).call(fiberRouterCalldata);
+        (bool success, ) = (address(this)).call(fiberRouterCalldata); // Attempts swapAndCrossRouter
         if (!success) { // We need a re-try mechanism
-            frozenFunds[commandId] = FrozenFunds(address(uint160(bytes20(sourceAddress))), token, amount);
+
+            address recipient = address(uint160(bytes20(sourceAddress)));
+            // Send tokens to user
+            SafeERC20.safeTransfer(IERC20(token), recipient, amount);
+
+            emit OmniSwapFailed(token, amount, recipient);
+        }
+    }
+
+    function _readCalldataAddress(uint256 cdPtr) internal pure returns (address addr) {
+        assembly {
+            addr := calldataload(cdPtr)
         }
     }
 }
