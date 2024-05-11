@@ -268,13 +268,11 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         uint64 depositNonce;
         if (cctpType) {
             // Proceed with the CCTP swap logic
-            // Transfer to CCTP FundManager and initiate CCTP swap
-            SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, amount);
+            SafeERC20.safeTransfer(IERC20(token), cctpFundManager, amount);
             depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amount, token, sd.targetNetwork);
         } else {
             // Proceed with the normal swap logic
-            // Transfer to FundManager and update inventory
-            SafeERC20.safeTransfer(IERC20(foundryToken), fundManager, amount);
+            SafeERC20.safeTransfer(IERC20(token), fundManager, amount);
             amount = FundManager(fundManager).swapToAddress(
                 token,
                 amount,
@@ -535,9 +533,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(minAmountOut != 0, "Amount out minimum must be greater than zero");
         require(foundryToken != address(0), "Bad Token Address");
 
-        address _pool = cctpType ? cctpFundManager : fundManager;
+        address pool = cctpType ? cctpFundManager : fundManager;
         
-        amountIn = FundManager(_pool).withdrawSignedAndSwapRouter(
+        amountIn = FundManager(pool).withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,

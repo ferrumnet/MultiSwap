@@ -130,9 +130,6 @@ export const multiswap = async function (
         await sendTx(forgeCctpFundManager.initCCTP(addresses.networks[thisNetwork].cctp.tokenMessenger, foundry, forgeCctpFundManager), "forge initCCTP successful")
         await sendTx(forgeCctpFundManager.setRouter(multiswapForge), "setRouter successful")
         await sendTx(forgeCctpFundManager.addSigner(addresses.signer), "addSigner successful")
-
-        addresses.networks[thisNetwork].deployments.forgeCCTPFundManager = forgeCctpFundManager.target
-        addresses.networks[thisNetwork].deployments.cctpFundManager = cctpFundManager.target
     }
 
     console.log("\n##### Contract Addresses #####")

@@ -15,7 +15,7 @@
                 "fiberRouter": "0x47Bee1648Eb4B375E27038314738455419B3766b",
                 "fundManager": "0xC7b23d5Da44f3d421aD27863788bEdcce4b34B0d",
                 "cctpFundManager": "0x7bD02622F39E458D5d5eaAD51C304Cac064ACFf4",
-                "multiSwapForge": "0x4118Bd3F2c14C5F17578945C59436ECda57BaADa",
+                "multiSwapForge": "0x3DC32De3FE7Acd6206Fe77Ad13367caD645eA7e5",
                 "forgeFundManager": "0xEfb28F03C581010995388D8035cbD0ed1d997219",
                 "forgeCCTPFundManager": "0x9ed1D73B823563067B08133F61f495744cFcCb27"
             },
@@ -58,7 +58,7 @@
                 "fiberRouter": "0xC7b23d5Da44f3d421aD27863788bEdcce4b34B0d",
                 "fundManager": "0x7022a2dE2434AbA5985e87A84E93E5C9Cc3AB05F",
                 "cctpFundManager": "0x7EA16f3a967db7133D50807e5Fb3ca5FBc4A3dD6",
-                "multiSwapForge": "0x200b08e4fBE3709516F285cB5b07735a6484264F",
+                "multiSwapForge": "0xfff75b0e798c61709779566D006B98b41143CD31",
                 "forgeFundManager": "0x6a8A46D77fd2144FF1BAEF19e8c2c2B4C2f40a84",
                 "forgeCCTPFundManager": "0xeC11d853f05e7174F43834AfCf31d52D6d01B552"
             },
