@@ -260,19 +260,21 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(amount != 0, "FR: Amount must be greater than zero");
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
-
+        // Transfer tokens to FiberRouter
+        amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
+        // Now distribute the token fee 
         amount = _distributeFees(token, amount, fd);
-
         // Perform the token swap based on swapCCTP flag
         uint64 depositNonce;
         if (cctpType) {
             // Proceed with the CCTP swap logic
-            amount = SafeAmount.safeTransferFrom(token, _msgSender(), cctpFundManager, amount);
+            // Transfer to CCTP FundManager and initiate CCTP swap
+            SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, amount);
             depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amount, token, sd.targetNetwork);
-
         } else {
             // Proceed with the normal swap logic
-            amount = SafeAmount.safeTransferFrom(token, _msgSender(), fundManager, amount);
+            // Transfer to FundManager and update inventory
+            SafeERC20.safeTransfer(IERC20(foundryToken), fundManager, amount);
             amount = FundManager(fundManager).swapToAddress(
                 token,
                 amount,
