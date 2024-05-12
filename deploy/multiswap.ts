@@ -40,20 +40,20 @@ export const multiswap = async function (
     }
 
     const fiberRouter = contractInstances['FiberRouter']
-    const fundManager = contractInstances['FundManager']
-    const multiswapForge = contractInstances['MultiSwapForge']
-    const forgeManager = contractInstances['ForgeFundManager']
-    const cctpFundManager = contractInstances['CCTPFundManager']
-    const forgeCctpFundManager = contractInstances['ForgeCCTPFundManager']
+    // const fundManager = contractInstances['FundManager']
+    // const multiswapForge = contractInstances['MultiSwapForge']
+    // const forgeManager = contractInstances['ForgeFundManager']
+    // const cctpFundManager = contractInstances['CCTPFundManager']
+    // const forgeCctpFundManager = contractInstances['ForgeCCTPFundManager']
 
     addresses.networks[thisNetwork].deployments.fiberRouter = fiberRouter.target
-    addresses.networks[thisNetwork].deployments.fundManager = fundManager.target
-    addresses.networks[thisNetwork].deployments.multiSwapForge = multiswapForge.target
-    addresses.networks[thisNetwork].deployments.forgeFundManager = forgeManager.target
-    if (isCctp) {
-        addresses.networks[thisNetwork].deployments.cctpFundManager = cctpFundManager.target
-        addresses.networks[thisNetwork].deployments.forgeCCTPFundManager = forgeCctpFundManager.target
-    }
+    // addresses.networks[thisNetwork].deployments.fundManager = fundManager.target
+    // addresses.networks[thisNetwork].deployments.multiSwapForge = multiswapForge.target
+    // addresses.networks[thisNetwork].deployments.forgeFundManager = forgeManager.target
+    // if (isCctp) {
+    //     addresses.networks[thisNetwork].deployments.cctpFundManager = cctpFundManager.target
+    //     addresses.networks[thisNetwork].deployments.forgeCCTPFundManager = forgeCctpFundManager.target
+    // }
 
     const filePath = path.join(__dirname, '../constants/addresses.json');
     writeJsonToFile(filePath, addresses);
@@ -66,22 +66,22 @@ export const multiswap = async function (
     await sendTx(fiberRouter.addSigner(addresses.signer), "setSignerWallet successful")
     await sendTx(fiberRouter.setGasWallet(addresses.gasWallet), "setGasWallet successful")
     
-    console.log("\n##### FundManager configs #####")
-    await sendTx(fundManager.setRouter(fiberRouter), "setRouter successful")
-    await sendTx(fundManager.addFoundryAsset(foundry), "addFoundryAsset successful")
-    await sendTx(fundManager.addSigner(addresses.signer), "addSigner successful")
-    await sendTx(fundManager.setLiquidityManagers(addresses.liquidityManager, addresses.liquidityManagerBot), "setLiquidityManagers successful")
-    await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
-    await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
+    // console.log("\n##### FundManager configs #####")
+    // await sendTx(fundManager.setRouter(fiberRouter), "setRouter successful")
+    // await sendTx(fundManager.addFoundryAsset(foundry), "addFoundryAsset successful")
+    // await sendTx(fundManager.addSigner(addresses.signer), "addSigner successful")
+    // await sendTx(fundManager.setLiquidityManagers(addresses.liquidityManager, addresses.liquidityManagerBot), "setLiquidityManagers successful")
+    // await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
+    // await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
 
-    console.log("\n##### MultiSwapForge configs #####")
-    await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
-    await sendTx(multiswapForge.setFundManager(forgeManager), "setPool successful")
-    await sendTx(multiswapForge.setGasEstimationAddress(addresses.gasEstimationWallet), "setGasEstimationAddress successful")
+    // console.log("\n##### MultiSwapForge configs #####")
+    // await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
+    // await sendTx(multiswapForge.setFundManager(forgeManager), "setPool successful")
+    // await sendTx(multiswapForge.setGasEstimationAddress(addresses.gasEstimationWallet), "setGasEstimationAddress successful")
 
-    console.log("\n##### ForgeFundManager configs #####")
-    await sendTx(forgeManager.setRouter(multiswapForge), "setRouter successful")
-    await sendTx(forgeManager.addFoundryAsset(foundry), "addFoundryAsset successful")
+    // console.log("\n##### ForgeFundManager configs #####")
+    // await sendTx(forgeManager.setRouter(multiswapForge), "setRouter successful")
+    // await sendTx(forgeManager.addFoundryAsset(foundry), "addFoundryAsset successful")
 
     // Add routers and selectors. Selectors need to be computed with scripts/computeSelectors.ts and added to constants/addresses.json beforehand
     console.log("\n##### Adding routers and selectors #####")
@@ -91,7 +91,7 @@ export const multiswap = async function (
         const router = swapRouter.router
         const selectors = swapRouter.selectors
         await sendTx(fiberRouter.addRouterAndSelectors(router, selectors), "addRouterAndSelectors successful")
-        await sendTx(multiswapForge.addRouterAndSelectors(router, selectors), "addRouterAndSelectors successful")
+        // await sendTx(multiswapForge.addRouterAndSelectors(router, selectors), "addRouterAndSelectors successful")
     }
 
     // Allow targets for other networks
@@ -102,47 +102,47 @@ export const multiswap = async function (
         network !== "localhost"
     );
     
-    for (const otherNetwork of otherNetworks) {
-        await sendTx(fundManager.allowTarget(
-            foundry,
-            addresses.networks[otherNetwork].chainId,
-            addresses.networks[otherNetwork].foundry),
-            `allowTarget to chainId ${addresses.networks[otherNetwork].chainId} successful`
-        );
-    }
+    // for (const otherNetwork of otherNetworks) {
+    //     await sendTx(fundManager.allowTarget(
+    //         foundry,
+    //         addresses.networks[otherNetwork].chainId,
+    //         addresses.networks[otherNetwork].foundry),
+    //         `allowTarget to chainId ${addresses.networks[otherNetwork].chainId} successful`
+    //     );
+    // }
 
-    // CCTP Setup
-    if (isCctp) {
-        console.log("\n##### CCTPFundManager configs #####")
+    // // CCTP Setup
+    // if (isCctp) {
+    //     console.log("\n##### CCTPFundManager configs #####")
 
-        // FiberRouter
-        await sendTx(fiberRouter.setCCTPFundManager(cctpFundManager), "setCCTPManager successful")
+    //     // FiberRouter
+    //     await sendTx(fiberRouter.setCCTPFundManager(cctpFundManager), "setCCTPManager successful")
         
-        // CCTPFundManager
-        await sendTx(cctpFundManager.initCCTP(addresses.networks[thisNetwork].cctp.tokenMessenger, foundry, cctpFundManager), "initCCTP successful")
-        await sendTx(cctpFundManager.setRouter(fiberRouter), "setRouter successful")
-        await sendTx(cctpFundManager.addSigner(addresses.signer), "addSigner successful")
+    //     // CCTPFundManager
+    //     await sendTx(cctpFundManager.initCCTP(addresses.networks[thisNetwork].cctp.tokenMessenger, foundry, cctpFundManager), "initCCTP successful")
+    //     await sendTx(cctpFundManager.setRouter(fiberRouter), "setRouter successful")
+    //     await sendTx(cctpFundManager.addSigner(addresses.signer), "addSigner successful")
 
-        // MultiSwapForge
-        await sendTx(multiswapForge.setCCTPFundManager(forgeCctpFundManager), "setCCTPManager successful")
+    //     // MultiSwapForge
+    //     await sendTx(multiswapForge.setCCTPFundManager(forgeCctpFundManager), "setCCTPManager successful")
         
-        // ForgeCCTPFundManager
-        await sendTx(forgeCctpFundManager.initCCTP(addresses.networks[thisNetwork].cctp.tokenMessenger, foundry, forgeCctpFundManager), "forge initCCTP successful")
-        await sendTx(forgeCctpFundManager.setRouter(multiswapForge), "setRouter successful")
-        await sendTx(forgeCctpFundManager.addSigner(addresses.signer), "addSigner successful")
-    }
+    //     // ForgeCCTPFundManager
+    //     await sendTx(forgeCctpFundManager.initCCTP(addresses.networks[thisNetwork].cctp.tokenMessenger, foundry, forgeCctpFundManager), "forge initCCTP successful")
+    //     await sendTx(forgeCctpFundManager.setRouter(multiswapForge), "setRouter successful")
+    //     await sendTx(forgeCctpFundManager.addSigner(addresses.signer), "addSigner successful")
+    // }
 
     console.log("\n##### Contract Addresses #####")
     console.log("FiberRouter:\t\t", fiberRouter.target)
-    console.log("FundManager:\t\t", fundManager.target)
-    console.log("MultiSwapForge:\t\t", multiswapForge.target)
-    console.log("ForgeFundManager:\t", forgeManager.target)
-    if(isCctp) {
-        console.log("CCPTFundManager:\t", cctpFundManager.target)
-        console.log("ForgeCCTPFundManager:\t", forgeCctpFundManager.target)
-    }
+    // console.log("FundManager:\t\t", fundManager.target)
+    // console.log("MultiSwapForge:\t\t", multiswapForge.target)
+    // console.log("ForgeFundManager:\t", forgeManager.target)
+    // if(isCctp) {
+    //     console.log("CCPTFundManager:\t", cctpFundManager.target)
+    //     console.log("ForgeCCTPFundManager:\t", forgeCctpFundManager.target)
+    // }
 
-    return { fiberRouter}
+    // return { fiberRouter}
 }
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {
