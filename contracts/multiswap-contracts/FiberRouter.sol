@@ -263,7 +263,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         // Transfer tokens to FiberRouter
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
         // Now distribute the token fee 
-        amount = _distributeFees(token, amount, fd);
+        amount = _distributeFees(token, amount, amount, fd);
         // Perform the token swap based on swapCCTP flag
         uint64 depositNonce;
         if (cctpType) {
@@ -344,7 +344,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             routerCalldata
         );
 
-        amountOut = _distributeFees(foundryToken, amountOut, fd);
+        amountOut = _distributeFees(foundryToken, amountIn, minAmountOut, fd);
 
         uint64 depositNonce;
         if (cctpType) {
@@ -422,7 +422,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             routerCalldata
         );
 
-        amountOut = _distributeFees(foundryToken, amountOut, fd);
+        amountOut = _distributeFees(foundryToken, msg.value - gasFee, minAmountOut, fd);
 
         uint64 depositNonce;
         if (cctpType) {

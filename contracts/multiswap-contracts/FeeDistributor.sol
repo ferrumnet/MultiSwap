@@ -58,9 +58,10 @@ contract FeeDistributor is EIP712, Ownable {
     function _distributeFees(
         address token,
         uint256 preFeeAmount,
+        uint256 minAmountOut,
         FeeDistributionData memory fdd
     ) internal returns (uint256) {
-        require(_verify(token, fdd), "FD: Invalid signature");
+        require(_verify(token, preFeeAmount, minAmountOut, fdd), "FD: Invalid signature");
         // Transfer the token fee to the recipient
         SafeERC20.safeTransfer(IERC20(token), fdd.recipient, fdd.platformFee);
         uint256 postFeeAmount = preFeeAmount - fdd.platformFee;
@@ -71,6 +72,8 @@ contract FeeDistributor is EIP712, Ownable {
 
     function _verify(
         address token,
+        uint256 preFeeAmount,
+        uint256 minAmountOut,
         FeeDistributionData memory fdd
     ) private returns (bool) {
         require(block.timestamp < fdd.expiry, "FD: signature timed out");
@@ -84,6 +87,8 @@ contract FeeDistributor is EIP712, Ownable {
                 token,
                 fdd.recipient,
                 fdd.platformFee,
+                preFeeAmount,
+                minAmountOut,
                 fdd.salt,
                 fdd.expiry,
                 fdd.signature
