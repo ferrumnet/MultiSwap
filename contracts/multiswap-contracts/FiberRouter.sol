@@ -273,7 +273,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         if (cctpType) {
             // Proceed with the CCTP swap logic
             SafeERC20.safeTransfer(IERC20(token), cctpFundManager, amountOut);
-            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amount, token, sd.targetNetwork);
+            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, token, sd.targetNetwork);
         } else {
             // Proceed with the normal swap logic
             SafeERC20.safeTransfer(IERC20(token), fundManager, amountOut);
