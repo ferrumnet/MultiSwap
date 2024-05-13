@@ -2,12 +2,13 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./FundManager.sol";
-import "./CCTPFundManager.sol";
 import "../common/tokenReceiveable.sol";
 import "../common/SafeAmount.sol";
-import "./FeeDistributor.sol";
 import "../common/IWETH.sol";
+import "./FundManager.sol";
+import "./CCTPFundManager.sol";
+import "./FeeDistributor.sol";
+
 
 /**
  @author The ferrum network.
@@ -260,20 +261,23 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(amount != 0, "FR: Amount must be greater than zero");
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
+
         // Transfer tokens to FiberRouter
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
+
         // Now distribute the token fee 
-        amount = _distributeFees(token, amount, amount, fd);
+        uint256 amountOut = _distributeFees(token, amount, fd);
+
         // Perform the token swap based on swapCCTP flag
         uint64 depositNonce;
         if (cctpType) {
             // Proceed with the CCTP swap logic
-            SafeERC20.safeTransfer(IERC20(token), cctpFundManager, amount);
+            SafeERC20.safeTransfer(IERC20(token), cctpFundManager, amountOut);
             depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amount, token, sd.targetNetwork);
         } else {
             // Proceed with the normal swap logic
-            SafeERC20.safeTransfer(IERC20(token), fundManager, amount);
-            amount = FundManager(fundManager).swapToAddress(
+            SafeERC20.safeTransfer(IERC20(token), fundManager, amountOut);
+            FundManager(fundManager).swapToAddress(
                 token,
                 amount,
                 sd.targetNetwork,
@@ -293,7 +297,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             amount,
             _msgSender(),
             sd.targetAddress,
-            amount,
+            amountOut,
             withdrawalData,
             msg.value,
             depositNonce // Stays zero for non-CCTP swaps
@@ -334,7 +338,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         uint256 _amountIn = SafeAmount.safeTransferFrom(fromToken, _msgSender(), address(this), amountIn);
         
         // Swap and receive tokens back to FiberRouter
-        uint256 amountOut = _swapAndCheckSlippage(
+        _swapAndCheckSlippage(
             address(this),
             fromToken,
             foundryToken,
@@ -344,19 +348,21 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             routerCalldata
         );
 
-        amountOut = _distributeFees(foundryToken, amountIn, minAmountOut, fd);
+        uint256 settledAmount = _distributeFees(foundryToken, minAmountOut, fd);
 
         uint64 depositNonce;
         if (cctpType) {
             // Transfer to CCTP FundManager and initiate CCTP swap
-            SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, amountOut);
-            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
+            uint256 balance = IERC20(foundryToken).balanceOf(address(this));
+            SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, balance);
+            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(balance, foundryToken, sd.targetNetwork);
         } else {
             // Transfer to FundManager and update inventory
-            SafeERC20.safeTransfer(IERC20(foundryToken), fundManager, amountOut);
+            uint256 balance = IERC20(foundryToken).balanceOf(address(this));
+            SafeERC20.safeTransfer(IERC20(foundryToken), fundManager, balance);
             FundManager(fundManager).swapToAddress(
                 foundryToken,
-                amountOut,
+                balance,
                 sd.targetNetwork,
                 sd.targetAddress
             );
@@ -374,7 +380,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             _amountIn,
             _msgSender(),
             sd.targetAddress,
-            amountOut,
+            settledAmount,
             withdrawalData,
             msg.value,
             depositNonce // Stays zero for non-CCTP swaps
@@ -412,7 +418,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         // Deposit ETH (excluding gas fee) for WETH and swap
         IWETH(weth).deposit{value: msg.value - gasFee}();
 
-        uint256 amountOut = _swapAndCheckSlippage(
+        _swapAndCheckSlippage(
             address(this),
             weth,
             foundryToken,
@@ -422,18 +428,21 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             routerCalldata
         );
 
-        amountOut = _distributeFees(foundryToken, msg.value - gasFee, minAmountOut, fd);
+        uint256 settledAmount = _distributeFees(foundryToken, minAmountOut, fd);
 
         uint64 depositNonce;
         if (cctpType) {
-            SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, amountOut);
-            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, foundryToken, sd.targetNetwork);
+            // Transfer to CCTP FundManager and initiate CCTP swap
+            uint256 balance = IERC20(foundryToken).balanceOf(address(this));
+            SafeERC20.safeTransfer(IERC20(foundryToken), cctpFundManager, balance);
+            depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(balance, foundryToken, sd.targetNetwork);
         } else {
             // Transfer and update pool inventory
-            SafeERC20.safeTransfer(IERC20(foundryToken), fundManager, amountOut);
+            uint256 balance = IERC20(foundryToken).balanceOf(address(this));
+            SafeERC20.safeTransfer(IERC20(foundryToken), fundManager, balance);
             FundManager(fundManager).swapToAddress(
                 foundryToken,
-                amountOut,
+                balance,
                 sd.targetNetwork,
                 sd.targetAddress
             );
@@ -452,7 +461,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             msg.value - _gasFee,
             _msgSender(),
             sd.targetAddress,
-            amountOut,
+            settledAmount,
             withdrawalData,
             _gasFee,
             depositNonce

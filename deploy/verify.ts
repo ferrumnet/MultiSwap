@@ -10,12 +10,12 @@ const main = async () => {
     const commands: string[] = [];
     const thisNetwork = hre.network.name;
 
-    commands.push(`hardhat verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.fiberRouter}`);
-    commands.push(`hardhat verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.fundManager} --contract contracts/multiswap-contracts/FundManager.sol:FundManager`);
-    commands.push(`hardhat verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.cctpFundManager} --contract contracts/multiswap-contracts/CCTPFundManager.sol:CCTPFundManager`);
-    commands.push(`hardhat verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.multiSwapForge}`);
-    commands.push(`hardhat verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.forgeFundManager} --contract contracts/multiswap-contracts/ForgeFundManager.sol:ForgeFundManager`);
-    commands.push(`hardhat verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.forgeCCTPFundManager} --contract contracts/multiswap-contracts/ForgeCCTPFundManager.sol:ForgeCCTPFundManager`);
+    commands.push(`hh verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.fiberRouter}`);
+    commands.push(`hh verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.fundManager} --contract contracts/multiswap-contracts/FundManager.sol:FundManager`);
+    commands.push(`hh verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.cctpFundManager} --contract contracts/multiswap-contracts/CCTPFundManager.sol:CCTPFundManager`);
+    commands.push(`hh verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.multiSwapForge}`);
+    commands.push(`hh verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.forgeFundManager} --contract contracts/multiswap-contracts/ForgeFundManager.sol:ForgeFundManager`);
+    commands.push(`hh verify --network ${thisNetwork} ${addresses.networks[thisNetwork].deployments.forgeCCTPFundManager} --contract contracts/multiswap-contracts/ForgeCCTPFundManager.sol:ForgeCCTPFundManager`);
 
     for (const command of commands) {
         try {

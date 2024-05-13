@@ -29,7 +29,6 @@ export const postDeployCctp = async function (
     );
 
     for (const otherNetwork of otherNetworks) {
-        console.log(cctpFundManager.target)
         await sendTx(cctpFundManager.setTargetCCTPNetwork(
             addresses.networks[otherNetwork].chainId,
             addresses.networks[otherNetwork].cctp.domain,
