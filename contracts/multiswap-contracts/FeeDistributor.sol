@@ -44,7 +44,7 @@ contract FeeDistributor is EIP712, Ownable {
         address indexed token,
         uint256 preFeeAmount,
         uint256 afterFeeAmount,
-        uint256 totalFee
+        uint256 totalPlatformFee
     );
 
     constructor() EIP712(NAME, VERSION) {}
@@ -78,6 +78,8 @@ contract FeeDistributor is EIP712, Ownable {
             IERC20(token).safeTransfer(fdd.feeAllocations[i].recipient, fdd.feeAllocations[i].platformFee);
             totalFees += fdd.feeAllocations[i].platformFee;
         }
+
+        emit FeesDistributed(token, preFeeAmount, preFeeAmount - totalFees, totalFees);
 
         // require(preFeeAmount == fdd.sourceAmountIn, "FD: Incorrect source amount");
         // require(totalFees == fdd.totalPlatformFee, "FD: Incorrect total fee");

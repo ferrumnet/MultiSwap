@@ -173,6 +173,9 @@ const config: HardhatUserConfig = {
       }
     ]
   },
+  gasReporter: {
+    enabled: true
+  },
   ignition: {
     strategyConfig: {
       create2: {
