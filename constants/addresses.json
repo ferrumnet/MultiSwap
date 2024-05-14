@@ -12,12 +12,12 @@
             "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
             "foundry": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
             "deployments": {
-                "fiberRouter": "0x68902Ec3058fdBb37Ac3D832a62112d7764a08ed",
-                "fundManager": "0xC7b23d5Da44f3d421aD27863788bEdcce4b34B0d",
-                "cctpFundManager": "0x7bD02622F39E458D5d5eaAD51C304Cac064ACFf4",
-                "multiSwapForge": "0x3DC32De3FE7Acd6206Fe77Ad13367caD645eA7e5",
-                "forgeFundManager": "0xEfb28F03C581010995388D8035cbD0ed1d997219",
-                "forgeCCTPFundManager": "0x9ed1D73B823563067B08133F61f495744cFcCb27"
+                "fiberRouter": "0xaDE10E8522AeCadBBe02279c133Fc46E45f92194",
+                "fundManager": "0x5dBF50235fdD9D4D5669E6e0B3Bef3655dEAffe7",
+                "cctpFundManager": "0x82496D3bDE9168dfeF6bc8dF0439B51790ff42DF",
+                "multiSwapForge": "0x3CAf342BCe0f4c0451184973984DE479EcD16C69",
+                "forgeFundManager": "0xA2d585247Fa56F6C50E554dBAa732c6fdc31eE9b",
+                "forgeCCTPFundManager": "0xbefD116064500794fD56f582672e7710217B5A72"
             },
             "cctp": {
                 "tokenMessenger": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
@@ -55,12 +55,12 @@
             "weth": "0x4200000000000000000000000000000000000006",
             "foundry": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             "deployments": {
-                "fiberRouter": "0x84250F8d4617485C3D5f1d7b1bC8C624e5695A80",
-                "fundManager": "0x7022a2dE2434AbA5985e87A84E93E5C9Cc3AB05F",
-                "cctpFundManager": "0x7EA16f3a967db7133D50807e5Fb3ca5FBc4A3dD6",
-                "multiSwapForge": "0xfff75b0e798c61709779566D006B98b41143CD31",
-                "forgeFundManager": "0x6a8A46D77fd2144FF1BAEF19e8c2c2B4C2f40a84",
-                "forgeCCTPFundManager": "0xeC11d853f05e7174F43834AfCf31d52D6d01B552"
+                "fiberRouter": "0x851930502D363D75C4a0C0c8366ADc43980aA048",
+                "fundManager": "0x1938b36110e4016c54647de123a07F4dB13026C7",
+                "cctpFundManager": "0x59C1CF95a57F63094637Af70008c55452fFD1b9f",
+                "multiSwapForge": "0x62d114BD13a177E80db8a380cB5E83886Fe33783",
+                "forgeFundManager": "0xC71C76633B21C6367C1364744aace19873407891",
+                "forgeCCTPFundManager": "0xF7F9b482F3cbF7E9D2cbBCA4a7599Ded76ce8056"
             },
             "cctp": {
                 "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
@@ -97,11 +97,10 @@
             "chainId": 11155111,
             "weth": "0x5300000000000000000000000000000000000004",
             "foundry": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+            "deployments": {},
             "cctp": {
                 "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
-                "domain": 6,
-                "cctpFundManager": "0xe49a23c8179e1cDb180464CE51ADcdaf72bB55cD",
-                "forgeCctpFundManager": "0xEc2A682216B06926a2149Dde374D074e77E2626d"
+                "domain": 6
             },
             "routers": [
                 {
@@ -118,11 +117,17 @@
             "chainId": 11155111,
             "weth": "0x5300000000000000000000000000000000000004",
             "foundry": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+            "deployments": {
+                "fiberRouter": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+                "fundManager": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+                "multiSwapForge": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+                "forgeFundManager": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+                "cctpFundManager": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+                "forgeCCTPFundManager": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+            },
             "cctp": {
                 "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
-                "domain": 6,
-                "cctpFundManager": "0xe49a23c8179e1cDb180464CE51ADcdaf72bB55cD",
-                "forgeCctpFundManager": "0xEc2A682216B06926a2149Dde374D074e77E2626d"
+                "domain": 6
             },
             "routers": [
                 {
