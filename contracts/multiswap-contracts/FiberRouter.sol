@@ -653,4 +653,10 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             }
         }
     }
+
+    function isCctp(uint256 cdPtr) public pure returns (bool cctp) {
+        assembly {
+            cctp := shr(252, calldataload(cdPtr))
+        }
+    }
 }

@@ -28,7 +28,7 @@ export const multiswap = async function (
     
     // Deploy contracts
     let contractInstances = {}
-    const contractNames =  ["FiberRouter", "MultiSwapForge"]
+    const contractNames =  ["FiberRouter", "FundManager", "MultiSwapForge", "ForgeFundManager", "CCTPFundManager", "ForgeCCTPFundManager"]
 
     for (const contractName of contractNames) {
         console.log(`Deploying ${contractName}`)
@@ -39,20 +39,20 @@ export const multiswap = async function (
     }
 
     const fiberRouter = contractInstances['FiberRouter']
-    // const fundManager = contractInstances['FundManager']
+    const fundManager = contractInstances['FundManager']
     const multiswapForge = contractInstances['MultiSwapForge']
-    // const forgeManager = contractInstances['ForgeFundManager']
-    // const cctpFundManager = contractInstances['CCTPFundManager']
-    // const forgeCctpFundManager = contractInstances['ForgeCCTPFundManager']
+    const forgeManager = contractInstances['ForgeFundManager']
+    const cctpFundManager = contractInstances['CCTPFundManager']
+    const forgeCctpFundManager = contractInstances['ForgeCCTPFundManager']
 
     addresses.networks[thisNetwork].deployments.fiberRouter = fiberRouter.target
-    // addresses.networks[thisNetwork].deployments.fundManager = fundManager.target
+    addresses.networks[thisNetwork].deployments.fundManager = fundManager.target
     addresses.networks[thisNetwork].deployments.multiSwapForge = multiswapForge.target
-    // addresses.networks[thisNetwork].deployments.forgeFundManager = forgeManager.target
-    // if (isCctp) {
-    //     addresses.networks[thisNetwork].deployments.cctpFundManager = cctpFundManager.target
-    //     addresses.networks[thisNetwork].deployments.forgeCCTPFundManager = forgeCctpFundManager.target
-    // }
+    addresses.networks[thisNetwork].deployments.forgeFundManager = forgeManager.target
+    if (isCctp) {
+        addresses.networks[thisNetwork].deployments.cctpFundManager = cctpFundManager.target
+        addresses.networks[thisNetwork].deployments.forgeCCTPFundManager = forgeCctpFundManager.target
+    }
 
     const fiberRouterAddress = addresses.networks[thisNetwork].deployments.fiberRouter
     const fundManagerAddress = addresses.networks[thisNetwork].deployments.fundManager
@@ -62,11 +62,11 @@ export const multiswap = async function (
     const forgeCctpFundManagerAddress = addresses.networks[thisNetwork].deployments.forgeCCTPFundManager
 
     // const fiberRouter = new hre.ethers.Contract(fiberRouterAddress, fiberRouterArtifact.abi, signer[0])
-    const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
+    // const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
     // const multiswapForge = new hre.ethers.Contract(multiswapForgeAddress, multiswapForgeArtifact.abi, signer[0])
-    const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
-    const cctpFundManager = new hre.ethers.Contract(cctpFundManagerAddress, cctpFundManagerArtifact.abi, signer[0])
-    const forgeCctpFundManager = new hre.ethers.Contract(forgeCctpFundManagerAddress, forgeCctpFundManagerArtifact.abi, signer[0])
+    // const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
+    // const cctpFundManager = new hre.ethers.Contract(cctpFundManagerAddress, cctpFundManagerArtifact.abi, signer[0])
+    // const forgeCctpFundManager = new hre.ethers.Contract(forgeCctpFundManagerAddress, forgeCctpFundManagerArtifact.abi, signer[0])
 
 
 
