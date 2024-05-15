@@ -941,3 +941,123 @@ The `LiquidityManagerRole` contract is a fundamental component of the MultiSwap 
   - Validates that there are sufficient tokens available for withdrawal.
   - Transfers the specified amount of tokens from the contract to the `withdrawalAddress`.
   - Emits a `LiquidityRemovedByManager` event documenting the removal.
+
+# MultiSwapForge Contract Documentation
+
+## Overview
+The `MultiSwapForge` contract enhances the `FiberRouter` functionalities, focusing on gas estimation and simulation for withdrawal processes. This contract serves as a vital tool for managing and simulating gas estimations in a controlled manner.
+
+## Contract Details
+- **Compiler Version**: Solidity 0.8.24
+- **SPDX-License-Identifier**: MIT
+
+## State Variables
+- **gasEstimationAddress** (`address public`): An address authorized to perform gas estimations. This address can execute simulations to ensure the accuracy of gas cost estimations for transactions.
+
+## Functions
+
+### Constructor
+Initializes the `FiberRouter`.
+
+### setGasEstimationAddress
+- **Parameters**:
+  - `_gasEstimationAddress` (`address`): The address authorized to perform gas estimations. It should not be the zero address to ensure valid functionality.
+- **Visibility**: `external`
+- **Modifiers**: `onlyOwner`
+- **Description**: Sets the gas estimation address to a specified address. Ensures that the address is not the zero address.
+
+### withdrawSigned
+- **Parameters**:
+  - `token` (`address`): Address of the token involved in the withdrawal.
+  - `payee` (`address`): Address receiving the token.
+  - `amount` (`uint256`): Amount of token to be withdrawn.
+  - `salt` (`bytes32`): Random nonce to ensure transaction uniqueness.
+  - `expiry` (`uint256`): Timestamp after which the transaction is not valid.
+  - `multiSignature` (`bytes`): Signature proving that the transaction was approved.
+  - `cctpType` (`bool`): Boolean flag for transaction type.
+- **Visibility**: `public`
+- **Modifiers**: `override`
+- **Description**: Overrides the original `withdrawSigned` from `FiberRouter` to revert any transactions, indicating that this operation is not supported in this contract.
+
+### withdrawSignedForGasEstimation
+- **Parameters**:
+  - Uses the same parameters as `withdrawSigned`.
+- **Visibility**: `external`
+- **Description**: Performs a simulation of the `withdrawSigned` function specifically for gas estimation purposes. Requires that the caller is the authorized gas estimation address.
+
+### withdrawSignedAndSwapRouter
+- **Parameters**:
+  - `to` (`address payable`): Recipient address of the swapped token.
+  - `amountIn` (`uint256`): Amount of the input token.
+  - `minAmountOut` (`uint256`): Minimum amount of the output token expected from the swap.
+  - `foundryToken` (`address`): Input token address.
+  - `targetToken` (`address`): Output token address.
+  - `router` (`address`): Address of the token swap router.
+  - `routerCallData` (`bytes`): Encoded data required for the router to perform the swap.
+  - `salt` (`bytes32`): Random nonce to ensure transaction uniqueness.
+  - `expiry` (`uint256`): Timestamp after which the transaction is not valid.
+  - `multiSignature` (`bytes`): Signature proving that the transaction was approved.
+  - `cctpType` (`bool`): Boolean flag for transaction type.
+- **Visibility**: `public`
+- **Modifiers**: `override`
+- **Description**: Overrides the original `withdrawSignedAndSwapRouter` from `FiberRouter` to revert any transactions, indicating that this operation is not supported in this contract.
+
+### withdrawSignedAndSwapRouterForGasEstimation
+- **Parameters**:
+  - Uses the same parameters as `withdrawSignedAndSwapRouter`.
+- **Visibility**: `external`
+- **Description**: Performs a simulation of the `withdrawSignedAndSwapRouter` function specifically for gas estimation purposes. Requires that the caller is the authorized gas estimation address.
+
+# ForgeFundManager Contract Documentation
+
+## Overview
+The `ForgeFundManager` contract extends the `FundManager` to include specific functionalities tailored for simulating wihtdrawal functions of fund manager to estimate the gas fee for withdrawals. 
+
+## Import Dependencies
+- **FundManager:** Inherits from the `FundManager` contract to utilize its fund management functionalities.
+
+## Constructor
+- **Description**: Initializes the `ForgeFundManager` by setting a predefined test signer address.
+- **Test Signer Address**: `0xb1Ea8634f56E17DCD2D5b66214507B7f493E12aD`
+  - This address is used as the signer for transactions in a testing and development setup to facilitate easy simulation and testing of fund management activities.
+
+## Functions
+
+### addSigner
+- **Inherited From**: `FundManager`
+- **Purpose**: Adds a new signer to the fund management system.
+- **Parameters**:
+  - `_signer` (`address`): Address of the new signer to be added.
+- **Visibility**: `internal`
+- **Description**: Provides the functionality to expand the list of authorized signers for fund management, using an internal method to ensure security and integrity.
+
+## Notes
+- **PrivateKey Reference for Developers**:
+  - For development purposes, the private key associated with the test signer is `fc4a1eb6778756a953b188220062d33e3eaabd85099bef1a61da1053ae3d0c63`. It is crucial that this key is used responsibly and only within secure, controlled environments to prevent unauthorized access and ensure the safety of funds.
+
+# ForgeCCTPFundManager Contract Documentation
+
+## Overview
+The `ForgeCCTPFundManager` contract is a specialized extension of the `CCTPFundManager` designed for simulating the withdrawals to get the gas estimation, specifically geared towards testing and development scenarios involving CCTP (Cross-Chain Trading Protocol) fund management.
+
+## Import Dependencies
+- **CCTPFundManager:** Inherits from `CCTPFundManager` to leverage cross-chain fund management functionalities.
+
+## Constructor
+- **Description**: Initializes the `ForgeCCTPFundManager` by setting a predefined test signer address.
+- **Test Signer Address**: `0xb1Ea8634f56E17DCD2D5b66214507B7f493E12aD`
+  - This address is strategically used as the signer in test environments, facilitating the simulation and verification of CCTP-related transactions.
+
+## Functions
+
+### addSigner
+- **Inherited From**: `CCTPFundManager`
+- **Purpose**: Adds a new signer to the CCTP fund management system.
+- **Parameters**:
+  - `_signer` (`address`): Address of the new signer to be added.
+- **Visibility**: `internal`
+- **Description**: Expands the list of authorized signers for managing CCTP funds, ensuring that only approved entities can perform sensitive fund operations.
+
+## Notes
+- **PrivateKey Reference for Developers**:
+  - The private key for the test signer used in development is `fc4a1eb6778756a953b188220062d33e3eaabd85099bef1a61da1053ae3d0c63`. It is essential that this key is used strictly within test and development environments to prevent any security breaches or unauthorized access to fund management functions.
