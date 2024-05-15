@@ -1,31 +1,31 @@
 # MultiSwap Documentation
 ## MultiSwap contracts are structured into two main categories:
 
-### MultiSwap Contracts:
-**FiberRouter**
+## MultiSwap Contracts:
+### FiberRouter
 - Facilitates the execution of token swaps and interacts with various DEX aggregators, such as 1inch, Uniswap, and SushiSwap.
 
-**FeeDistributor**
+### FeeDistributor
 - `FeeDistributor` is designed to handle the distribution of transaction fees collected from various operations within the MultiSwap ecosystem. This contract ensures that fees are allocated and disbursed accurately to various stakeholders according to predefined rules.
 
-**Fundmanager**
+### Fundmanager
 - Manages the funds and provides functionalities related to fund allocations and balances.
 
-**CCTPFundmanager**
+### CCTPFundmanager
 - Manages the funds received from CCTP and provides functionalities related to fund allocations and balances for CCTP Swaps.
 
-**LiquidityManagerRole**
+### LiquidityManagerRole**
 - The `LiquidityManagerRole` contract is a fundamental component of the MultiSwap ecosystem, designed to handle liquidity management with designated roles. It provides mechanisms to add or remove liquidity under strict role-based permissions, ensuring secure and efficient management of fund liquidity.
 
-### Forge/Gas Estimation Contracts:
-**MultiSwapForge**
-- Inherits from fiberRouter and is primarily responsible for executing token swaps. It serves as a core component for initiating swap transactions.
+## Forge/Gas Estimation Contracts:
+### MultiSwapForge
+- Inherits from `fiberRouter` and is primarily responsible for executing token swaps. It serves as a core component for initiating swap transactions.
 
-**ForgeFundManager**
-- Inherits from fundmanager and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
+### ForgeFundManager
+- Inherits from `fundmanager` and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
 
-**ForgeCCTPFundManager**
-- Inherits from CCTPFundManager and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
+### ForgeCCTPFundManager
+- Inherits from `CCTPFundManager` and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
 
 # FiberRouter Contract Documentation
 
