@@ -108,7 +108,7 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
      * @param _targetNetworkDomain The domain of the target network.
      * @param _targetCCTPFundManager The fund manager address for the target network.
      */
-    function setTargetCCTPNetwork(uint256 _chainID, uint32 _targetNetworkDomain, address _targetCCTPFundManager) external {
+    function setTargetCCTPNetwork(uint256 _chainID, uint32 _targetNetworkDomain, address _targetCCTPFundManager) external onlyOwner {
         require(_targetNetworkDomain != 0, "FR: Invalid Target Network Domain");
         require(_chainID != 0, "FR: Invalid Target Network ChainID");
         require(_targetCCTPFundManager != address(0), "FR: Invalid Target CCTP Fund Manager address");
