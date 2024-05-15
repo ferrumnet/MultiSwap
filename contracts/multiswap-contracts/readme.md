@@ -1,5 +1,5 @@
 # MultiSwap Documentation
-#### MultiSwap contracts are structured into two main categories:
+## MultiSwap contracts are structured into two main categories:
 
 ### MultiSwap Contracts:
 **FiberRouter**
@@ -367,3 +367,577 @@
 - **Flow:** Uses inline assembly to efficiently combine the router address and the function selector into a single `bytes32` key, ensuring uniqueness and consistency for whitelist checks.
 - **Effects:** Purely a computation operation; does not interact with state or external contracts.
 
+# FeeDistributor Contract Documentation
+
+## Overview
+`FeeDistributor` is designed to handle the distribution of transaction fees collected from various operations within the MultiSwap ecosystem. This contract ensures that fees are allocated and disbursed accurately to various stakeholders according to predefined rules.
+
+## Imports
+The contract imports several OpenZeppelin libraries and contracts for security and functionality enhancement:
+- `SafeERC20` for safe ERC20 token interactions.
+- `ECDSA` for cryptographic operations.
+- `EIP712` for implementing typed structured data hashing and signing.
+- `Ownable` for access control.
+
+## Constants
+- **NAME:** `"FEE_DISTRIBUTOR"`
+  - A constant for the EIP712 domain separator.
+- **VERSION:** `"000.001"`
+  - Version of the contract used in the EIP712 domain.
+- **MINUTE:** `60`
+  - Represents the number of seconds in a minute, used for time calculations.
+
+## State Variables
+- **signers:** `mapping(address => bool) public`
+  - A mapping to keep track of addresses that are authorized to sign fee distribution orders.
+- **usedSalt:** `mapping(bytes32 => bool) public`
+  - Tracks whether a unique identifier (salt) has been used to prevent replay attacks in transactions.
+
+## Structs
+
+### FeeAllocation
+- **Purpose:** Defines the structure for fee allocations to recipients.
+- **Fields:**
+  - `recipient` (address): The recipient of the fee.
+  - `platformFee` (uint256): The amount of fee allocated to the recipient.
+
+### FeeDistributionData
+- **Purpose:** Holds data required to execute fee distributions.
+- **Fields:**
+  - `feeAllocations` (FeeAllocation[]): An array of `FeeAllocation` structures detailing each recipient and their respective fee.
+  - `totalPlatformFee` (uint256): The total amount of platform fees to be distributed.
+  - `sourceAmountIn` (uint256): The total amount of tokens before fees are applied.
+  - `sourceAmountOut` (uint256): The total amount of tokens after fees are applied.
+  - `destinationAmountIn` (uint256): The total amount of tokens received in the destination before fees.
+  - `destinationAmountOut` (uint256): The total amount of tokens in the destination after fees.
+  - `salt` (bytes32): A unique identifier for the transaction.
+  - `expiry` (uint256): Expiration time for the fee distribution order.
+  - `signature` (bytes): Signature proving the authenticity and approval of the fee distribution.
+
+## Events
+
+### FeesDistributed
+- **Purpose:** Logs the distribution of fees for transparency and tracking.
+- **Parameters:**
+  - `token` (address): The token in which the fees were distributed.
+  - `preFeeAmount` (uint256): The amount before fees were deducted.
+  - `afterFeeAmount` (uint256): The remaining amount after fees were deducted.
+  - `totalPlatformFee` (uint256): The total amount of fees distributed.
+
+## Functions
+
+### Constructor
+- Initializes the EIP712 domain with the name and version of the contract.
+
+### addSigner
+- **Purpose:** Adds an address that is authorized to sign fee distribution orders.
+- **Modifiers:** `onlyOwner`
+- **Parameters:**
+  - `_signer` (address): The address to be added as a signer.
+
+### removeSigner
+- **Purpose:** Removes an address from the list of authorized signers.
+- **Modifiers:** `onlyOwner`
+- **Parameters:**
+  - `_signer` (address): The address to be removed.
+
+### _distributeFees
+- **Purpose:** Internal function that handles the actual distribution of fees according to the `FeeDistributionData`.
+- **Parameters:**
+  - `token` (address): The token in which fees are to be distributed.
+  - `preFeeAmount` (uint256): The total token amount before fees are deducted.
+  - `fdd` (FeeDistributionData): Data structure containing detailed distribution instructions.
+- **Flow:** Validates the transaction signature and timing, performs the distribution of fees to each recipient, and emits a `FeesDistributed` event.
+
+### _verify
+- **Purpose:** Private function to verify the signature of a fee distribution order.
+- **Parameters:**
+  - `token` (address): The token involved in the distribution.
+  - `fdd` (FeeDistributionData): The data required for executing the distribution.
+- **Flow:** Verifies the signature against the stored signers, checks the expiry and salt usage to ensure the transaction's validity.
+
+### _encodeFeeAllocations
+- **Purpose:** Encodes fee allocations for hashing and signature verification.
+- **Parameters:**
+  - `feeAllocations` (FeeAllocation[]): The allocations to be encoded.
+- **Flow:** Iterates through each allocation, encoding and hashing the details for use in transaction verification.
+
+# FundManager Contract Documentation
+
+## Overview
+`FundManager` is a core component of the MultiSwap project, responsible for managing and distributing funds within the ecosystem. It handles various operations related to fund transfers, including liquidity management, cross-network transactions, and ensuring secure processing of transactions through signature verifications.
+
+## Constants and State Variables
+- **WEEK:** `uint32 constant`
+  - Represents the number of seconds in a week, used for calculating expiration times.
+- **NAME:** `string public constant`
+  - Used in the EIP-712 domain separator, set to "FUND_MANAGER".
+- **VERSION:** `string public constant`
+  - Indicates the contract version, set to "000.004".
+
+## State Variables
+- **fiberRouter:** `address public`
+  - The address of the FiberRouter contract which interacts with this FundManager.
+- **settlementManager:** `address public`
+  - Address of the Settlement Manager which is authorized to manage settlement processes.
+- **signers:** `mapping(address => bool) public`
+  - Mapping of addresses that are authorized to sign certain operations within the contract.
+- **liquidities:** `mapping(address => mapping(address => uint256)) private`
+  - Tracks the liquidity added by different addresses for various tokens.
+- **allowedTargets:** `mapping(address => mapping(uint256 => address)) public`
+  - Stores allowed target tokens for each chain, facilitating cross-chain swaps.
+- **isFoundryAsset:** `mapping(address => bool) public`
+  - Indicates whether a token is recognized as a foundry asset within the ecosystem.
+- **usedSalt:** `mapping(bytes32 => bool) public`
+  - Keeps track of salts used in operations to prevent replay attacks.
+
+## Modifiers
+- **onlyRouter:**
+  - Ensures that only the FiberRouter can call certain functions.
+- **onlySettlementManager:**
+  - Allows only the Settlement Manager to execute specific administrative functions.
+
+## Events
+
+### TransferBySignature
+- **Purpose:** Logs successful token transfers that are executed following a verified signature authorization.
+- **Parameters:**
+  - `signer` (address): The address of the signer who authorized the token transfer.
+  - `receiver` (address): The recipient of the tokens.
+  - `token` (address): The token that was transferred.
+  - `amount` (uint256): The quantity of tokens transferred.
+- **Description:** This event is triggered when tokens are successfully transferred as per the instructions contained in a signed message. It serves to provide a traceable record of all signed transfers, enhancing the security and transparency of token movements within the system.
+
+### FailedWithdrawalCancelled
+- **Purpose:** Records the cancellation of a failed withdrawal attempt, which is vital for tracking unsuccessful or invalid transactions.
+- **Parameters:**
+  - `settlementManager` (address indexed): The Settlement Manager responsible for overseeing the cancellation.
+  - `receiver` (address indexed): The intended recipient of the withdrawal.
+  - `token` (address indexed): The token attempted to be withdrawn.
+  - `amount` (uint256): The amount involved in the failed transaction.
+  - `salt` (bytes32): A unique identifier used to mark the transaction.
+- **Description:** This event is emitted when a withdrawal initiated by a signature fails due to reasons such as invalid parameters, expiration, or other checks. It ensures that all parties are informed of the cancellation, maintaining the integrity and trust in the withdrawal process.
+
+### BridgeLiquidityAdded
+- **Purpose:** Indicates the addition of liquidity for a specific token by an actor within the ecosystem.
+- **Parameters:**
+  - `actor` (address): The address of the entity or individual who added the liquidity.
+  - `token` (address): The token for which liquidity was added.
+  - `amount` (uint256): The amount of liquidity added.
+- **Description:** Triggered when an actor adds liquidity to the pool, this event helps in tracking the inflow of funds into liquidity pools, ensuring transparency in liquidity management.
+
+### BridgeLiquidityRemoved
+- **Purpose:** Logs the removal of liquidity for a specific token by an actor.
+- **Parameters:**
+  - `actor` (address): The address of the entity or individual who removed the liquidity.
+  - `token` (address): The token for which liquidity was removed.
+  - `amount` (uint256): The amount of liquidity removed.
+- **Description:** This event is crucial for monitoring the outflow of funds from liquidity pools, providing stakeholders with clear visibility into liquidity adjustments.
+
+### BridgeSwap
+- **Purpose:** Logs details of cross-chain swaps, facilitating tracking of these complex transactions across different blockchain networks.
+- **Parameters:**
+  - `from` (address): The origin address initiating the swap.
+  - `token` (address indexed): The token being swapped.
+  - `targetNetwork` (uint256): The network to which the tokens are being swapped.
+  - `targetToken` (address): The token address on the target network.
+  - `targetAddress` (address): The recipient address on the target network.
+  - `amount` (uint256): The amount of tokens involved in the swap.
+- **Description:** This event provides essential information about cross-chain swaps, including the source and destination details, which helps in auditing and reconciling cross-network transactions.
+
+## Constructor
+- **Purpose:** Initializes the EIP-712 domain which is used in the contract for handling and verifying signatures according to the EIP-712 standard.
+- **Implementation:**
+  - Initializes the domain with the contract's `NAME` and `VERSION`.
+  - This setup is critical for subsequent operations involving signature verifications.
+
+## Admin Functions
+
+### setSettlementManager
+- **Purpose:** Sets the address of the settlement manager who will have certain administrative capabilities over fund management.
+- **Parameters:**
+  - `_settlementManager` (address): The address of the settlement manager.
+- **Modifiers:** `onlyOwner` - Ensures only the contract owner can execute this function.
+- **Flow:**
+  - Validates that the `_settlementManager` address is not the zero address.
+  - Assigns the `_settlementManager` address to the `settlementManager` state variable.
+
+### setRouter
+- **Purpose:** Sets the address of the FiberRouter which interacts with this contract for fund management related to swaps and transfers.
+- **Parameters:**
+  - `_fiberRouter` (address): The address of the FiberRouter.
+- **Modifiers:** `onlyOwner` - Ensures only the contract owner can execute this function.
+- **Flow:**
+  - Validates that the `_fiberRouter` address is not the zero address.
+  - Assigns the `_fiberRouter` address to the `fiberRouter` state variable.
+
+### addSigner
+- **Purpose:** Adds an address to the list of authorized signers who can validate transactions via signatures.
+- **Parameters:**
+  - `_signer` (address): The address to be added as a signer.
+- **Modifiers:** `onlyOwner` - Ensures only the contract owner can execute this function.
+- **Flow:**
+  - Validates that the `_signer` address is not the zero address.
+  - Adds `_signer` to the `signers` mapping, setting its value to `true`.
+
+### removeSigner
+- **Purpose:** Removes an address from the list of authorized signers.
+- **Parameters:**
+  - `_signer` (address): The address to be removed as a signer.
+- **Modifiers:** `onlyOwner` - Ensures only the contract owner can execute this function.
+- **Flow:**
+  - Validates that the `_signer` address is not the zero address.
+  - Removes `_signer` from the `signers` mapping.
+
+## Transaction Functions
+
+### swapToAddress
+- **Purpose:** Facilitates a token swap by transferring tokens to a specified address on a target network.
+- **Parameters:**
+  - `token` (address): The token to be swapped.
+  - `amount` (uint256): The amount of the token to be swapped.
+  - `targetNetwork` (uint256): The identifier of the target network.
+  - `targetAddress` (address): The address on the target network where the tokens will be sent.
+- **Modifiers:** `onlyRouter` - Restricts function execution to the FiberRouter.
+- **Flow:**
+  - Validates all parameters including non-zero values and correct network settings.
+  - Executes the swap and transfers the specified `amount` of `token` to `targetAddress`.
+  - Emits a `BridgeSwap` event logging the details of the swap.
+
+### withdrawSigned
+- **Purpose:** Allows the withdrawal of tokens based on a verified signature, enhancing security and flexibility in fund management.
+- **Parameters:**
+  - `token` (address): The token to be withdrawn.
+  - `payee` (address): The recipient of the tokens.
+  - `amount` (uint256): The amount of tokens to be withdrawn.
+  - `salt` (bytes32): A unique identifier for the transaction.
+  - `expiry` (uint256): The timestamp when the signature expires.
+  - `signature` (bytes): The signature verifying the transaction.
+- **Modifiers:** `onlyRouter` - Restricts function execution to the FiberRouter.
+- **Flow:**
+  - Validates the signature, `salt`, and `expiry` to ensure the transaction is legitimate and timely.
+  - Checks that the signer is authorized.
+  - Marks the `salt` as used in the `usedSalt` mapping to prevent replay attacks.
+  - Transfers the specified `amount` of `token` to `payee`.
+  - Emits a `TransferBySignature` event confirming the transaction.
+
+### withdrawSignedAndSwapRouter
+- **Purpose:** Allows for a signed withdrawal combined with a swap operation, all validated through a signature.
+- **Parameters:**
+  - `to` (address): The recipient of the withdrawn tokens.
+  - `amountIn` (uint256): The amount of the foundry token to be swapped.
+  - `minAmountOut` (uint256): The minimum acceptable amount of the target token expected from the swap.
+  - `foundryToken` (address): The token being withdrawn and swapped.
+  - `targetToken` (address): The target token expected from the swap.
+  - `router` (address): The address of the router handling the swap.
+  - `routerCalldata` (bytes): The calldata to be passed to the router.
+  - `salt` (bytes32): A unique identifier for the transaction to prevent replay attacks.
+  - `expiry` (uint256): Timestamp at which the signature for the transaction expires.
+  - `signature` (bytes): Signature to validate the transaction.
+- **Modifiers:** `onlyRouter` - Ensures that only the FiberRouter can invoke this function.
+- **Flow:**
+  - Verifies the signature, checks that the signer is authorized, and confirms the transaction's expiry and salt have not been used before.
+  - Proceeds to execute the withdrawal and the swap, adjusting the state and transferring the appropriate token amounts.
+  - Emits a `TransferBySignature` event documenting the transaction.
+
+### withdrawSignedAndSwapRouterVerify
+- **Purpose:** Provides a means to verify the parameters of a withdrawal with a swap without executing it.
+- **Parameters:** Same as `withdrawSignedAndSwapRouter`.
+- **Returns:** `(bytes32, address)` - The digest of the verification and the address of the signer.
+- **Flow:**
+  - Constructs and verifies the transaction data without making any state changes or token transfers.
+  - Used primarily for validation and testing purposes to ensure parameters are correct before execution.
+
+### addLiquidity
+- **Purpose:** Allows liquidity providers to deposit tokens into the fund, increasing the available liquidity.
+- **Parameters:**
+  - `token` (address): The token address for which liquidity is being added.
+  - `amount` (uint256): The amount of tokens being added as liquidity.
+- **Flow:**
+  - Validates that the token is recognized as a foundry asset and that the amount is positive.
+  - Updates the liquidity mapping to reflect the addition.
+  - Transfers the tokens from the provider's address to the contract.
+  - Emits a `BridgeLiquidityAdded` event after successfully adding liquidity.
+
+### removeLiquidityIfPossible
+- **Purpose:** Allows liquidity providers to withdraw their tokens if the conditions permit.
+- **Parameters:**
+  - `token` (address): The token address for which liquidity is being removed.
+  - `amount` (uint256): The amount of tokens being removed.
+- **Returns:** `uint256` - The actual amount of tokens removed.
+- **Flow:**
+  - Checks for sufficient liquidity and token availability.
+  - Adjusts the liquidity mapping and transfers the appropriate amount of tokens back to the provider, if conditions are met.
+  - Emits a `BridgeLiquidityRemoved` event documenting the removal.
+
+### liquidity
+- **Purpose:** Retrieves the current amount of liquidity provided for a specific token by a specific liquidity provider.
+- **Parameters:**
+  - `token` (address): The token for which liquidity information is requested.
+  - `liquidityAdder` (address): The address of the liquidity provider.
+- **Returns:** `uint256` - The current amount of liquidity available for the specified token and provider.
+- **Flow:**
+  - Returns the amount from the liquidity mapping without modifying any state.
+
+# CCTPFundManager Contract Documentation
+
+## Overview
+The `CCTPFundManager` contract is integral to the Cross-Chain Transfer Protocol (CCTP) operations within the MultiSwap ecosystem. It manages the coordination and settlement of cross-chain token transfers, ensuring secure and verifiable transactions across different blockchain networks.
+
+## Constants
+- **WEEK:** `uint32 constant`
+  - Represents the number of seconds in one week. This constant is used for time-related calculations, typically for determining expiries or timeouts in transactions.
+- **NAME:** `string public constant`
+  - Set to "FUND_MANAGER", this name is used within the EIP-712 domain for signing and verifying transactions.
+- **VERSION:** `string public constant`
+  - Indicates the version of the contract, set to "000.004", used also in the EIP-712 domain setup.
+
+## State Variables
+- **usdcToken:** `address public`
+  - Address of the USDC token contract, representing the primary stablecoin managed by this fund manager.
+- **cctpTokenMessenger:** `address public`
+  - Address of the CCTP Token Messenger contract responsible for handling the actual token transfer logistics across chains.
+- **fiberRouter:** `address public`
+  - Address of the FiberRouter, which interfaces with this CCTP fund manager for routing transactions.
+- **signers:** `mapping(address => bool) public`
+  - Tracks addresses authorized to sign off on transactions, ensuring that all outgoing transfers are approved by legitimate parties.
+- **usedSalt:** `mapping(bytes32 => bool) public`
+  - Ensures uniqueness of transactions by tracking salts used in operations to prevent replay attacks.
+- **targetNetworks:** `mapping(uint256 => TargetNetwork) public`
+  - Stores information about target networks where tokens can be sent, including the network domain and associated CCTP fund manager addresses.
+
+## Structs
+
+### TargetNetwork
+- **Purpose:** Stores configuration details for target networks in cross-chain operations.
+- **Fields:**
+  - `targetNetworkDomain` (`uint32`): The domain identifier of the target network, facilitating network-specific actions and routing.
+  - `targetCCTPFundManager` (`address`): The CCTP fund manager address on the target network responsible for managing the received assets.
+
+## Modifiers
+
+### onlyRouter
+- **Purpose:** Restricts certain sensitive functions to be callable only by the designated FiberRouter, ensuring controlled access to fund management operations.
+- **Implementation:** Checks if the `msg.sender` is the `fiberRouter` address and reverts if not.
+
+## Events
+
+### TransferBySignature
+- **Purpose:** Logs the details of token transfers that are executed following signature verification.
+- **Parameters:**
+  - `signer` (address): The address of the signer who authorized the transfer.
+  - `receiver` (address): The recipient of the transferred tokens.
+  - `token` (address): The specific token that was transferred.
+  - `amount` (uint256): The amount of the token that was transferred.
+
+### Modifiers
+
+#### onlyRouter
+- **Purpose:** Ensures that only the FiberRouter contract can invoke certain critical functions.
+- **Implementation:** Checks if the caller (`msg.sender`) is the `fiberRouter`. If not, the transaction is reverted with an error message stating "FM: Only fiberRouter method".
+- **Usage:** Applied to functions that manage token transfers, withdrawals, and other sensitive operations to maintain security and integrity.
+
+### Functions
+
+#### setRouter
+- **Purpose:** Configures the address of the FiberRouter that interacts with this CCTPFundManager.
+- **Parameters:**
+  - `_fiberRouter` (address): The new address of the FiberRouter.
+- **Modifiers:** `onlyOwner` - Ensures that only the contract owner can update this address.
+- **Flow:**
+  - Validates that the provided address is not the zero address.
+  - Updates the `fiberRouter` state variable with the new address.
+- **Impact:** Essential for updating the router configuration, which is critical for routing transactions correctly within the ecosystem.
+
+#### addSigner
+- **Purpose:** Adds a new address to the list of authorized signers who can approve transactions.
+- **Parameters:**
+  - `_signer` (address): The address to be authorized as a signer.
+- **Modifiers:** `onlyOwner` - Ensures that only the contract owner can add signers.
+- **Flow:**
+  - Checks that the address is not the zero address to avoid invalid entries.
+  - Adds the address to the `signers` mapping with a value of `true`.
+- **Impact:** Increases the flexibility and security of transaction approval by allowing multiple trusted entities to authorize operations.
+
+#### removeSigner
+- **Purpose:** Removes an address from the list of authorized signers.
+- **Parameters:**
+  - `_signer` (address): The address to be removed from the list of signers.
+- **Modifiers:** `onlyOwner` - Restricts this operation to the contract owner.
+- **Flow:**
+  - Ensures the address is not the zero address.
+  - Removes the address from the `signers` mapping.
+- **Impact:** Helps maintain the security of the contract by allowing the owner to manage signatory permissions dynamically.
+
+#### initCCTP
+- **Purpose:** Initializes the CCTP parameters for the contract, setting up the primary tokens and messengers used in cross-chain transfers.
+- **Parameters:**
+  - `_cctpTokenMessenger` (address): The address of the CCTP Token Messenger.
+  - `_usdcToken` (address): The address of the USDC token used in transactions.
+- **Modifiers:** `onlyOwner` - Ensures that only the contract owner can initialize these critical settings.
+- **Flow:**
+  - Validates that neither address is the zero address.
+  - Sets the `cctpTokenMessenger` and `usdcToken` state variables with the provided addresses.
+- **Impact:** Crucial for setting up the infrastructure required for handling CCTP transactions securely and efficiently.
+
+#### setTargetCCTPNetwork
+- **Purpose:** Configures a target network for CCTP, specifying where tokens can be sent and managed.
+- **Parameters:**
+  - `_chainID` (uint256): The identifier for the target network.
+  - `_targetNetworkDomain` (uint32): The domain ID of the target network.
+  - `_targetCCTPFundManager` (address): The CCTP Fund Manager address on the target network.
+- **Flow:**
+  - Validates that the network chain ID and domain are not zero, and that the CCTP Fund Manager address is not the zero address.
+  - Maps the `_chainID` to a `TargetNetwork` struct containing the domain and fund manager address.
+- **Impact:** Enables the CCTPFundManager to manage tokens across multiple blockchain networks, extending the reach and functionality of the MultiSwap ecosystem for cross-chain operations.
+
+## Transaction Functions
+
+### withdrawSigned
+- **Purpose:** Allows the withdrawal of tokens based on a verifiable signature, adding an extra layer of security to fund management.
+- **Parameters:**
+  - `token` (address): The ERC-20 token to be withdrawn.
+  - `payee` (address): The recipient of the tokens.
+  - `amount` (uint256): The amount of tokens to be withdrawn.
+  - `salt` (bytes32): A unique identifier for the transaction to prevent replay attacks.
+  - `expiry` (uint256): The timestamp after which the signature is considered expired.
+  - `signature` (bytes): The cryptographic signature validating the transaction.
+- **Modifiers:** `onlyRouter` - Ensures that only the designated router can initiate the withdrawal.
+- **Flow:**
+  - Verifies that the parameters, such as the token, payee, and amounts, are not zero or invalid.
+  - Checks the signature's validity and expiry against the current block timestamp and ensures the salt has not been used before.
+  - Marks the salt as used in the `usedSalt` mapping to prevent future replays of the transaction.
+  - Transfers the specified amount of the token to the payee.
+  - Emits a `TransferBySignature` event detailing the transaction.
+- **Returns:** The actual amount of tokens transferred.
+
+### withdrawSignedVerify
+- **Purpose:** Provides a method for externally verifying the parameters of a `withdrawSigned` request without executing the transaction.
+- **Parameters:**
+  - `token` (address): The token address involved in the withdrawal.
+  - `payee` (address): Intended recipient of the withdrawal.
+  - `amount` (uint256): The amount of tokens to be withdrawn.
+  - `salt` (bytes32): Unique identifier for the transaction.
+  - `expiry` (uint256): The expiry time of the signature.
+  - `signature` (bytes calldata): The signature to verify.
+- **Flow:**
+  - Constructs the EIP-712 typed data hash using the specified parameters and the `WITHDRAW_SIGNED_METHOD` identifier.
+  - Calls the `signer` function to recover the signer's address from the signature and message hash.
+  - Verifies that the signer is an authorized signer.
+  - Returns the message hash and the signer's address to confirm the transaction can be executed with these parameters.
+- **Returns:** A tuple containing the digest of the transaction data and the address of the signer, allowing for pre-validation of the withdrawal request.
+
+### withdrawSignedAndSwapRouterVerify
+- **Purpose:** Verifies the parameters of a withdrawal coupled with a swap without executing the transaction.
+- **Parameters:**
+  - `to` (address): The address where the tokens should be sent.
+  - `amountIn` (uint256): The amount of tokens to be withdrawn.
+  - `minAmountOut` (uint256): The minimum expected amount after the swap.
+  - `foundryToken` (address): The token being withdrawn.
+  - `targetToken` (address): The intended token to receive after the swap.
+  - `router` (address): The router address used for the swap.
+  - `routerCallData` (bytes): Additional data required by the router to perform the swap.
+  - `salt` (bytes32): A unique identifier to prevent replay attacks.
+  - `expiry` (uint256): The expiry date of the signature.
+  - `signature` (bytes calldata): The signature verifying the transaction.
+- **Flow:**
+  - Computes the hash of the provided parameters using the specific method identifier for withdrawals with swaps.
+  - Uses the signature to determine the signer address, ensuring it is authorized and the signature is valid within the given timeframe.
+  - Verifies that the transaction parameters are correct without modifying the state or moving any funds.
+- **Returns:** 
+  - `bytes32`: The transaction hash.
+  - `address`: The address of the signer.
+- **Use Case:** This function is particularly useful for front-end applications that need to display transaction details or confirm their validity before execution.
+
+### swapCCTP
+- **Purpose:** Executes a cross-chain token transfer under the Cross-Chain Transfer Protocol (CCTP).
+- **Parameters:**
+  - `amountIn` (uint256): The amount of tokens to transfer.
+  - `token` (address): The token address, typically USDC in this contract's configuration.
+  - `targetNetwork` (uint256): The target network identifier where the tokens are to be transferred.
+- **Modifiers:** `onlyRouter` - Ensures that only the designated FiberRouter can initiate this function.
+- **Flow:**
+  - Checks the token is the specified USDC token.
+  - Retrieves the target network's configuration, ensuring it exists and the CCTP fund manager address is valid.
+  - Approves the CCTP token messenger to handle the specified amount of tokens.
+  - Initiates the transfer using the CCTP token messenger's `depositForBurn` function, specifying the destination network, recipient, and token details.
+  - Returns a deposit nonce generated by the CCTP messenger which acts as a unique identifier for the transaction.
+- **Impact:** 
+  - Facilitates secure, traceable cross-chain token transfers, expanding the utility and operational scope of the MultiSwap ecosystem across different blockchains.
+
+# LiquidityManagerRole Contract Documentation
+
+## Overview
+The `LiquidityManagerRole` contract is a fundamental component of the MultiSwap ecosystem, designed to handle liquidity management with designated roles. It provides mechanisms to add or remove liquidity under strict role-based permissions, ensuring secure and efficient management of fund liquidity.
+
+## Import Dependencies
+- **WithAdmin:** Inherits from WithAdmin to utilize administrative role checking.
+- **TokenReceivable:** Inherits functionalities to receive and handle tokens.
+- **SafeAmount:** Utilizes SafeAmount to safely handle token amounts during transfers.
+
+## State Variables
+- **liquidityManager:** `address public`
+  - The primary liquidity manager's address, authorized to manage liquidity operations.
+- **liquidityManagerBot:** `address public`
+  - A secondary, automated liquidity manager's address, usually a bot, also authorized for liquidity operations.
+- **withdrawalAddress:** `address public`
+  - Address where liquidity is withdrawn, typically set to a secure wallet controlled by the organization.
+
+## Events
+- **LiquidityAddedByManager**
+  - Logs the addition of liquidity by the manager.
+  - `token` (address): The address of the token for which liquidity was added.
+  - `amount` (uint256): The amount of liquidity added.
+- **LiquidityRemovedByManager**
+  - Logs the removal of liquidity by the manager.
+  - `token` (address): The address of the token from which liquidity was removed.
+  - `amount` (uint256): The amount of liquidity removed.
+  - `withdrawalAddress` (address): The address to which the liquidity was withdrawn.
+
+## Modifiers
+- **onlyLiquidityManager**
+  - Restricts function execution to the designated liquidity managers (`liquidityManager` or `liquidityManagerBot`).
+  - Validates that the caller is either the primary or secondary designated liquidity manager before proceeding with the function execution.
+
+## Functions
+
+### setLiquidityManagers
+- **Purpose:** Sets the addresses of the primary and secondary liquidity managers.
+- **Parameters:**
+  - `_liquidityManager` (address): The primary liquidity manager.
+  - `_liquidityManagerBot` (address): The secondary or automated liquidity manager.
+- **Access Control:** `onlyOwner` - Only the contract owner can set these addresses.
+- **Implementation Details:**
+  - Validates that neither address is the zero address to prevent invalid configurations.
+  - Updates the `liquidityManager` and `liquidityManagerBot` addresses.
+
+### setWithdrawalAddress
+- **Purpose:** Sets the address used for withdrawing liquidity.
+- **Parameters:**
+  - `_withdrawalAddress` (address): The address where liquidity should be withdrawn.
+- **Access Control:** `onlyOwner`
+- **Implementation Details:**
+  - Sets the `withdrawalAddress` to the specified address.
+
+### addLiquidityByManager
+- **Purpose:** Allows the liquidity manager to add liquidity for a specific token.
+- **Parameters:**
+  - `token` (address): The token address for which liquidity is being added.
+  - `amount` (uint256): The amount of the token to add as liquidity.
+- **Access Control:** `onlyLiquidityManager`
+- **Implementation Details:**
+  - Validates the token address and the amount (must be greater than zero).
+  - Transfers the specified amount of tokens from the caller to the contract.
+  - Emits a `LiquidityAddedByManager` event.
+
+### removeLiquidityByManager
+- **Purpose:** Allows the liquidity manager to remove liquidity for a specific token.
+- **Parameters:**
+  - `token` (address): The token address from which liquidity is being removed.
+  - `amount` (uint256): The amount of the token to remove as liquidity.
+- **Returns:** `uint256` - The actual amount of tokens removed as liquidity.
+- **Access Control:** `onlyLiquidityManager`
+- **Implementation Details:**
+  - Validates that there are sufficient tokens available for withdrawal.
+  - Transfers the specified amount of tokens from the contract to the `withdrawalAddress`.
+  - Emits a `LiquidityRemovedByManager` event documenting the removal.
