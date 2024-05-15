@@ -6,7 +6,7 @@
 - Facilitates the execution of token swaps and interacts with various DEX aggregators, such as 1inch, Uniswap, and SushiSwap.
 
 **FeeDistributor**
-`FeeDistributor` is designed to handle the distribution of transaction fees collected from various operations within the MultiSwap ecosystem. This contract ensures that fees are allocated and disbursed accurately to various stakeholders according to predefined rules.
+- `FeeDistributor` is designed to handle the distribution of transaction fees collected from various operations within the MultiSwap ecosystem. This contract ensures that fees are allocated and disbursed accurately to various stakeholders according to predefined rules.
 
 **Fundmanager**
 - Manages the funds and provides functionalities related to fund allocations and balances.
