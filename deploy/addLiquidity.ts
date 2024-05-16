@@ -18,7 +18,7 @@ export const addLiquidity = async function (
 
     const balance = await usdc.balanceOf(signer[0].address)
     console.log("USDC Balance: " + await usdc.balanceOf(signer[0].address))
-    if (balance < hre.ethers.parseUnits("4", 6)) {
+    if (balance < hre.ethers.parseUnits("5", 6)) {
         console.log("Insufficient USDC balance. Please top up your account with USDC")
         process.exit(1)
     }
@@ -29,10 +29,10 @@ export const addLiquidity = async function (
 
     // // Add liquidity to forgeFundManager
     await sendTx(usdc.approve(forgeFundManager, hre.ethers.parseEther("1000000000")), "Approved USDC for ForgeFundManager")
-    await sendTx(forgeFundManager.addLiquidity(usdc, hre.ethers.parseUnits("0.5", 6)), "Added liquidity to ForgeFundManager")
+    await sendTx(forgeFundManager.addLiquidity(usdc, hre.ethers.parseUnits("1", 6)), "Added liquidity to ForgeFundManager")
 
     // Add liquidity to forgeCctpFundManager
-    await sendTx(usdc.transfer(cctpForgeFundManagerAddress, hre.ethers.parseUnits("0.5", 6)), "Transferred USDC to ForgeCCTPFundManager")
+    await sendTx(usdc.transfer(cctpForgeFundManagerAddress, hre.ethers.parseUnits("1", 6)), "Transferred USDC to ForgeCCTPFundManager")
 }
 
 const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successMessage?: string) => {

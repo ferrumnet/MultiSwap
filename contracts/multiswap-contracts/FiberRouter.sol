@@ -547,7 +547,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             foundryToken,
             targetToken,
             router,
-            routerCalldata,
             salt,
             expiry,
             multiSignature

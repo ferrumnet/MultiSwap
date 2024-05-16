@@ -31,6 +31,10 @@ export const multiswap = async function (
     const contractNames =  ["FiberRouter", "FundManager", "MultiSwapForge", "ForgeFundManager", "CCTPFundManager", "ForgeCCTPFundManager"]
 
     for (const contractName of contractNames) {
+        if (!isCctp && (contractName === "CCTPFundManager" || contractName === "ForgeCCTPFundManager")) {
+            continue
+        }
+        
         console.log(`Deploying ${contractName}`)
         const factory = await hre.ethers.getContractFactory(contractName)
         const contract = await factory.deploy();

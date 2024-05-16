@@ -19,7 +19,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         );
     bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
+            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 salt,uint256 expiry)"
         );
 
     event TransferBySignature(
@@ -242,7 +242,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
      * @param router The router address
-     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
@@ -255,7 +254,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -278,7 +276,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -329,7 +326,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param foundryToken Token withdrawn from Foundry
      * @param targetToken Token on the target network
      * @param router The router address
-     * @param routerCalldata The data containing information for the 1inch swap
      * @param salt Unique identifier to prevent replay attacks
      * @param expiry Expiration timestamp of the withdrawal signature
      * @param signature Cryptographic signature for verification
@@ -342,7 +338,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
@@ -356,7 +351,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -409,7 +403,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
      * @param router The router address
-     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
@@ -421,7 +414,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -444,7 +436,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
