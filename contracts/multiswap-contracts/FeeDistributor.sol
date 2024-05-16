@@ -10,8 +10,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract FeeDistributor is EIP712, Ownable {
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
-    string constant NAME = "FEE_DISTRIBUTOR";
-    string constant VERSION = "000.001";
+    string public constant NAME = "FEE_DISTRIBUTOR";
+    string public constant VERSION = "000.001";
     uint32 constant MINUTE = 60; 
 
     mapping(address => bool) public signers;

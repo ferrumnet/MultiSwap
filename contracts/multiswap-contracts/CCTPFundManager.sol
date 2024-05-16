@@ -289,9 +289,14 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
 
     /**
      * @notice Initiates a Cross-Chain Transfer Protocol (CCTP) swap.
+     * @dev This function handles the process of approving tokens and initiating a cross-chain token burn and deposit.
+     * @param amountIn The amount of tokens to be swapped.
+     * @param token The address of the token to be swapped (must be USDC).
+     * @param targetNetwork The identifier of the target network for the swap.
+     * @return depositNonce The nonce associated with the deposit for burn transaction.
      */
     function swapCCTP(uint256 amountIn, address token, uint256 targetNetwork) external onlyRouter returns (uint64 depositNonce){
-        TargetNetwork storage target = targetNetworks[targetNetwork];
+        TargetNetwork memory target = targetNetworks[targetNetwork];
         require(target.targetNetworkDomain != 0, "FR: Target network not found");
         require(target.targetCCTPFundManager != address(0), "FR: Target CCTP FundManager address not found");
         require(token == usdcToken, "FR: Invalid token");
@@ -301,8 +306,18 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
         depositNonce = ICCTPTokenMessenger(cctpTokenMessenger).depositForBurn(
             amountIn,
             target.targetNetworkDomain,
-            bytes32(uint256(uint160(target.targetCCTPFundManager))),
+            addressToBytes32(target.targetCCTPFundManager),
             usdcToken
         );
     }     
+
+    /**
+     * @notice Converts an Ethereum address to a bytes32 representation.
+     * @dev This is useful for interacting with contracts or protocols that require addresses in bytes32 format.
+     * @param addr The address to be converted.
+     * @return The bytes32 representation of the given address.
+     */
+    function addressToBytes32(address addr) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(addr)));
+    }
 }
