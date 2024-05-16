@@ -1,334 +1,301 @@
-# MultiSwap Documentation
-## MultiSwap contracts are structured into two main categories:
-
-## MultiSwap Contracts:
-### FiberRouter
-- Facilitates the execution of token swaps and interacts with various DEX aggregators, such as 1inch, Uniswap, and SushiSwap.
-
-### FeeDistributor
-- `FeeDistributor` is designed to handle the distribution of transaction fees collected from various operations within the MultiSwap ecosystem. This contract ensures that fees are allocated and disbursed accurately to various stakeholders according to predefined rules.
-
-### Fundmanager
-- Manages the funds and provides functionalities related to fund allocations and balances.
-
-### CCTPFundmanager
-- Manages the funds received from CCTP and provides functionalities related to fund allocations and balances for CCTP Swaps.
-
-### LiquidityManagerRole**
-- The `LiquidityManagerRole` contract is a fundamental component of the MultiSwap ecosystem, designed to handle liquidity management with designated roles. It provides mechanisms to add or remove liquidity under strict role-based permissions, ensuring secure and efficient management of fund liquidity.
-
-## Forge/Gas Estimation Contracts:
-### MultiSwapForge
-- Inherits from `fiberRouter` and is primarily responsible for executing token swaps. It serves as a core component for initiating swap transactions.
-
-### ForgeFundManager
-- Inherits from `fundmanager` and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
-
-### ForgeCCTPFundManager
-- Inherits from `CCTPFundManager` and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
-
 # FiberRouter Contract Documentation
 
 ## Overview
-`FiberRouter.sol` is a key component of the MultiSwap project designed for handling token swaps both within a single network and across different networks using the Cross-Chain Transfer Protocol (CCTP). This contract facilitates efficient token swapping mechanisms, manages gas fee payments, and ensures secure transaction processing through a router whitelist system.
+The `FiberRouter` is an essential component of the Ferrum Network, designed to facilitate advanced token operations such as cross-chain and intra-chain / omnichain swaps. It integrates functionality for handling token exchanges, fee distribution, and interchain transactions, all within a robust and secure framework.
 
-## Inherits
-- Inherits `Ownable`: Ensures that administrative functions are protected and can only be accessed by the contract owner.
-- Inherits `TokenReceivable`: Enhances the contract's ability to interact with and process multiple token types securely.
-- Inherits `FeeDistributor`: Allows the contract to manage and distribute transaction fees effectively.
+## Import Dependencies
+- **Ownable**: Provides mechanisms for owner-only access control which is essential for administrative actions.
+- **IInterchainTokenStandard**: Interface for handling operations across different blockchain tokens, enabling standardized cross-chain functionalities.
+- **InterchainTokenExecutable**: Base contract for executing cross-chain token operations, ensuring compatibility and functionality across networks.
+- **TokenReceivable**: Allows the contract to accept incoming token transfers, facilitating token swaps and fees collection.
+- **SafeAmount**: Ensures safe mathematical operations, preventing overflows and underflows during token calculations.
+- **IWETH**: Interface for the Wrapped Ether contract, enabling operations with Ether as if it were an ERC20 token.
 
-## Using Libraries
-- **SafeERC20 for IERC20**
-  - This contract uses the `SafeERC20` library which provides safety checks when interacting with ERC20 tokens. These checks prevent common mistakes like failing to handle return values in token transfer operations, thereby reducing the risk of tokens getting lost or locked.
+## Constants
+- **NATIVE_CURRENCY**: Represents the native blockchain currency in a tokenized form to standardize handling of different asset types across the contract.
+  - Address: `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE`
 
 ## State Variables
-
-### Public Variables
-- **weth:** `address public`
-  - Address of the Wrapped Ethereum (WETH) token contract. This is used for operations that require Ethereum in an ERC20 format.
-- **fundManager:** `address public`
-  - Address of the Fund Manager contract that manages and orchestrates the handling of funds within various operations.
-- **cctpFundManager:** `address public`
-  - Address of the Cross-Chain Transfer Protocol (CCTP) Fund Manager. This contract handles the management of cross-chain transfers.
-- **gasWallet:** `address payable public`
-  - The wallet address designated for receiving and managing Ethereum used to pay for transaction gas costs.
-
-### Private Variables
-- **routerAllowList:** `mapping(bytes32 => bool) private`
-  - A mapping that stores whether a specific router and selector combination is allowed (whitelisted) to perform operations like swaps. It is used to enhance security by ensuring only authorized routers can execute certain functions.
-
-### Public Mappings
-- **targetNetworks:** `mapping(uint256 => TargetNetwork) public`
-  - A mapping from network identifiers (chain IDs) to `TargetNetwork` structs. This helps manage and configure operations that involve cross-network interactions, storing necessary details about each supported network.
+- **weth**: Stores the address of the Wrapped Ether contract, which is used to handle ETH transactions like regular token transfers.
+- **fundManager**: Points to the fund management contract responsible for orchestrating non-CCTP (Cross-Chain Trading Protocol) swaps.
+- **cctpFundManager**: Designates the manager for CCTP swaps, handling the logistics of cross-chain operations.
+- **gasWallet**: Payable address used specifically for managing gas expenditures during transaction processing.
 
 ## Structs
+- **SwapCrossData**: Holds data necessary for executing cross-chain swaps.
+  - `targetNetwork`: The target blockchain ID.
+  - `targetToken`: Address of the token on the target network.
+  - `targetAddress`: Address where the tokens should be delivered on the target network.
 
-### SwapCrossData
-- **Purpose:** Holds essential data required for executing swaps across different blockchain networks.
-- **Fields:**
-  - `targetNetwork` (`uint256`): The network identifier (chain ID) where the swap will target.
-  - `targetToken` (`address`): The token address on the target network that the swap aims to acquire or interact with.
-  - `targetAddress` (`address`): The address on the target network to which the swapped tokens will be sent or which will interact with the tokens.
+- **SwapTypesData**: Contains flags and identifiers to specify the type of swap operation.
+  - `cctpType`: Boolean indicating if the swap is a CCTP operation.
+  - `multiTokenType`: Identifier for the type of token involved in multi-token operations.
+  - `chainIdString`: String representation of the chain ID, used in multi-chain operations.
 
-### TargetNetwork
-- **Purpose:** Stores configuration details for different blockchain networks involved in cross-network operations.
-- **Fields:**
-  - `targetNetworkDomain` (`uint32`): A domain or unique identifier for the target network that simplifies interactions and configurations.
-  - `targetFundManager` (`address`): The address of the fund manager on the target network responsible for managing the cross-network swaps or transactions.
+# Events
 
-## Events
+## SwapSameNetwork
+- **Emitted for**: Swaps that occur within the same blockchain.
+- **Parameters**:
+  - `sourceToken` (`address`): The token being swapped from.
+  - `targetToken` (`address`): The token being swapped to.
+  - `sourceAmount` (`uint256`): The amount of the source token being swapped.
+  - `settledAmount` (`uint256`): The amount of the target token received after the swap.
+  - `sourceAddress` (`address`): The address initiating the swap.
+  - `targetAddress` (`address`): The address receiving the swapped tokens.
 
-### Swap
-- **Purpose:** Logs details of a cross-chain token swap, including the amounts and addresses involved.
-- **Parameters:**
-  - `sourceToken` (address): The token being swapped from.
-  - `targetToken` (address): The token being swapped to.
-  - `sourceChainId` (uint256): The blockchain ID of the source token.
-  - `targetChainId` (uint256): The blockchain ID of the target token.
-  - `sourceAmount` (uint256): The amount of the source token being swapped.
-  - `sourceAddress` (address): The address providing the source token.
-  - `targetAddress` (address): The address receiving the target token.
-  - `settledAmount` (uint256): The amount of the target token received.
-  - `withdrawalData` (bytes32): Additional data related to the withdrawal process.
-  - `gasAmount` (uint256): The amount of gas used for processing the swap.
-  - `depositNonce` (uint256): A nonce to ensure the uniqueness of the deposit transaction.
+## Withdraw
+- **Emitted for**: Successful token withdrawals.
+- **Parameters**:
+  - `token` (`address`): The token being withdrawn.
+  - `receiver` (`address`): The address receiving the tokens.
+  - `amount` (`uint256`): The amount of tokens withdrawn.
+  - `salt` (`bytes32`): A unique identifier for the transaction to prevent replay attacks.
+  - `signature` (`bytes`): The signature verifying the transaction was authorized.
 
-### SwapSameNetwork
-- **Purpose:** Logs information about a token swap that occurs within the same blockchain network.
-- **Parameters:**
-  - `sourceToken` (address): The token being exchanged.
-  - `targetToken` (address): The token received after the swap.
-  - `sourceAmount` (uint256): The amount of the source token being swapped.
-  - `settledAmount` (uint256): The amount of the target token received.
-  - `sourceAddress` (address): The address from which the source token is sent.
-  - `targetAddress` (address): The address receiving the target token.
+## WithdrawRouter
+- **Emitted for**: Token withdrawals that involve routing logic, especially for cross-chain swaps.
+- **Parameters**:
+  - `to` (`address payable`): The address to which tokens are withdrawn.
+  - `amountIn` (`uint256`): The input amount for the swap.
+  - `amountOut` (`uint256`): The output amount after the swap.
+  - `foundryToken` (`address`): The token used in the swap.
+  - `targetToken` (`address`): The final token intended to be received.
+  - `router` (`address`): The router handling the swap.
+  - `routerCalldata` (`bytes`): The call data required for the router to execute the swap.
+  - `salt` (`bytes32`): A unique identifier for the transaction.
+  - `multiSignature` (`bytes`): The multi-signature verifying the transaction was authorized.
 
-### Withdraw
-- **Purpose:** Records the details of a token withdrawal operation.
-- **Parameters:**
-  - `token` (address): The token being withdrawn.
-  - `receiver` (address): The recipient of the withdrawn tokens.
-  - `amount` (uint256): The amount of tokens withdrawn.
-  - `salt` (bytes32): A unique identifier to prevent replay attacks.
-  - `signature` (bytes): The cryptographic signature verifying the transaction.
+## OmniSwapFailed
+- **Emitted for**: Failed OmniSwap operations, which are designed for seamless swaps across different chains.
+- **Parameters**:
+  - `token` (`address`): The token intended to be swapped.
+  - `amount` (`uint256`): The amount of the token that failed to be swapped.
+  - `receiver` (`address`): The intended recipient of the token.
 
-### WithdrawRouter
-- **Purpose:** Logs the execution of a combined withdrawal and swap operation through a specified router.
-- **Parameters:**
-  - `to` (address): The address where the tokens are sent post-swap.
-  - `amountIn` (uint256): The amount of tokens before the swap.
-  - `amountOut` (uint256): The amount of tokens after the swap.
-  - `foundryToken` (address): The initial token involved in the swap.
-  - `targetToken` (address): The final token received after the swap.
-  - `router` (address): The router used for the swap.
-  - `routerCalldata` (bytes): The specific calldata required by the router for the swap.
-  - `salt` (bytes32): A unique identifier for the transaction.
-  - `multiSignature` (bytes): The multiple signatures required to authorize the transaction.
+## RouterAndSelectorWhitelisted / RouterAndSelectorRemoved
+- **Emitted for**: Tracking changes to router and selector combinations in the whitelist system.
+- **Parameters for Whitelisted**:
+  - `router` (`address`): The router address being added to the whitelist.
+  - `selector` (`bytes4`): The function selector being whitelisted for the specified router.
+- **Parameters for Removed**:
+  - `router` (`address`): The router address being removed from the whitelist.
+  - `selector` (`bytes`): The function selector being removed from the whitelist.
 
-### RouterAndSelectorWhitelisted
-- **Purpose:** Indicates that a router and a specific function selector have been added to the whitelist, allowing them to be used for swaps.
-- **Parameters:**
-  - `router` (address): The address of the router.
-  - `selector` (bytes4): The function selector that is whitelisted for use with the router.
 
-### RouterAndSelectorRemoved
-- **Purpose:** Indicates that a router and a specific function selector have been removed from the whitelist, disallowing their future use for swaps.
-- **Parameters:**
-  - `router` (address): The address of the router.
-  - `selector` (bytes4): The function selector that is removed from the whitelist.
+## Constructor
+- **Purpose**: Sets up the contract with essential configurations for interchain token services.
+- **Parameter**:
+  - `interchainTokenService`: The address of the service handling interchain tokens, which is critical for enabling the contract's cross-chain functionalities.
 
 ## Functions
 
-### Admin Functions
+### setWeth
+- **Purpose**: Configures the address of the Wrapped Ether (WETH) contract used within the router. WETH is essential for handling Ether in a manner compatible with ERC-20 token standards, facilitating operations that require Ether to be treated as a token.
+- **Parameter**:
+  - `_weth` (`address`): The address of the Wrapped Ether contract.
+- **Visibility**: `external`
+- **Access Control**: `onlyOwner`
+  - Only the owner of the contract can set the WETH address, ensuring that this critical configuration is secured against unauthorized changes.
 
-#### setWeth
-- **Purpose:** Configures the address of the Wrapped Ethereum (WETH) contract to be used in swaps involving Ethereum.
-- **Visibility:** External
-- **Modifiers:** `onlyOwner`
-- **Parameters:**
-  - `_weth` (address): The new WETH contract address.
-- **Flow:** The function checks that the `_weth` address is not the zero address and then sets the `weth` state variable.
-- **Effects:** Modifies the `weth` state variable.
+### setFundManager
+- **Purpose**: Sets the address of the `FundManager` contract, which is responsible for managing the logistics and operations involved in non-CCTP swaps.
+- **Parameter**:
+  - `_fundManager` (`address`): The address of the `FundManager`.
+- **Visibility**: `external`
+- **Access Control**: `onlyOwner`
+  - This function is restricted to the owner, emphasizing the importance of controlling who can manage the fund operations.
 
-#### setFundManager
-- **Purpose:** Sets the address of the fund manager that will execute token swaps and manage funds.
-- **Visibility:** External
-- **Modifiers:** `onlyOwner`
-- **Parameters:**
-  - `_fundManager` (address): Address of the new fund manager contract.
-- **Flow:** Validates that the `_fundManager` is not the zero address and updates the `fundManager` state variable.
-- **Effects:** Updates the `fundManager` variable.
+### setCCTPFundManager
+- **Purpose**: Assigns the address of the `CCTPFundManager` to handle all cross-chain token protocol operations, ensuring that CCTP swaps are managed by a specialized component.
+- **Parameter**:
+  - `_cctpFundManager` (`address`): The address of the `CCTPFundManager`.
+- **Visibility**: `external`
+- **Access Control**: `onlyOwner`
+  - Similar to other critical management functions, only the owner has the authority to set or update this address.
 
-#### setCCTPFundManager
-- **Purpose:** Updates the address of the CCTP Fund Manager to handle cross-chain swaps.
-- **Visibility:** External
-- **Modifiers:** `onlyOwner`
-- **Parameters:**
-  - `_cctpFundManager` (address): The CCTP fund manager's new address.
-- **Flow:** Ensures the `_cctpFundManager` is not null before updating the corresponding state variable.
-- **Effects:** Modifies the `cctpFundManager` variable.
+### setGasWallet
+- **Purpose**: Specifies the payable address that will be used for managing gas payments related to the router's operations. This function is crucial for ensuring that transaction fees are handled efficiently and securely.
+- **Parameter**:
+  - `_gasWallet` (`address payable`): The wallet address that will be charged for gas when necessary.
+- **Visibility**: `external`
+- **Access Control**: `onlyOwner`
+  - Protecting this setting is vital to prevent unauthorized manipulation of transaction cost handling.
 
-#### setGasWallet
-- **Purpose:** Designates a specific wallet address for handling gas payments during transactions.
-- **Visibility:** External
-- **Modifiers:** `onlyOwner`
-- **Parameters:**
-  - `_gasWallet` (address payable): The address of the wallet to handle gas fees.
-- **Flow:** Checks that `_gasWallet` is not the zero address and updates the `gasWallet` variable.
-- **Effects:** Changes the `gasWallet` state variable.
+### addRouterAndSelectors
+- **Purpose**: Adds a router and associated selectors to the whitelist, enabling specific router functions to be called securely within the contract. This setup supports flexible yet secure execution of decentralized finance operations.
+- **Parameters**:
+  - `router` (`address`): The router address to whitelist.
+  - `selectors` (`bytes4[]`): An array of function selectors that the router is allowed to call.
+- **Visibility**: `external`
+- **Access Control**: `onlyOwner`
+  - Ensuring that only the owner can manage this whitelist defends against unauthorized routing operations, which could compromise security.
 
-### Router Management Functions
+### removeRouterAndSelector
+- **Purpose**: Removes a router and selector combination from the whitelist, revoking previously granted permissions to execute specific router functions. This is essential for maintaining the integrity and security of the contract's operations.
+- **Parameters**:
+  - `router` (`address`): The router address to be removed.
+  - `selector` (`bytes`): The specific function selector to remove from the whitelist for the given router.
+- **Visibility**: `external`
+- **Access Control**: `onlyOwner`
+  - As with additions, only the owner can remove entries to prevent unauthorized parties from altering the routing logic.
 
-#### addRouterAndSelectors
-- **Purpose:** Adds a router and its associated function selectors to the whitelist, enabling it to initiate token swaps.
-- **Visibility:** External
-- **Modifiers:** `onlyOwner`
-- **Parameters:**
-  - `router` (address): The router's address to whitelist.
-  - `selectors` (bytes4[]): An array of function selectors associated with the router.
-- **Flow:** Iterates through each selector, adding each combination of router and selector to the `routerAllowList` mapping.
-- **Effects:** Modifies the `routerAllowList` by setting true for each router-selector pair.
+### isAllowListed
+- **Purpose**: Checks if a router and selector combination is currently whitelisted, allowing for verification before performing potentially sensitive operations.
+- **Parameters**:
+  - `router` (`address`): The router address to check.
+  - `selector` (`bytes`): The selector to verify against the whitelist.
+- **Visibility**: `public`
+  - This function is public to enable on-the-fly checks from within the contract and externally, providing transparency and utility in routing operations.
+- **Returns**:
+  - `bool`: Returns `true` if the router and selector combination is whitelisted, `false` otherwise.
 
-#### removeRouterAndSelector
-- **Purpose:** Removes a specific router and selector combination from the whitelist, disallowing it from initiating future swaps.
-- **Visibility:** External
-- **Modifiers:** `onlyOwner`
-- **Parameters:**
-  - `router` (address): The router's address.
-  - `selector` (bytes calldata): The function selector to be removed from the whitelist.
-- **Flow:** Accesses the `routerAllowList` mapping and sets the value of the key derived from the router and selector to false, effectively removing it from the whitelist.
-- **Effects:** Modifies the `routerAllowList` mapping by setting the corresponding entry to false.
+### swapOnSameNetwork
+- **Purpose**: Executes a token swap on the same blockchain network using a specified decentralized exchange router. This function facilitates direct token exchanges without requiring cross-chain mechanisms, optimizing for speed and cost efficiency on single-chain operations.
+- **Parameters**:
+  - `amountIn` (`uint256`): The amount of the source token to be swapped.
+  - `minAmountOut` (`uint256`): The minimum amount of the target token expected to be received, accounting for slippage.
+  - `fromToken` (`address`): The token being swapped from.
+  - `toToken` (`address`): The token being swapped to.
+  - `targetAddress` (`address`): The recipient's address for the swapped tokens.
+  - `router` (`address`): The decentralized exchange router to conduct the swap.
+  - `routerCalldata` (`bytes`): The call data necessary for the router to execute the swap properly.
+- **Visibility**: `external`
+- **Modifiers**: `nonReentrant`
+  - Prevents re-entry attacks during the execution of this function.
+- **Behavior**:
+  - Validates the necessary conditions for a successful swap.
+  - Performs the swap using the specified router and parameters, ensuring that the minimum expected output is met.
+  - Emits a `SwapSameNetwork` event detailing the swap's specifics.
 
-### Swap Functions
+### swapOnSameNetworkETH
+- **Purpose**: Specialized function to handle swaps involving native Ether, converting ETH to WETH within the transaction flow, which is then swapped for another token. This function addresses the need for handling native blockchain currency seamlessly within token swap operations.
+- **Parameters**:
+  - Similar to `swapOnSameNetwork`, but handles ETH specifically and requires value to be sent with the call.
+- **Visibility**: `external`
+- **Modifiers**: `payable`, `nonReentrant`
+- **Behavior**:
+  - Accepts ETH, wraps it into WETH, and performs the swap to another token using the specified parameters and router.
+  - Ensures that the slippage constraints are met.
+  - Emits a `SwapSameNetwork` event with details on the transaction.
 
-#### swapOnSameNetwork
-- **Purpose:** Conducts a token swap on the same network using a specified router, ensuring that the amount received is not less than a predetermined minimum to handle potential slippage.
-- **Visibility:** External
-- **Modifiers:** `nonReentrant`
-- **Parameters:**
-  - `amountIn` (uint256): The amount of the input token to swap.
-  - `minAmountOut` (uint256): The minimum amount of the output token that must be received for the swap to be considered valid.
-  - `fromToken` (address): The token being swapped.
-  - `toToken` (address): The token to be received after the swap.
-  - `targetAddress` (address): The address where the output tokens should be sent.
-  - `router` (address): The router to perform the swap.
-  - `routerCalldata` (bytes memory): The router-specific data needed to perform the swap.
-- **Flow:** Validates the input parameters, executes the swap through the specified router, checks for slippage against `minAmountOut`, and then transfers the swapped tokens to the `targetAddress`.
-- **Effects:** Conducts the swap and adjusts token balances accordingly.
+### swapSigned
+- **Purpose**: Executes a cross-chain or complex swap involving multiple types and layers of validation. This function is designed to handle more intricate swap scenarios that may include different token standards and interchain operations.
+- **Parameters**:
+  - `swapTypes` (`SwapTypesData`): Contains flags and data specifying the type of swap, such as whether it's a CCTP operation or involves multiple token types.
+  - `token` (`address`): The token being swapped.
+  - `amount` (`uint256`): The amount of the token to be swapped.
+  - `sd` (`SwapCrossData`): Data detailing the target network, token, and address for the swap.
+  - `withdrawalData` (`bytes32`): Additional data relevant to the swap, typically involving authentication or routing specifics.
+  - `fd` (`FeeDistributionData`): Data concerning how fees should be distributed as part of the transaction.
+- **Visibility**: `external`
+- **Modifiers**: `payable`, `nonReentrant`
+- **Behavior**:
+  - Conducts validation checks to ensure all parameters meet the required criteria for a successful swap.
+  - Depending on the swap type, routes the tokens appropriately through different fund management pathways.
+  - Handles fee distribution and gas cost management as part of the swap process.
+  - Emits a `Swap` event providing comprehensive details of the executed swap.
 
-#### swapOnSameNetworkETH
-- **Purpose:** Specifically handles swaps involving Ethereum, converting it to another token using a specified router within the same network.
-- **Visibility:** External, Payable
-- **Modifiers:** `nonReentrant`
-- **Parameters:**
-  - `minAmountOut` (uint256): Minimum amount of the output token expected after the swap.
-  - `toToken` (address): The token to be received post-swap.
-  - `targetAddress` (address): The address to receive the swapped tokens.
-  - `router` (address): The router performing the swap.
-  - `routerCalldata` (bytes memory): Additional data needed by the router to execute the swap.
-- **Flow:** Converts sent ETH to WETH, performs the swap via the specified router, ensures the output meets the `minAmountOut`, and sends the output tokens to `targetAddress`.
-- **Effects:** Swaps ETH to another token, modifies WETH and the output token's balances.
+### swapSignedAndCrossRouter
+- **Purpose**: Initiates a token swap and sets up a cross-chain transfer within the same transaction. This method is designed for complex operations that require both a local token swap and subsequent preparation for an interchain move.
+- **Parameters**:
+  - `swapTypes` (`SwapTypesData`): Contains flags indicating the type of swap, such as CCTP-related or regular interchain transfers.
+  - `amountIn` (`uint256`): The amount of the input token to be swapped.
+  - `minAmountOut` (`uint256`): The minimum acceptable amount of the output token after the swap, accounting for slippage.
+  - `fromToken` (`address`): The token address from which the swap will start.
+  - `foundryToken` (`address`): The intermediary or final token intended for cross-chain transfer.
+  - `router` (`address`): The decentralized exchange router to execute the swap.
+  - `routerCalldata` (`bytes`): The specific call data required by the router for the swap.
+  - `sd` (`SwapCrossData`): Additional cross-chain data required for targeting the swap.
+  - `withdrawalData` (`bytes32`): Data necessary for the withdrawal and transfer processes.
+  - `fd` (`FeeDistributionData`): Information on how transaction fees should be distributed.
+- **Visibility**: `external`
+- **Modifiers**: `payable`, `nonReentrant`
+- **Behavior**:
+  - Conducts a local token swap through the specified router and parameters.
+  - Distributes any applicable fees according to the contract's fee structure.
+  - Prepares tokens for cross-chain transfer based on the specified swap type, whether via CCTP or through ITS.
+  - Ensures the gas fees are covered and properly accounted for during the transaction.
+  - Emits detailed events to log the swap and any preparatory actions for cross-chain activities.
 
-#### swapSigned
-- **Purpose:** Facilitates a signed token swap, optionally involving cross-chain operations based on the CCTP.
-- **Visibility:** External, Payable
-- **Modifiers:** `nonReentrant`
-- **Parameters:**
-  - `token` (address): Token to be swapped.
-  - `amount` (uint256): Amount of the token to be swapped.
-  - `sd` (SwapCrossData memory): Struct containing information about the target network and token details.
-  - `withdrawalData` (bytes32): Additional data required for processing withdrawals if needed.
-  - `cctpType` (bool): Indicates if the swap is a CCTP operation.
-  - `fd` (FeeDistributionData memory): Data structure containing fee distribution information.
-- **Flow:** Validates all input data, checks token balances, initiates the transfer of the specified amount, handles fee distributions, and if `cctpType` is true, performs a CCTP swap; otherwise, conducts a regular swap.
-- **Effects:** Initiates a token swap with or without cross-chain capabilities depending on `cctpType`.
+### swapSignedAndCrossRouterETH
+- **Purpose**: Facilitates a token swap starting with Ether as the input, converting it to WETH, then performing a swap and setting up for a cross-chain transfer. This function is critical for operations involving Ether in complex interchain scenarios.
+- **Parameters**:
+  - Same as `swapSignedAndCrossRouter`, but designed specifically for initial inputs in ETH.
+- **Visibility**: `external`
+- **Modifiers**: `payable`, `nonReentrant`
+- **Behavior**:
+  - Receives Ether, converts it to WETH, and uses it in subsequent swap operations.
+  - Handles all aspects of the swap, fee distribution, and preparation for cross-chain transfers.
+  - Ensures the transaction adheres to specified slippage limits.
+  - Manages the routing and execution of the swap to meet cross-chain requirements effectively.
 
-#### swapSignedAndCrossRouter
-- **Purpose:** Performs a signed token swap on the same network followed by initiating a setup for a potential cross-chain swap using the CCTP if specified.
-- **Visibility:** External, Payable
-- **Modifiers:** `nonReentrant`
-- **Parameters:**
-  - `amountIn` (uint256): Amount of the input token.
-  - `minAmountOut` (uint256): Minimum expected output after the swap, considering potential slippage.
-  - `fromToken` (address): Token to be swapped from.
-  - `foundryToken` (address): Intermediate or final token to be received after the swap.
-  - `router` (address): Router to be used for the swap.
-  - `routerCalldata` (bytes memory): Specific call data needed for the router.
-  - `sd` (SwapCrossData memory): Contains data about the target network and token.
-  - `withdrawalData` (bytes32): Data related to the withdrawal process.
-  - `cctpType` (bool): Flag indicating whether the operation should initiate a CCTP swap.
-  - `fd` (FeeDistributionData memory): Details regarding fee distribution for the transaction.
-- **Flow:** Validates the provided parameters for correctness, performs a local swap, adjusts for fees, and sets up cross-chain data if `cctpType` is true.
-- **Effects:** Executes a swap and potentially sets up a cross-chain transfer, modifying the state of involved tokens and fees.
+### withdrawSigned
+- **Purpose**: Executes a withdrawal operation based on a pre-signed authorization, allowing for secure, verified transactions that can integrate with external systems or contracts.
+- **Parameters**:
+  - `token` (`address`): The token to be withdrawn.
+  - `payee` (`address`): The recipient of the withdrawn tokens.
+  - `amount` (`uint256`): The amount of tokens to be transferred.
+  - `salt` (`bytes32`): A unique identifier to ensure the transaction's uniqueness and prevent replay attacks.
+  - `expiry` (`uint256`): Timestamp indicating when the signed authorization expires.
+  - `multiSignature` (`bytes`): A signature or set of signatures validating the withdrawal.
+  - `cctpType` (`bool`): A boolean flag indicating whether the withdrawal is part of a CCTP operation.
+- **Visibility**: `public`
+- **Modifiers**: `nonReentrant`
+- **Behavior**:
+  - Validates the withdrawal authorization against the provided signatures and other security parameters.
+  - Conducts the withdrawal from the appropriate pool based on whether it is a CCTP-related transaction.
+  - Logs the transaction using the `Withdraw` event, providing transparency and traceability.
 
-#### swapSignedAndCrossRouterETH
-- **Purpose:** Facilitates a token swap starting with Ethereum as the input currency, followed by a potential cross-chain transfer setup.
-- **Visibility:** External, Payable
-- **Modifiers:** `nonReentrant`
-- **Parameters:**
-  - `minAmountOut` (uint256): Minimum amount of tokens expected from the swap to manage slippage.
-  - `foundryToken` (address): The target token after the swap.
-  - `gasFee` (uint256): Amount of Ether designated for the transaction fees.
-  - `router` (address): Router used for the swap.
-  - `routerCalldata` (bytes memory): Calldata necessary for the router operation.
-  - `sd` (SwapCrossData memory): Details about the target network and token for cross-chain swaps.
-  - `withdrawalData` (bytes32): Data necessary for withdrawal operations.
-  - `cctpType` (bool): Indicates whether the swap includes a cross-chain transfer.
-  - `fd` (FeeDistributionData memory): Information on how fees should be distributed in the transaction.
-- **Flow:** Checks parameters, handles Ethereum conversion to WETH, executes the swap, processes fees, and prepares for a cross-chain operation if applicable.
-- **Effects:** Changes the state by performing a swap and optionally setting up for cross-chain transfers.
-
-### Withdrawal Functions
-
-#### withdrawSigned
-- **Purpose:** Executes a signed withdrawal of tokens to a specified payee, ensuring all parameters match those signed off by authorized parties.
-- **Visibility:** Public, Virtual
-- **Modifiers:** `nonReentrant`
-- **Parameters:**
-  - `token` (address): Token to be withdrawn.
-  - `payee` (address): Recipient of the withdrawn tokens.
-  - `amount` (uint256): Amount of tokens to be withdrawn.
-  - `salt` (bytes32): A unique identifier used to prevent replay attacks.
-  - `expiry` (uint256): Timestamp after which the withdrawal is no longer valid.
-  - `multiSignature` (bytes memory): Signatures from authorized entities validating the withdrawal.
-  - `cctpType` (bool): Indicates whether the withdrawal involves cross-chain logic.
-- **Flow:** Validates the withdrawal data against the multi-signatures, checks expiry, and transfers the specified amount to the payee if all conditions are met.
-- **Effects:** Reduces the token balance of the contract and increases that of the payee if the transaction is validated successfully.
-
-#### withdrawSignedAndSwapRouter
-- **Purpose:** Executes a signed withdrawal combined with a swap operation through a specified router, allowing for complex transaction patterns including cross-chain transfers if required.
-- **Visibility:** Public, Virtual
-- **Modifiers:** `nonReentrant`
-- **Parameters:**
-  - `to` (address payable): Address to which the swapped tokens should be sent.
-  - `amountIn` (uint256): Amount of the input token for the swap.
-  - `minAmountOut` (uint256): Minimum expected output token amount post-swap.
-  - `foundryToken` (address): Token used in the withdrawal and initial part of the swap.
-  - `targetToken` (address): Token to be received after the swap.
-  - `router` (address): Router to conduct the swap.
-  - `routerCalldata` (bytes memory): Router-specific call data.
-  - `salt` (bytes32): Unique identifier to ensure uniqueness of the transaction.
-  - `expiry` (uint256): Expiry timestamp to validate the transaction timing.
-  - `multiSignature` (bytes memory): Combined signatures from authorized parties.
-  - `cctpType` (bool): Indicator if the transaction involves cross-chain elements.
-- **Flow:** The function first checks the validity of the signatures and the transaction expiry. If valid, it executes the withdrawal, followed by a swap via the specified router, ensuring the output meets or exceeds the `minAmountOut`.
-- **Effects:** Modifies the state by transferring the `foundryToken` and receiving the `targetToken` at the `to` address.
+### withdrawSignedAndSwapRouter
+- **Purpose**: Facilitates a withdrawal of tokens that are immediately swapped using a specified router.
+- **Parameters**:
+  - `swapTypes` (`SwapTypesData`): Contains flags indicating the type of swap and additional data like chain ID string and token type.
+  - `to` (`address payable`): The destination address for the swapped tokens.
+  - `amountIn` (`uint256`): The amount of the input token to be swapped.
+  - `minAmountOut` (`uint256`): The minimum acceptable amount of the output token after the swap, protecting against excessive slippage.
+  - `foundryToken` (`address`): The token to be used in the swap, typically involving a conversion or handling fee.
+  - `targetToken` (`address`): The token to be received after the swap.
+  - `router` (`address`): The decentralized exchange router to execute the swap.
+  - `routerCalldata` (`bytes`): The call data necessary for the router to execute the swap properly.
+  - `salt` (`bytes32`): A unique identifier for the transaction.
+  - `expiry` (`uint256`): The expiration time of the signature, ensuring the transaction is executed in a timely manner.
+  - `multiSignature` (`bytes`): The signatures required to authorize the transaction.
+- **Visibility**: `public`
+- **Modifiers**: `payable`, `nonReentrant`
+- **Behavior**:
+  - Withdraws tokens and immediately swaps them using the configured router and swap parameters.
+  - Emits a detailed `WithdrawRouter` event capturing all relevant transaction parameters.
+  - **Ominiswap Logic**:
+    - **Multi-Token Handling**: This function includes advanced logic to handle cases where `multiTokenType` is greater than 0, indicating the presence of multiple token types or interchain operations:
+      - If `multiTokenType` is `1`, it signifies an interchain transfer. In this scenario, the method uses `IInterchainTokenStandard(targetToken).interchainTransfer`, facilitating a transfer across chains.
+        - `chainIdString`: Extracted from `swapTypes`, used to specify the target chain ID for the interchain transfer.
+        - `abi.encodePacked(_readCalldataAddress(0x24))`: Retrieves the first argument from the calldata, a mechanism used to avoid stack too deep errors.
+        - `amountOut`: The output amount from the swap, which will be sent across chains.
+        - The interchain transfer is funded with `msg.value` to cover potential cross-chain fees.
+      - This architecture allows for future expansion where additional token types can be integrated with custom logic tailored to specific interchain or multi-token scenarios.
+- **Stack Too Deep Workaround**:
+  - Utilizes local variables `chainIdString` and `multiTokenType` to manage complex data structures within Solidity's stack limitations, ensuring all operations maintain clarity and efficiency without exceeding local variable limits.
 
 ### Internal Helper Functions
 
-#### _swapAndCheckSlippage
-- **Purpose:** Conducts a token swap and checks that the output meets or exceeds a specified minimum amount to protect against slippage.
-- **Visibility:** Internal
-- **Parameters:**
-  - `targetAddress` (address): The address where the output tokens should be sent.
-  - `fromToken` (address): The token being swapped out.
-  - `toToken` (address): The token being received from the swap.
-  - `amountIn` (uint256): The amount of `fromToken` being swapped.
-  - `minAmountOut` (uint256): The minimum amount of `toToken` expected from the swap.
-  - `router` (address): The router conducting the swap.
-  - `data` (bytes memory): The router-specific calldata necessary for executing the swap.
-- **Flow:** Checks if the router is whitelisted and that the transaction parameters meet the specified conditions. Approves the router to handle the specified `fromToken`, executes the swap, and verifies that the returned amount of `toToken` meets or exceeds the `minAmountOut`.
-- **Effects:** Transfers the `fromToken` from the contract to the router and credits the `toToken` to the `targetAddress`, ensuring slippage conditions are met.
+### _swapAndCheckSlippage
+- **Purpose**: Performs the token swap via the specified router and verifies that the output amount meets the expected minimum output, effectively managing slippage. This internal function is a core component of swap execution, ensuring that token exchanges meet the trade criteria specified by users.
+- **Parameters**:
+  - `targetAddress` (`address`): The recipient of the output tokens from the swap.
+  - `fromToken` (`address`): The token being exchanged.
+  - `toToken` (`address`): The token expected after the swap.
+  - `amountIn` (`uint256`): The amount of the `fromToken` provided for the swap.
+  - `minAmountOut` (`uint256`): The minimum amount of `toToken` expected to be received to ensure the swap does not suffer from unfavorable slippage.
+  - `router` (`address`): The DEX router conducting the swap.
+  - `data` (`bytes`): The router-specific calldata needed to perform the swap.
+- **Visibility**: `internal`
+- **Behavior**:
+  - Approves the router to access the necessary amount of `fromToken`.
+  - Calls the router with the provided data to execute the swap.
+  - Verifies the amount of `toToken` received post-swap, ensuring it meets or exceeds the `minAmountOut`.
+  - Manages exceptions and errors during the swap execution, reverting if the output is less than expected or if the router call fails.
+  - Returns the actual amount of `toToken` received, providing this data back to calling functions for further processing or logging.
 
 #### isAllowListed
 - **Purpose:** Verifies if a router and its associated function selector are on the whitelist, permitting it to initiate transactions.
@@ -338,7 +305,7 @@
   - `router` (address): The address of the router.
   - `selector` (bytes memory): The function selector associated with the router.
 - **Returns:** `bool` - Returns true if the router and selector combination is whitelisted, false otherwise.
-- **Flow:** Utilizes the `_getKey` function to generate a unique key for the router and selector combination and checks this against the `routerAllowList` mapping.
+- **Behavior:** Utilizes the `_getKey` function to generate a unique key for the router and selector combination and checks this against the `routerAllowList` mapping.
 - **Effects:** Purely a read operation; does not modify state.
 
 #### _makeRouterCall
@@ -347,8 +314,7 @@
 - **Parameters:**
   - `router` (address): The address of the router to which the call is made.
   - `data` (bytes memory): The calldata to be passed to the router for the swap.
-- **Flow:** Makes a low-level `call` to the specified router with the provided `data`. If the call fails, it checks if there is return data to provide a specific error message; if no return data is present, a generic "Call to router failed" error is thrown.
-- **Effects:** Directly interacts with external routers, potentially modifying state based on the swap details encoded in the `data`.
+- **Behavior:** Makes a low-level `call` to the specified router with the provided `data`. If the call fails, it checks if there is return data to provide a specific error message; if no return data is present, a generic "Call to router failed" error is thrown.
 
 #### _getBalance
 - **Purpose:** Retrieves the balance of a specified token for a given account. If querying the native currency, it returns the account's Ether balance.
@@ -358,8 +324,7 @@
   - `token` (address): The token address, or the special `NATIVE_CURRENCY` address for Ether.
   - `account` (address): The account whose balance is being queried.
 - **Returns:** `uint256` - The balance of the token or Ether for the specified account.
-- **Flow:** Checks if the token address matches `NATIVE_CURRENCY` to differentiate between a token balance query and an Ether balance query, using appropriate method calls.
-- **Effects:** Purely a read operation; does not modify state.
+- **Behavior:** Checks if the token address matches `NATIVE_CURRENCY` to differentiate between a token balance query and an Ether balance query, using appropriate method calls.
 
 #### _approveAggregatorRouter
 - **Purpose:** Approves a specified amount of a token for a router to handle, setting up for transactions such as swaps.
@@ -368,8 +333,7 @@
   - `token` (address): The token for which approval is being granted.
   - `router` (address): The router that is being authorized to use the tokens.
   - `amount` (uint256): The amount of tokens the router is allowed to use.
-- **Flow:** Checks if there is an existing token allowance for the router and resets it to zero if necessary before setting it to the new specified amount using `safeApprove` from the ERC20 token standard.
-- **Effects:** Modifies the state by updating the allowance for the router.
+- **Behavior:** Checks if there is an existing token allowance for the router and resets it to zero if necessary before setting it to the new specified amount using `safeApprove` from the ERC20 token standard.
 
 #### _getKey
 - **Purpose:** Generates a unique key for a router and data combination used in the `routerAllowList` to manage whitelisted routers and their selectors.
@@ -379,8 +343,37 @@
   - `router` (address): The router's address.
   - `data` (bytes memory): The data typically containing the function selector.
 - **Returns:** `bytes32` - A unique key generated based on the router address and the first four bytes (function selector) of the provided data.
-- **Flow:** Uses inline assembly to efficiently combine the router address and the function selector into a single `bytes32` key, ensuring uniqueness and consistency for whitelist checks.
-- **Effects:** Purely a computation operation; does not interact with state or external contracts.
+- **Behavior:** Uses inline assembly to efficiently combine the router address and the function selector into a single `bytes32` key, ensuring uniqueness and consistency for whitelist checks.
+
+### _executeWithInterchainToken
+- **Purpose**: This function is designed to facilitate operations that involve tokens meant for interchain transactions. It attempts to execute operations defined in the `fiberRouterCalldata`, which typically involve complex token routing or swaps necessary for cross-chain functionality.
+- **Parameters**:
+  - `commandId` (`bytes32`): A unique identifier for the command being executed, used to track and manage interchain requests.
+  - `sourceChain` (`string calldata`): The identifier (usually a chain ID or name) of the source blockchain from which the operation is initiated.
+  - `sourceAddress` (`bytes calldata`): Encoded address information, detailing the originator of the transaction within the source chain.
+  - `fiberRouterCalldata` (`bytes calldata`): The calldata to be executed on this contract, containing all necessary instructions for the intended token operation.
+  - `tokenId` (`bytes32`): An identifier for the token type involved in the interchain operation, useful for handling specific token behaviors or requirements.
+  - `token` (`address`): The address of the token being manipulated or transferred as part of the interchain operation.
+  - `amount` (`uint256`): The amount of tokens to be handled, transferred, or swapped in the operation.
+- **Visibility**: `internal`
+- **Modifiers**: `override`
+- **Behavior**:
+  - Attempts to execute the provided `fiberRouterCalldata` within the context of this contract, using a direct contract call.
+  - If the execution fails (e.g., due to errors in the calldata execution or rejection by the receiving function), it triggers a fallback mechanism:
+    - Calculates the recipient's address from the `sourceAddress` bytes.
+    - Transfers the specified `amount` of `token` directly to the calculated recipient, ensuring that the tokens are not locked or lost due to failed operations.
+    - Emits an `OmniSwapFailed` event to log the failure and the action taken, providing transparency and traceability for the operation.
+
+### _readCalldataAddress
+- **Purpose**: Extracts an address from a specific position within the calldata of a transaction. This utility function is crucial for operations where addresses need to be dynamically read from complex or variable-length inputs.
+- **Parameter**:
+  - `cdPtr` (`uint256`): The position in the calldata from which the address should be read, typically indicating the start of the address bytes.
+- **Visibility**: `internal`
+- **Returns**:
+  - `addr` (`address`): The address decoded from the specified position in the calldata.
+- **Behavior**:
+  - Uses low-level assembly to directly access and load the address from the specified position in the calldata, ensuring efficient and accurate retrieval.
+
 
 # FeeDistributor Contract Documentation
 
@@ -957,67 +950,62 @@ The `LiquidityManagerRole` contract is a fundamental component of the MultiSwap 
   - Transfers the specified amount of tokens from the contract to the `withdrawalAddress`.
   - Emits a `LiquidityRemovedByManager` event documenting the removal.
 
-# MultiSwapForge Contract Documentation
+# MultiswapForge Contract Documentation
 
 ## Overview
-The `MultiSwapForge` contract enhances the `FiberRouter` functionalities, focusing on gas estimation and simulation for withdrawal processes. This contract serves as a vital tool for managing and simulating gas estimations in a controlled manner.
+The `MultiswapForge` contract extends the `FiberRouter`, incorporating specific enhancements to cater to gas estimation processes and manage transaction simulations. It is designed primarily for development and testing scenarios where gas cost estimations are critical for transaction optimization and system reliability.
+
+## Import Dependencies
+- Inherits from `FiberRouter`, utilizing its comprehensive routing capabilities for token swaps and fund management.
 
 ## State Variables
-- **gasEstimationAddress** (`address public`): An address authorized to perform gas estimations. This address can execute simulations to ensure the accuracy of gas cost estimations for transactions.
+- **gasEstimationAddress** (`address public`): Holds the address authorized to execute and simulate gas estimations, ensuring that only designated entities can perform these sensitive operations.
+
+## Constructor
+- **Parameters**:
+  - `interchainTokenService` (`address`): Initializes the base `FiberRouter` with a service address that handles interchain token functionalities.
+- **Description**:
+  - Sets up the contract by linking it with necessary interchain services, preparing it for its specialized roles within the network's ecosystem.
 
 ## Functions
 
-### Constructor
-Initializes the `FiberRouter`.
-
 ### setGasEstimationAddress
-- **Parameters**:
-  - `_gasEstimationAddress` (`address`): The address authorized to perform gas estimations. It should not be the zero address to ensure valid functionality.
+- **Purpose**: Sets the address authorized to perform gas estimations. This is essential to control and secure the execution of potentially costly gas estimations to a trusted entity.
+- **Parameter**:
+  - `_gasEstimationAddress` (`address`): The wallet address designated for gas estimation tasks.
 - **Visibility**: `external`
-- **Modifiers**: `onlyOwner`
-- **Description**: Sets the gas estimation address to a specified address. Ensures that the address is not the zero address.
+- **Access Control**: `onlyOwner`
+  - Ensures that only the contract owner can change the address, maintaining strict control over gas estimation privileges.
 
 ### withdrawSigned
-- **Parameters**:
-  - `token` (`address`): Address of the token involved in the withdrawal.
-  - `payee` (`address`): Address receiving the token.
-  - `amount` (`uint256`): Amount of token to be withdrawn.
-  - `salt` (`bytes32`): Random nonce to ensure transaction uniqueness.
-  - `expiry` (`uint256`): Timestamp after which the transaction is not valid.
-  - `multiSignature` (`bytes`): Signature proving that the transaction was approved.
-  - `cctpType` (`bool`): Boolean flag for transaction type.
+- **Purpose**: Overrides the `withdrawSigned` method from `FiberRouter` to explicitly disallow its functionality within this contract context, ensuring that no unexpected withdrawals are processed.
 - **Visibility**: `public`
 - **Modifiers**: `override`
-- **Description**: Overrides the original `withdrawSigned` from `FiberRouter` to revert any transactions, indicating that this operation is not supported in this contract.
+- **Behavior**:
+  - Reverts any transaction attempts, indicating that this operation is intentionally unsupported in this contract variant.
 
 ### withdrawSignedForGasEstimation
-- **Parameters**:
-  - Uses the same parameters as `withdrawSigned`.
+- **Purpose**: Facilitates the simulation of `withdrawSigned` operations specifically for gas estimation purposes without performing actual asset transfers.
+- **Parameters**: Mirrors `withdrawSigned` from `FiberRouter` but used only under authorized gas estimation scenarios.
 - **Visibility**: `external`
-- **Description**: Performs a simulation of the `withdrawSigned` function specifically for gas estimation purposes. Requires that the caller is the authorized gas estimation address.
+- **Behavior**:
+  - Executes the `withdrawSigned` method securely, ensuring it can only be called by the authorized gas estimation address, effectively simulating the function for testing purposes without real asset movement.
 
 ### withdrawSignedAndSwapRouter
-- **Parameters**:
-  - `to` (`address payable`): Recipient address of the swapped token.
-  - `amountIn` (`uint256`): Amount of the input token.
-  - `minAmountOut` (`uint256`): Minimum amount of the output token expected from the swap.
-  - `foundryToken` (`address`): Input token address.
-  - `targetToken` (`address`): Output token address.
-  - `router` (`address`): Address of the token swap router.
-  - `routerCallData` (`bytes`): Encoded data required for the router to perform the swap.
-  - `salt` (`bytes32`): Random nonce to ensure transaction uniqueness.
-  - `expiry` (`uint256`): Timestamp after which the transaction is not valid.
-  - `multiSignature` (`bytes`): Signature proving that the transaction was approved.
-  - `cctpType` (`bool`): Boolean flag for transaction type.
+- **Purpose**: Similarly to `withdrawSigned`, this function overrides the corresponding method in `FiberRouter` to disallow its operation, preventing any unintended swaps that could occur during routing processes.
 - **Visibility**: `public`
-- **Modifiers**: `override`
-- **Description**: Overrides the original `withdrawSignedAndSwapRouter` from `FiberRouter` to revert any transactions, indicating that this operation is not supported in this contract.
+- **Modifiers**: `override`, `payable`
+- **Behavior**:
+  - Instantly reverts any calls to this function, maintaining the contract's integrity by preventing unsupported operations.
 
 ### withdrawSignedAndSwapRouterForGasEstimation
-- **Parameters**:
-  - Uses the same parameters as `withdrawSignedAndSwapRouter`.
+- **Purpose**: Tests the `withdrawSignedAndSwapRouter` functionality under controlled conditions, allowing for gas cost estimations and operational verifications without executing real token swaps.
 - **Visibility**: `external`
-- **Description**: Performs a simulation of the `withdrawSignedAndSwapRouter` function specifically for gas estimation purposes. Requires that the caller is the authorized gas estimation address.
+- **Behavior**:
+  - Calls the original `withdrawSignedAndSwapRouter` function for testing purposes, restricted solely to the authorized gas estimation address to ensure no actual transactions are processed.
+
+This documentation encapsulates the functionalities and restrictions of the `MultiswapForge` contract, highlighting its specific use cases in gas estimation and testing scenarios within a controlled development environment.
+
 
 # ForgeFundManager Contract Documentation
 
