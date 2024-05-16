@@ -23,7 +23,8 @@ export const postDeployCctp = async function () {
     let otherNetworks = Object.keys(addresses.networks).filter((network) =>
         network !== thisNetwork &&
         network !== "hardhat" &&
-        network !== "localhost"
+        network !== "localhost" &&
+        cctpNetworks.includes(network)
     );
 
     for (const otherNetwork of otherNetworks) {
