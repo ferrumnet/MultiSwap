@@ -24,7 +24,7 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
         );
     bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
+            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 salt,uint256 expiry)"
         );
 
     struct TargetNetwork {
@@ -163,7 +163,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
      * @param router The router address
-     * @param routerCallData The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
@@ -176,7 +175,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -199,7 +197,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCallData),
                     salt,
                     expiry
                 )
@@ -247,7 +244,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
      * @param foundryToken Token withdrawn from Foundry
      * @param targetToken Token on the target network
      * @param router The router address
-     * @param routerCallData The data containing information for the 1inch swap
      * @param salt Unique identifier to prevent replay attacks
      * @param expiry Expiration timestamp of the withdrawal signature
      * @param signature Cryptographic signature for verification
@@ -260,7 +256,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCallData,
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
@@ -274,7 +269,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCallData),
                     salt,
                     expiry
                 )

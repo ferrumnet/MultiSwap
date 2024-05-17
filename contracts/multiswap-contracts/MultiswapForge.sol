@@ -7,7 +7,7 @@ contract MultiSwapForge is FiberRouter {
     
     address public gasEstimationAddress;
 
-    constructor() FiberRouter() {}
+    constructor() {}
 
     /**
      @dev Sets address authorized to execute gas estimations
@@ -64,7 +64,7 @@ contract MultiSwapForge is FiberRouter {
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCallData,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature,
@@ -81,7 +81,7 @@ contract MultiSwapForge is FiberRouter {
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCallData,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature,
@@ -95,7 +95,7 @@ contract MultiSwapForge is FiberRouter {
             foundryToken,
             targetToken,
             router,
-            routerCallData,
+            routerCalldata,
             salt,
             expiry,
             multiSignature,

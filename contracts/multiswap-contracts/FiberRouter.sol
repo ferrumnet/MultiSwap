@@ -544,7 +544,6 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             foundryToken,
             targetToken,
             router,
-            routerCalldata,
             salt,
             expiry,
             multiSignature
@@ -648,6 +647,12 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
             } else {
                 revert("FR: Call to router failed");
             }
+        }
+    }
+
+    function isCctp(uint256 cdPtr) public pure returns (bool cctp) {
+        assembly {
+            cctp := shr(252, calldataload(cdPtr))
         }
     }
 }

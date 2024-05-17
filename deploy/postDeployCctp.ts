@@ -8,9 +8,7 @@ import forgeFundManagerArtifact from "../artifacts/contracts/multiswap-contracts
 import cctpFundManagerArtifact from "../artifacts/contracts/multiswap-contracts/CCTPFundManager.sol/CCTPFundManager.json"
 
 
-export const postDeployCctp = async function (
-) {
-    // setTargetCCTPNetwork(uint256 _chainID, uint32 _targetNetworkDomain, address _targetCCTPFundManager)
+export const postDeployCctp = async function () {
     const cctpNetworks = Object.keys(addresses.networks).filter((network) =>
         addresses.networks[network].cctp !== undefined
     );
@@ -25,11 +23,11 @@ export const postDeployCctp = async function (
     let otherNetworks = Object.keys(addresses.networks).filter((network) =>
         network !== thisNetwork &&
         network !== "hardhat" &&
-        network !== "localhost"
+        network !== "localhost" &&
+        cctpNetworks.includes(network)
     );
 
     for (const otherNetwork of otherNetworks) {
-        console.log(cctpFundManager.target)
         await sendTx(cctpFundManager.setTargetCCTPNetwork(
             addresses.networks[otherNetwork].chainId,
             addresses.networks[otherNetwork].cctp.domain,

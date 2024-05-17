@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../multiswap-contracts/FeeDistributor.sol";
 
 
@@ -13,6 +14,7 @@ contract FeeDistributorTest is FeeDistributor {
         uint256 preFeeAmount,
         FeeDistributionData memory fdd
     ) external returns (uint256) {
+        IERC20(token).transferFrom(msg.sender, address(this), preFeeAmount);
         return _distributeFees(token, preFeeAmount, fdd);
     }
 
