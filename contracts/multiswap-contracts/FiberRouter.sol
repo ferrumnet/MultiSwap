@@ -9,7 +9,6 @@ import "./FundManager.sol";
 import "./CCTPFundManager.sol";
 import "./FeeDistributor.sol";
 
-
 /**
  @author The ferrum network.
  @title This is a routing contract named as FiberRouter.
@@ -286,8 +285,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         }
 
         // Transfer the gas fee to the gasWallet
-        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
-        require(success, "FR: Gas fee transfer failed");
+        SafeAmount.safeTransferETH(gasWallet, msg.value);
 
         emit Swap(
             token,
@@ -367,8 +365,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         }
 
         // Transfer the gas fee to the gasWallet
-        (bool success, ) = payable(gasWallet).call{value: msg.value}("");
-        require(success, "FR: Gas fee transfer failed");
+        SafeAmount.safeTransferETH(gasWallet, msg.value);
 
         emit Swap(
             fromToken,
