@@ -6,7 +6,7 @@ import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
 import "../common/cctp/ICCTPTokenMessenger.sol";
 
-contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
+contract CCTPFundManager is SigCheckable, WithAdmin {
     using SafeERC20 for IERC20;
     address public usdcToken;
     address public cctpTokenMessenger;
