@@ -89,32 +89,36 @@ contract FeeDistributor is EIP712, Ownable {
         uint256 totalAmount = preFeeAmount;
         uint256 fee = (totalAmount * platformFee) / 100; // platformFee as a percentage
         uint256 remainingAmount = totalAmount - fee;
+        uint256 referralDiscountAmount = 0;
         uint256 referralFeeAmount = 0;
+        uint256 feeWalletShare = fee;
 
+        // If referral is provided, calculate the referral discount and referral fee
         if (fdd.referral != address(0)) {
-            // Calculate referral discount
-            uint256 referralDiscountAmount = (fee * fdd.referralDiscount) / 100;  // Incase of no discount, it will be zero
-            fee -= referralDiscountAmount; // Reduce fee by referral discount
-            remainingAmount += referralDiscountAmount; // Add referral discount to remaining amount
+            if (fdd.referralDiscount > 0) {
+                referralDiscountAmount = (fee * fdd.referralDiscount) / 100;
+                feeWalletShare -= referralDiscountAmount;
+                remainingAmount += referralDiscountAmount;
+            }
 
-            // Calculate referral fee
             if (fdd.referralFee > 0) {
-                referralFeeAmount = (fee * fdd.referralFee) / 100;
-                fee -= referralFeeAmount; // Reduce fee by referral fee
+                referralFeeAmount = (feeWalletShare * fdd.referralFee) / 100;
+                feeWalletShare -= referralFeeAmount;
                 IERC20(token).safeTransfer(fdd.referral, referralFeeAmount);
             }
         }
 
-        // Check if the total fee allocated exceeds the platform fee
-        require(totalAmount - remainingAmount == fee, "FD: Total fee exceeds platform fee");
+        // Ensure the total allocated fee does not exceed the platform fee
+        require(feeWalletShare + referralFeeAmount + referralDiscountAmount <= fee, "FD: Total fee exceeds platform fee");
 
-        // Transfer remaining platform fee to the feeWallet
-        IERC20(token).safeTransfer(feeWallet, fee);
+        // Transfer the remaining fee to the fee wallet
+        IERC20(token).safeTransfer(feeWallet, feeWalletShare);
 
         emit FeesDistributed(token, preFeeAmount, remainingAmount, fee);
 
         return remainingAmount;
     }
+
 
 
     function _verify(
