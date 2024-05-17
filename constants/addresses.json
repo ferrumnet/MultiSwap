@@ -6,18 +6,20 @@
     "settlementManager": "0x5912cE9327C2F8BE2Ffce1e8E521F6a65A870a19",
     "gasWallet": "0xBFBFE0e25835625efa98161e3286Ca1290057E1a",
     "gasEstimationWallet": "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B",
+    "feeWallet": "0xBFBFE0e25835625efa98161e3286Ca1290057E1a",
+    "platformFee": 1,
     "networks": {
         "arbitrum": {
             "chainId": 42161,
             "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
             "foundry": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
             "deployments": {
-                "fiberRouter": "0x83EF51Ce32A4eFCD22e78f8d6856e057D0f53a5D",
-                "fundManager": "0x27B4Aef668447460cEa8d474d552e68E79B403dD",
-                "cctpFundManager": "0x13E5Fd6e483d9f0704D28c8BC5B590A3d8A0Cc3f",
-                "multiSwapForge": "0xBfA6c5FEB18dAC8cB2d2e1e560089e82d1f9F37c",
-                "forgeFundManager": "0xCD3Cd2667E2e5965022C6BEBdDec8bBc599C8258",
-                "forgeCCTPFundManager": "0x96dB125E2dc6817EF35e8964BfF4312a7e59f71C"
+                "fiberRouter": "0x04d4E91bb4C4c1d90149CFf98894a27b487470fA",
+                "fundManager": "0xB9f5302D6b271FBa79f9415ACe14E127Ad17e3aE",
+                "cctpFundManager": "0x99452be41556b4e8E265b764A06676AAE90B12D5",
+                "multiSwapForge": "0x234c1ff9988a3529DA56AC70aCfb38dca4045275",
+                "forgeFundManager": "0xAb8b04D450A85388FEeD3117028f0f63B08405E1",
+                "forgeCCTPFundManager": "0xA522F04318016C9d083446F421543e6Cb2521553"
             },
             "cctp": {
                 "tokenMessenger": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
@@ -55,12 +57,12 @@
             "weth": "0x4200000000000000000000000000000000000006",
             "foundry": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             "deployments": {
-                "fiberRouter": "0xd22A4460FE71A4130E7964b7b408Fa18B75C2BcC",
-                "fundManager": "0x2933010Da75FC6632e41F550Ecb40FBAbfcF6a21",
-                "cctpFundManager": "0x543ff32219b68FDAA471aCf877C1d951e416cD52",
-                "multiSwapForge": "0xD216B3569d1fC74D3f077a130f15015F3E0e6Ce3",
-                "forgeFundManager": "0xFFf2C18B13411aa11282e351Fff0f4A64f7e240b",
-                "forgeCCTPFundManager": "0x6B42BCb6273db5b00b9457fc16fC14360446875C"
+                "fiberRouter": "0xb4748e06367FA8ee1d616a668649643605Fac3d5",
+                "fundManager": "0x6C2aEfE5E6BF22F238E2142b3f539Ee40fbE0288",
+                "cctpFundManager": "0xbE6E744400C1398D9Aa88Cd89588f82687444D8c",
+                "multiSwapForge": "0xCc53df55c4e79fC052dC3b0e42C135451b7Ad828",
+                "forgeFundManager": "0x11c3824916cDd5Da4444290e726a684D7E582D7f",
+                "forgeCCTPFundManager": "0x7fE4188FAF3F8ED49AA43Fd798Bca54e267aCE1a"
             },
             "cctp": {
                 "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
