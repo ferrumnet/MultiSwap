@@ -89,6 +89,7 @@ export const multiswap = async function (
     console.log("\n##### FundManager configs #####")
     await sendTx(fundManager.setRouter(fiberRouter), "setRouter successful")
     await sendTx(fundManager.addFoundryAsset(foundry), "addFoundryAsset successful")
+    await sendTx(fundManager.addSigner(addresses.signer), "setSignerWallet successful")
     await sendTx(fundManager.setLiquidityManagers(addresses.liquidityManager, addresses.liquidityManagerBot), "setLiquidityManagers successful")
     await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
     await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
