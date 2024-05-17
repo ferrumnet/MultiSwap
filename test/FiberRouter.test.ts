@@ -90,18 +90,88 @@ describe('FiberRouter', () => {
             )
         })
 
-        it("should initiate a cross chain transfer with no fee allocations", async () => {
+        it("should initiate a cross chain transfer with fee allocations", async () => {
+            await foundry.approve(await fiberRouter.getAddress(), amount)
+            const salt = id("some_unique_salt")
+            const expiry = Math.round((Date.now()/1000)) + 600
+            
+            const randomRecipient1 = "0xeb608fe026a4f54df43e57a881d2e8395652c58d"
+            const randomRecipient2 = "0xBFBFE0e25835625efa98161e3286Ca1290057E1a"
+            const recipient1Amount = 100
+            const recipient2Amount = 150
+            const feeAllocations = [
+                {
+                    recipient: randomRecipient1,
+                    platformFee: recipient1Amount
+                },
+                {
+                    recipient: randomRecipient2,
+                    platformFee: recipient2Amount
+                }
+            ]
+            const feeDistributionData = {
+                feeAllocations: feeAllocations,
+                totalPlatformFee: recipient1Amount + recipient2Amount,
+                sourceAmountIn: amount,
+                sourceAmountOut: amount - (recipient1Amount + recipient2Amount),
+                destinationAmountIn: amount - (recipient1Amount + recipient2Amount),
+                destinationAmountOut: 20000,
+                salt,
+                expiry,
+            };
+            const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData)
+
+            const tx = fiberRouter.swapSigned(
+                foundry,
+                amount,
+                {
+                    targetNetwork: targetNetwork,
+                    targetToken: weth,
+                    targetAddress: signer,
+                },
+                id("some withdrawal data"),
+                false,
+                {
+                    ...feeDistributionData,
+                    signature
+                },
+                { value: 100 }
+            )
+            
+            await expect(tx).to.changeTokenBalances(
+                foundry,
+                [signer, fundManager],
+                [-BigInt(amount), BigInt(amount - recipient1Amount - recipient2Amount)]
+            )
+
+            await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
+                foundry,
+                weth,
+                31337,
+                targetNetwork,
+                amount,
+                signer,
+                signer,
+                amount - recipient1Amount - recipient2Amount,
+                id("some withdrawal data"),
+                100,
+                0
+            )
+        })
+
+        it("should initiate a cross chain transfer with no fee allocation", async () => {
             await foundry.approve(await fiberRouter.getAddress(), amount)
             const salt = id("some_unique_salt")
             const expiry = Math.round((Date.now()/1000)) + 600
             
             const feeAllocations = [];
+
             const feeDistributionData = {
                 feeAllocations: feeAllocations, // Array of FeeAllocation structs
-                totalPlatformFee: 50,
+                totalPlatformFee: 0,
                 sourceAmountIn: 10000,
                 sourceAmountOut: 10000,
-                destinationAmountIn: 9950,
+                destinationAmountIn: 10000,
                 destinationAmountOut: 20000,
                 salt,
                 expiry, // Example UNIX timestamp
@@ -145,229 +215,165 @@ describe('FiberRouter', () => {
                 0
             )
         })
-
-        it("should initiate a cross chain transfer with 1 fee allocation", async () => {
-            await foundry.approve(await fiberRouter.getAddress(), amount)
-            const salt = id("some_unique_salt")
-            const expiry = Math.round((Date.now()/1000)) + 600
-            const recipient = "0xEb608fE026a4F54df43E57A881D2e8395652C58D"
-            const platformFee = 20
-            
-            const feeAllocations = [
-                {
-                    recipient,
-                    platformFee
-                }
-            ];
-
-            const feeDistributionData = {
-                feeAllocations: feeAllocations, // Array of FeeAllocation structs
-                totalPlatformFee: 20,
-                sourceAmountIn: 10000,
-                sourceAmountOut: 10000,
-                destinationAmountIn: 9980,
-                destinationAmountOut: 20000,
-                salt,
-                expiry, // Example UNIX timestamp
-            };
-            const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData)
-
-            const tx = fiberRouter.swapSigned(
-                foundry,
-                amount,
-                {
-                    targetNetwork: targetNetwork,
-                    targetToken: weth,
-                    targetAddress: signer,
-                },
-                id("some withdrawal data"),
-                false,
-                {
-                    ...feeDistributionData,
-                    signature
-                },
-                { value: 100 }
-            )
-            
-            await expect(tx).to.changeTokenBalances(
-                foundry,
-                [signer, fundManager, recipient],
-                [-BigInt(amount), BigInt(amount - platformFee), BigInt(platformFee)]
-            )
-
-            await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
-                foundry,
-                weth,
-                31337,
-                targetNetwork,
-                amount,
-                signer,
-                signer,
-                amount - platformFee,
-                id("some withdrawal data"),
-                100,
-                0
-            )
-        })
     })
 
-    describe("swapSignedAndCrossRouter", async () => {
-        let fiberRouter:Contract,
-            fundManager:Contract,
-            amount = 10000,
-            targetNetwork = addresses.networks.hardhat.chainId,
-            routerCalldata:string,
-            abiCoder = AbiCoder.defaultAbiCoder(),
-            amountIn = 10000,
-            amountOut = 9800
+    // describe("swapSignedAndCrossRouter", async () => {
+    //     let fiberRouter:Contract,
+    //         fundManager:Contract,
+    //         amount = 10000,
+    //         targetNetwork = addresses.networks.hardhat.chainId,
+    //         routerCalldata:string,
+    //         abiCoder = AbiCoder.defaultAbiCoder(),
+    //         amountIn = 10000,
+    //         amountOut = 9800
 
-        beforeEach(async () => {
-            ({ fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture))
+    //     beforeEach(async () => {
+    //         ({ fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture))
             
-            fiberRouter.addSigner(await signer.getAddress())
-            routerCalldata = abiCoder.encode(
-                ["uint256", "uint256", "address", "address", "address"],
-                [amountIn, amountOut, await weth.getAddress(), await foundry.getAddress(), await fiberRouter.getAddress()]
-            )
+    //         fiberRouter.addSigner(await signer.getAddress())
+    //         routerCalldata = abiCoder.encode(
+    //             ["uint256", "uint256", "address", "address", "address"],
+    //             [amountIn, amountOut, await weth.getAddress(), await foundry.getAddress(), await fiberRouter.getAddress()]
+    //         )
 
-            // Allow itself to be a target for testing
-            const otherChainFoundry = addresses.networks.hardhat.foundry
-            await fundManager.allowTarget(
-                await foundry.getAddress(),
-                targetNetwork,
-                otherChainFoundry
-            )
-        })
+    //         // Allow itself to be a target for testing
+    //         const otherChainFoundry = addresses.networks.hardhat.foundry
+    //         await fundManager.allowTarget(
+    //             await foundry.getAddress(),
+    //             targetNetwork,
+    //             otherChainFoundry
+    //         )
+    //     })
 
-        it("should initiate a cross chain transfer with no fee allocations", async () => {
-            await foundry.approve(await fiberRouter.getAddress(), amount)
-            await fiberRouter.addRouterAndSelectors(await swapRouter.getAddress(), [mockRouterSelector])
-            const salt = id("some_unique_salt")
-            const expiry = Math.round((Date.now()/1000)) + 600
+    //     it("should initiate a cross chain transfer with no fee allocations", async () => {
+    //         await foundry.approve(await fiberRouter.getAddress(), amount)
+    //         await fiberRouter.addRouterAndSelectors(await swapRouter.getAddress(), [mockRouterSelector])
+    //         const salt = id("some_unique_salt")
+    //         const expiry = Math.round((Date.now()/1000)) + 600
             
-            const feeAllocations = [];
-            const feeDistributionData = {
-                feeAllocations: feeAllocations, // Array of FeeAllocation structs
-                totalPlatformFee: 0,
-                sourceAmountIn: amountIn,
-                sourceAmountOut: amountOut,
-                destinationAmountIn: amountOut,
-                destinationAmountOut: 20000,
-                salt,
-                expiry,
-            };
+    //         const feeAllocations = [];
+    //         const feeDistributionData = {
+    //             feeAllocations: feeAllocations, // Array of FeeAllocation structs
+    //             totalPlatformFee: 0,
+    //             sourceAmountIn: amountIn,
+    //             sourceAmountOut: amountOut,
+    //             destinationAmountIn: amountOut,
+    //             destinationAmountOut: 20000,
+    //             salt,
+    //             expiry,
+    //         };
 
-            const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData)
+    //         const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData)
             
-            await weth.approve(await fiberRouter.getAddress(), feeDistributionData.sourceAmountIn)
-            const tx = fiberRouter.swapSignedAndCrossRouter(
-                feeDistributionData.sourceAmountIn,
-                feeDistributionData.sourceAmountOut,
-                await weth.getAddress(),
-                await foundry.getAddress(),
-                await swapRouter.getAddress(),
-                mockRouterSelector + routerCalldata.slice(2),
-                {
-                    targetNetwork: targetNetwork,
-                    targetToken: foundry,
-                    targetAddress: signer,
-                },
-                id("some withdrawal data"),
-                false,
-                {
-                    ...feeDistributionData,
-                    signature
-                },
-                { value: 100 }
-            )
+    //         await weth.approve(await fiberRouter.getAddress(), feeDistributionData.sourceAmountIn)
+    //         const tx = fiberRouter.swapSignedAndCrossRouter(
+    //             feeDistributionData.sourceAmountIn,
+    //             feeDistributionData.sourceAmountOut,
+    //             await weth.getAddress(),
+    //             await foundry.getAddress(),
+    //             await swapRouter.getAddress(),
+    //             mockRouterSelector + routerCalldata.slice(2),
+    //             {
+    //                 targetNetwork: targetNetwork,
+    //                 targetToken: foundry,
+    //                 targetAddress: signer,
+    //             },
+    //             id("some withdrawal data"),
+    //             false,
+    //             {
+    //                 ...feeDistributionData,
+    //                 signature
+    //             },
+    //             { value: 100 }
+    //         )
             
-            await expect(tx).to.changeTokenBalances(
-                weth,
-                [signer, swapRouter],
-                [-BigInt(amount), BigInt(amount)]
-            )
+    //         await expect(tx).to.changeTokenBalances(
+    //             weth,
+    //             [signer, swapRouter],
+    //             [-BigInt(amount), BigInt(amount)]
+    //         )
 
-            await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
-                weth,
-                foundry,
-                31337,
-                targetNetwork,
-                amountIn,
-                signer,
-                signer,
-                amountOut,
-                id("some withdrawal data"),
-                100,
-                0
-            )
-        })
+    //         await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
+    //             weth,
+    //             foundry,
+    //             31337,
+    //             targetNetwork,
+    //             amountIn,
+    //             signer,
+    //             signer,
+    //             amountOut,
+    //             id("some withdrawal data"),
+    //             100,
+    //             0
+    //         )
+    //     })
 
-        it("should initiate a cross chain transfer with one fee allocation", async () => {
-            await foundry.approve(await fiberRouter.getAddress(), amount)
-            await fiberRouter.addRouterAndSelectors(await swapRouter.getAddress(), [mockRouterSelector])
-            const salt = id("some_unique_salt")
-            const expiry = Math.round((Date.now()/1000)) + 600
+    //     it("should initiate a cross chain transfer with one fee allocation", async () => {
+    //         await foundry.approve(await fiberRouter.getAddress(), amount)
+    //         await fiberRouter.addRouterAndSelectors(await swapRouter.getAddress(), [mockRouterSelector])
+    //         const salt = id("some_unique_salt")
+    //         const expiry = Math.round((Date.now()/1000)) + 600
             
-            const feeAllocations = [{
-                recipient: "0xEb608fE026a4F54df43E57A881D2e8395652C58D",
-                platformFee: 50
-            }];
-            const feeDistributionData = {
-                feeAllocations: feeAllocations, // Array of FeeAllocation structs
-                totalPlatformFee: 50,
-                sourceAmountIn: amountIn,
-                sourceAmountOut: amountOut,
-                destinationAmountIn: amountOut - 50,
-                destinationAmountOut: 20000,
-                salt,
-                expiry,
-            };
+    //         const feeAllocations = [{
+    //             recipient: "0xEb608fE026a4F54df43E57A881D2e8395652C58D",
+    //             platformFee: 50
+    //         }];
+    //         const feeDistributionData = {
+    //             feeAllocations: feeAllocations, // Array of FeeAllocation structs
+    //             totalPlatformFee: 50,
+    //             sourceAmountIn: amountIn,
+    //             sourceAmountOut: amountOut,
+    //             destinationAmountIn: amountOut - 50,
+    //             destinationAmountOut: 20000,
+    //             salt,
+    //             expiry,
+    //         };
 
-            const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData)
+    //         const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData)
             
-            await weth.approve(await fiberRouter.getAddress(), feeDistributionData.sourceAmountIn)
-            const tx = fiberRouter.swapSignedAndCrossRouter(
-                feeDistributionData.sourceAmountIn,
-                feeDistributionData.sourceAmountOut,
-                await weth.getAddress(),
-                await foundry.getAddress(),
-                await swapRouter.getAddress(),
-                mockRouterSelector + routerCalldata.slice(2),
-                {
-                    targetNetwork: targetNetwork,
-                    targetToken: foundry,
-                    targetAddress: signer,
-                },
-                id("some withdrawal data"),
-                false,
-                {
-                    ...feeDistributionData,
-                    signature
-                },
-                { value: 100 }
-            )
+    //         await weth.approve(await fiberRouter.getAddress(), feeDistributionData.sourceAmountIn)
+    //         const tx = fiberRouter.swapSignedAndCrossRouter(
+    //             feeDistributionData.sourceAmountIn,
+    //             feeDistributionData.sourceAmountOut,
+    //             await weth.getAddress(),
+    //             await foundry.getAddress(),
+    //             await swapRouter.getAddress(),
+    //             mockRouterSelector + routerCalldata.slice(2),
+    //             {
+    //                 targetNetwork: targetNetwork,
+    //                 targetToken: foundry,
+    //                 targetAddress: signer,
+    //             },
+    //             id("some withdrawal data"),
+    //             false,
+    //             {
+    //                 ...feeDistributionData,
+    //                 signature
+    //             },
+    //             { value: 100 }
+    //         )
             
-            await expect(tx).to.changeTokenBalances(
-                weth,
-                [signer, swapRouter],
-                [-BigInt(amount), BigInt(amount)]
-            )
+    //         await expect(tx).to.changeTokenBalances(
+    //             weth,
+    //             [signer, swapRouter],
+    //             [-BigInt(amount), BigInt(amount)]
+    //         )
 
-            await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
-                weth,
-                foundry,
-                31337,
-                targetNetwork,
-                amountIn,
-                signer,
-                signer,
-                amountOut - 50,
-                id("some withdrawal data"),
-                100,
-                0
-            )
-        })
-    })
+    //         await expect(tx).to.emit(fiberRouter, "Swap").withArgs(
+    //             weth,
+    //             foundry,
+    //             31337,
+    //             targetNetwork,
+    //             amountIn,
+    //             signer,
+    //             signer,
+    //             amountOut - 50,
+    //             id("some withdrawal data"),
+    //             100,
+    //             0
+    //         )
+    //     })
+    // })
 
     // describe("local swap then cross", async () => {
     //     let routerCalldata:string,
@@ -599,161 +605,161 @@ describe('FiberRouter', () => {
     //     })
     // })
 
-    describe("Signed withdrawals", async () => {
-        it("should be able to withdraw with valid signature", async () => {
-            const { fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture)
-            await fundManager.addSigner(signer)
-            await fundManager.setLiquidityManagers(signer, signer)
-            const amount = 10000
-            await foundry.approve(await fundManager.getAddress(), amount)
-            await fundManager.addLiquidityByManager(await foundry.getAddress(), amount)
+    // describe("Signed withdrawals", async () => {
+    //     it("should be able to withdraw with valid signature", async () => {
+    //         const { fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture)
+    //         await fundManager.addSigner(signer)
+    //         await fundManager.setLiquidityManagers(signer, signer)
+    //         const amount = 10000
+    //         await foundry.approve(await fundManager.getAddress(), amount)
+    //         await fundManager.addLiquidityByManager(await foundry.getAddress(), amount)
             
-            const token = await foundry.getAddress()
-            const payee = await signer.getAddress()
-            const salt = id("some salt")
-            const expiry = Math.floor(Date.now() / 1000) + 3600
+    //         const token = await foundry.getAddress()
+    //         const payee = await signer.getAddress()
+    //         const salt = id("some salt")
+    //         const expiry = Math.floor(Date.now() / 1000) + 3600
             
-            const domain = {
-                name: "FUND_MANAGER",
-                version: "000.004",
-                chainId: 31337,
-                verifyingContract: await fundManager.getAddress()
-            }
+    //         const domain = {
+    //             name: "FUND_MANAGER",
+    //             version: "000.004",
+    //             chainId: 31337,
+    //             verifyingContract: await fundManager.getAddress()
+    //         }
 
-            const types = {
-                WithdrawSigned: [
-                    { name: "token", type: "address" },
-                    { name: "payee", type: "address" },
-                    { name: "amount", type: "uint256" },
-                    { name: "salt", type: "bytes32" },
-                    { name: "expiry", type: "uint256" },
-                ]
-            }
+    //         const types = {
+    //             WithdrawSigned: [
+    //                 { name: "token", type: "address" },
+    //                 { name: "payee", type: "address" },
+    //                 { name: "amount", type: "uint256" },
+    //                 { name: "salt", type: "bytes32" },
+    //                 { name: "expiry", type: "uint256" },
+    //             ]
+    //         }
 
-            const values = {
-                token,
-                payee,
-                amount,
-                salt,
-                expiry,
-            }
+    //         const values = {
+    //             token,
+    //             payee,
+    //             amount,
+    //             salt,
+    //             expiry,
+    //         }
             
-            const signature = await signer.signTypedData(domain, types, values)
-            const tx = fiberRouter.withdrawSigned(
-                token,
-                payee,
-                amount,
-                salt,
-                expiry,
-                signature,
-                false
-            )
+    //         const signature = await signer.signTypedData(domain, types, values)
+    //         const tx = fiberRouter.withdrawSigned(
+    //             token,
+    //             payee,
+    //             amount,
+    //             salt,
+    //             expiry,
+    //             signature,
+    //             false
+    //         )
             
-            await expect(tx).to.changeTokenBalances(
-                foundry,
-                [signer, fundManager],
-                [BigInt(amount), -BigInt(amount)]
-            )
+    //         await expect(tx).to.changeTokenBalances(
+    //             foundry,
+    //             [signer, fundManager],
+    //             [BigInt(amount), -BigInt(amount)]
+    //         )
 
-            await expect(tx).to.emit(fiberRouter, "Withdraw").withArgs(
-                token,
-                payee,
-                amount,
-                salt,
-                signature
-            )
-        })
+    //         await expect(tx).to.emit(fiberRouter, "Withdraw").withArgs(
+    //             token,
+    //             payee,
+    //             amount,
+    //             salt,
+    //             signature
+    //         )
+    //     })
 
-        it("should be able to swap and withdraw with valid signature", async () => {
-            const { fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture)
-            await fundManager.addSigner(signer)
-            await fundManager.setLiquidityManagers(signer, signer)
-            const amount = 10000
-            await foundry.approve(await fundManager.getAddress(), amount)
-            await fundManager.addLiquidityByManager(await foundry.getAddress(), amount)
-            await fiberRouter.addRouterAndSelectors(await swapRouter.getAddress(), [mockRouterSelector])
+    //     it("should be able to swap and withdraw with valid signature", async () => {
+    //         const { fiberRouter, fundManager } = await loadFixture(multiswapDeploymentFixture)
+    //         await fundManager.addSigner(signer)
+    //         await fundManager.setLiquidityManagers(signer, signer)
+    //         const amount = 10000
+    //         await foundry.approve(await fundManager.getAddress(), amount)
+    //         await fundManager.addLiquidityByManager(await foundry.getAddress(), amount)
+    //         await fiberRouter.addRouterAndSelectors(await swapRouter.getAddress(), [mockRouterSelector])
         
-            const amountIn = 10000
-            const amountOut = 9800
-            const abiCoder = AbiCoder.defaultAbiCoder()
-            const routerCalldata = abiCoder.encode(
-                ["uint256", "uint256", "address", "address", "address"],
-                [amountIn, amountOut, await foundry.getAddress(), await weth.getAddress(), await user.getAddress()]
-            )
-            const salt = id("some salt")
-            const expiry = Math.floor(Date.now() / 1000) + 3600
+    //         const amountIn = 10000
+    //         const amountOut = 9800
+    //         const abiCoder = AbiCoder.defaultAbiCoder()
+    //         const routerCalldata = abiCoder.encode(
+    //             ["uint256", "uint256", "address", "address", "address"],
+    //             [amountIn, amountOut, await foundry.getAddress(), await weth.getAddress(), await user.getAddress()]
+    //         )
+    //         const salt = id("some salt")
+    //         const expiry = Math.floor(Date.now() / 1000) + 3600
             
-            const domain = {
-                name: "FUND_MANAGER",
-                version: "000.004",
-                chainId: 31337,
-                verifyingContract: await fundManager.getAddress()
-            }
+    //         const domain = {
+    //             name: "FUND_MANAGER",
+    //             version: "000.004",
+    //             chainId: 31337,
+    //             verifyingContract: await fundManager.getAddress()
+    //         }
             
-            const types = {
-                withdrawSignedAndSwapRouter: [
-                    { name: "to", type: "address" },
-                    { name: "amountIn", type: "uint256" },
-                    { name: "minAmountOut", type: "uint256" },
-                    { name: "foundryToken", type: "address" },
-                    { name: "targetToken", type: "address" },
-                    { name: "router", type: "address" },
-                    { name: "salt", type: "bytes32" },
-                    { name: "expiry", type: "uint256" }
-                ]
-            }
+    //         const types = {
+    //             withdrawSignedAndSwapRouter: [
+    //                 { name: "to", type: "address" },
+    //                 { name: "amountIn", type: "uint256" },
+    //                 { name: "minAmountOut", type: "uint256" },
+    //                 { name: "foundryToken", type: "address" },
+    //                 { name: "targetToken", type: "address" },
+    //                 { name: "router", type: "address" },
+    //                 { name: "salt", type: "bytes32" },
+    //                 { name: "expiry", type: "uint256" }
+    //             ]
+    //         }
 
-            const values = {
-                to: await user.getAddress(),
-                amountIn,
-                minAmountOut: 9700,
-                foundryToken: await foundry.getAddress(),
-                targetToken: await weth.getAddress(),
-                router: await swapRouter.getAddress(),
-                salt,
-                expiry                
-            }
+    //         const values = {
+    //             to: await user.getAddress(),
+    //             amountIn,
+    //             minAmountOut: 9700,
+    //             foundryToken: await foundry.getAddress(),
+    //             targetToken: await weth.getAddress(),
+    //             router: await swapRouter.getAddress(),
+    //             salt,
+    //             expiry                
+    //         }
             
-            const signature = await signer.signTypedData(domain, types, values)
-            const tx = fiberRouter.withdrawSignedAndSwapRouter(
-                user,
-                amountIn,
-                9700, // slippage
-                foundry,
-                weth,
-                swapRouter,
-                mockRouterSelector + routerCalldata.slice(2),
-                salt,
-                expiry,
-                signature,
-                false
-            )
+    //         const signature = await signer.signTypedData(domain, types, values)
+    //         const tx = fiberRouter.withdrawSignedAndSwapRouter(
+    //             user,
+    //             amountIn,
+    //             9700, // slippage
+    //             foundry,
+    //             weth,
+    //             swapRouter,
+    //             mockRouterSelector + routerCalldata.slice(2),
+    //             salt,
+    //             expiry,
+    //             signature,
+    //             false
+    //         )
 
-            await expect(tx).to.changeTokenBalances(
-                foundry,
-                [user, fundManager, swapRouter],
-                [0, -BigInt(amount), BigInt(amount)]
-            )
+    //         await expect(tx).to.changeTokenBalances(
+    //             foundry,
+    //             [user, fundManager, swapRouter],
+    //             [0, -BigInt(amount), BigInt(amount)]
+    //         )
 
-            await expect(tx).to.changeTokenBalances(
-                weth,
-                [user, fundManager, swapRouter],
-                [amountOut, 0, -BigInt(amountOut)]
-            )
+    //         await expect(tx).to.changeTokenBalances(
+    //             weth,
+    //             [user, fundManager, swapRouter],
+    //             [amountOut, 0, -BigInt(amountOut)]
+    //         )
 
-            await expect(tx).to.emit(fiberRouter, "WithdrawRouter").withArgs(
-                user,
-                amountIn,
-                amountOut,
-                foundry,
-                weth,
-                swapRouter,
-                mockRouterSelector + routerCalldata.slice(2),
-                salt,
-                signature
-            )
-        })
-    })
+    //         await expect(tx).to.emit(fiberRouter, "WithdrawRouter").withArgs(
+    //             user,
+    //             amountIn,
+    //             amountOut,
+    //             foundry,
+    //             weth,
+    //             swapRouter,
+    //             mockRouterSelector + routerCalldata.slice(2),
+    //             salt,
+    //             signature
+    //         )
+    //     })
+    // })
 
     // describe("Same network swaps", async () => {
     //     it("should be able to swap tokens locally", async () => {

@@ -50,7 +50,7 @@ async function main() {
     console.log("AmountOutUSD: " + data.data.data.amountOutUsd); // data.data.data for the calldata only
 }
 
-const numSwaps = 15; // max limit currently. 30 reqs per 10 second. Each swap has 2 reqs.
+const numSwaps = 100; // max limit currently. 30 reqs per 10 second. Each swap has 2 reqs.
 
 
 
