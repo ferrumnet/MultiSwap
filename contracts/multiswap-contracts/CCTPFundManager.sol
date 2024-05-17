@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import "../common/signature/SigCheckable.sol";
 import "../common/WithAdmin.sol";
 import "../common/SafeAmount.sol";
-import "../common/tokenReceiveable.sol";
 import "../common/cctp/ICCTPTokenMessenger.sol";
 
 contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
@@ -149,10 +148,8 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
         usedSalt[salt] = true;
-        // sync inventory of token
-        TokenReceivable.sync(token);
         // transfer the tokens to the receiver
-        TokenReceivable.sendToken(token, payee, amount);
+        IERC20(token).safeTransfer(payee, amount);
         emit TransferBySignature(_signer, payee, token, amount);
         return amount;
     }
@@ -207,10 +204,9 @@ contract CCTPFundManager is SigCheckable, WithAdmin, TokenReceivable {
         address _signer = signerUnique(message, signature);
         require(signers[_signer], "FM: Invalid signer");
         require(!usedSalt[salt], "FM: salt already used");
-        // sync inventory of token
-        TokenReceivable.sync(foundryToken);
         usedSalt[salt] = true;
-        TokenReceivable.sendToken(foundryToken, msg.sender, amountIn);
+         // transfer the tokens to the receiver
+        IERC20(foundryToken).safeTransfer(msg.sender, amountIn);
         emit TransferBySignature(_signer, msg.sender, foundryToken, amountIn);
         return amountIn;
     }
