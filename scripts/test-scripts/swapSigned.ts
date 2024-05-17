@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ContractTransactionResponse } from "ethers"
+import { ContractTransactionResponse, hexlify, randomBytes } from "ethers"
 import addresses from "../../constants/addresses.json"
 import fiberRouterArtifact from "../../artifacts/contracts/multiswap-contracts/FiberRouter.sol/FiberRouter.json"
 import usdcAbi from "../abis/Usdc.json"
@@ -29,34 +29,34 @@ const main = async () => {
     const amountIn = 1000 // 1 cent
     await sendTx(foundry.approve(fiberRouter, BigInt(amountIn)), "Approve successful")
 
-    const salt = id("some_unique_salt")
-            const expiry = Math.round((Date.now()/1000)) + 600
-            
-            const randomRecipient1 = "0xeb608fe026a4f54df43e57a881d2e8395652c58d"
-            const randomRecipient2 = "0xBFBFE0e25835625efa98161e3286Ca1290057E1a"
-            const recipient1Amount = 100
-            const recipient2Amount = 150
-            const feeAllocations = [
-                {
-                    recipient: randomRecipient1,
-                    platformFee: recipient1Amount
-                },
-                {
-                    recipient: randomRecipient2,
-                    platformFee: recipient2Amount
-                }
-            ]
-            const feeDistributionData = {
-                feeAllocations: feeAllocations,
-                totalPlatformFee: recipient1Amount + recipient2Amount,
-                sourceAmountIn: amountIn,
-                sourceAmountOut: amountIn - (recipient1Amount + recipient2Amount),
-                destinationAmountIn: amountIn - (recipient1Amount + recipient2Amount),
-                destinationAmountOut: 20000,
-                salt,
-                expiry,
-            };
-            const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData, addresses.networks[thisNetwork].chainId)
+    const salt = hexlify(randomBytes(32))
+    const expiry = Math.round((Date.now()/1000)) + 600
+    
+    const randomRecipient1 = "0xeb608fe026a4f54df43e57a881d2e8395652c58d"
+    const randomRecipient2 = "0xBFBFE0e25835625efa98161e3286Ca1290057E1a"
+    const recipient1Amount = 100
+    const recipient2Amount = 150
+    const feeAllocations = [
+        {
+            recipient: randomRecipient1,
+            platformFee: recipient1Amount
+        },
+        {
+            recipient: randomRecipient2,
+            platformFee: recipient2Amount
+        }
+    ]
+    const feeDistributionData = {
+        feeAllocations: feeAllocations,
+        totalPlatformFee: recipient1Amount + recipient2Amount,
+        sourceAmountIn: amountIn,
+        sourceAmountOut: amountIn - (recipient1Amount + recipient2Amount),
+        destinationAmountIn: amountIn - (recipient1Amount + recipient2Amount),
+        destinationAmountOut: 20000,
+        salt,
+        expiry,
+    };
+    const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData, addresses.networks[thisNetwork].chainId)
 
 
     await sendTx(fiberRouter.swapSigned(
@@ -125,6 +125,7 @@ const sendTx = async (txResponse: Promise<ContractTransactionResponse>, successM
     const receipt = await (await txResponse).wait()
     if (receipt?.status == 1) {
         successMessage ? console.log(successMessage) : null
+        console.log("Transaction hash: " + receipt.hash)
     } else {
         console.error("Transaction failed: " + receipt);
     }
