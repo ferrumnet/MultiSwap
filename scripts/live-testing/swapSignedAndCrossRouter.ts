@@ -58,7 +58,7 @@ const main = async () => {
         salt,
         expiry,
     };
-    
+
     const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData, addresses.networks[thisNetwork].chainId)
 
     await sendTx(fiberRouter.swapSignedAndCrossRouter(

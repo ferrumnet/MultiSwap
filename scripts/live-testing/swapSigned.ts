@@ -20,7 +20,7 @@ const main = async () => {
         fiberRouterArtifact.abi,
         signer
     )
-    const amountIn = 1000 // 0.1 cent
+    const amountIn = 100000 // 10 cents
     await sendTx(foundry.approve(fiberRouter, BigInt(amountIn)), "Approve successful")
 
     const salt = hexlify(randomBytes(32))
@@ -42,8 +42,7 @@ const main = async () => {
         expiry,
     };
 
-    const signature = getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData, addresses.networks[thisNetwork].chainId)
-
+    const signature = await getSourceSignature(fiberRouter.target as string, foundry.target as string, feeDistributionData, addresses.networks[thisNetwork].chainId)
 
     await sendTx(fiberRouter.swapSigned(
         foundry,
