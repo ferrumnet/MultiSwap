@@ -98,7 +98,7 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY0!]
     },
     optimism: {
-      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+      url: `https://optimism-mainnet.core.chainstack.com/7cb5109bd1c125224315d9b753cc0e45`,
       accounts: [process.env.PRIVATE_KEY0!]
     },
     ethereum: {
@@ -150,7 +150,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       scroll: "8PT9SH3QX8NENRAXGE3MGEXB58TWXEHR3V",
       bsc: process.env.BSCSCAN_API_KEY!,
-      optimism: process.env.OPTIMISTIC_ETHERSCAN_API_KEY!,
+      optimisticEthereum: process.env.OPTIMISTIC_ETHERSCAN_API_KEY!,
       arbitrumOne: process.env.ARBISCAN_API_KEY!,
       base: process.env.BASESCAN_API_KEY!,
     },

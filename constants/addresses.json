@@ -95,6 +95,49 @@
                 }
             ]
         },
+        "optimism": {
+            "chainId": 10,
+            "weth": "0x4200000000000000000000000000000000000006",
+            "foundry": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+            "deployments": {
+                "fiberRouter": "0x4256b41a6B56CD4D93f35B3eD2889A57e1882C72",
+                "fundManager": "0x39E205B5477Bf41CB05B18299D279b6535ba180f",
+                "cctpFundManager": "0x90b4C9Cc6AAf15be692d20D409A86bd32897D9b1",
+                "multiSwapForge": "0x0D6aA8F20b7aadf930C2cf90b666cA1E3B78Abf8",
+                "forgeFundManager": "0x5176626829EEC53c2d24f965939027BF42E3670E",
+                "forgeCCTPFundManager": "0x7fE4188FAF3F8ED49AA43Fd798Bca54e267aCE1a"
+            },
+            "cctp": {
+                "tokenMessenger": "0x2B4069517957735bE00ceE0fadAE88a26365528f",
+                "domain": 2
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
+                    "selectors" : [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
         "scroll": {
             "chainId": 534352,
             "weth": "0x5300000000000000000000000000000000000004",
