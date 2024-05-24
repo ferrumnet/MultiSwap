@@ -13,7 +13,7 @@ contract FeeDistributor is EIP712, Ownable {
     string public constant VERSION = "000.001";
     uint32 constant MINUTE = 60;
     address public feeWallet;
-    uint256 public platformFee; // Platform fee as a percentage (e.g., 1 for 1%)
+    uint256 public platformFee; // Platform fee as a fixed amount 
 
     mapping(address => bool) public signers;
     mapping(bytes32 => bool) public usedSalt;
@@ -87,16 +87,15 @@ contract FeeDistributor is EIP712, Ownable {
         require(_verify(token, fdd), "FD: Invalid signature");
 
         uint256 totalAmount = preFeeAmount;
-        uint256 fee = (totalAmount * platformFee) / 100; // platformFee as a percentage
-        uint256 remainingAmount = totalAmount - fee;
+        uint256 remainingAmount = totalAmount - platformFee;
         uint256 referralDiscountAmount = 0;
         uint256 referralFeeAmount = 0;
-        uint256 feeWalletShare = fee;
+        uint256 feeWalletShare = platformFee;
 
         // If referral is provided, calculate the referral discount and referral fee
         if (fdd.referral != address(0)) {
             if (fdd.referralDiscount > 0) {
-                referralDiscountAmount = (fee * fdd.referralDiscount) / 100;
+                referralDiscountAmount = (platformFee * fdd.referralDiscount) / 100;
                 feeWalletShare -= referralDiscountAmount;
                 remainingAmount += referralDiscountAmount;
             }
@@ -109,12 +108,12 @@ contract FeeDistributor is EIP712, Ownable {
         }
 
         // Ensure the total allocated fee does not exceed the platform fee
-        require(feeWalletShare + referralFeeAmount + referralDiscountAmount <= fee, "FD: Total fee exceeds platform fee");
+        require(feeWalletShare + referralFeeAmount + referralDiscountAmount <= platformFee, "FD: Total fee exceeds platform fee");
 
         // Transfer the remaining fee to the fee wallet
         IERC20(token).safeTransfer(feeWallet, feeWalletShare);
 
-        emit FeesDistributed(token, preFeeAmount, remainingAmount, fee);
+        emit FeesDistributed(token, preFeeAmount, remainingAmount, platformFee);
 
         return remainingAmount;
     }
