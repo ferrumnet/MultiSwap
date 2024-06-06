@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+pragma solidity ^0.8.24;
 
 import "./FiberRouter.sol";
 
@@ -56,15 +56,15 @@ contract MultiSwapForge is FiberRouter {
         require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
     }
 
-    // Override and revert the 'withdrawSignedWithSwap' function
-    function withdrawSignedWithSwap(
+    // Override and revert the 'withdrawSignedAndSwapRouter function
+    function withdrawSignedAndSwapRouter(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCallData,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature,
@@ -74,28 +74,28 @@ contract MultiSwapForge is FiberRouter {
     }
 
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
-    function withdrawSignedWithSwapForGasEstimation(
+    function withdrawSignedAndSwapRouterForGasEstimation(
         address payable to,
         uint256 amountIn,
         uint256 minAmountOut,
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCallData,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory multiSignature,
         bool cctpType
     ) external {
         // Call the original function from FiberRouter
-        super.withdrawSignedWithSwap(
+        super.withdrawSignedAndSwapRouter(
             to,
             amountIn,
             minAmountOut,
             foundryToken,
             targetToken,
             router,
-            routerCallData,
+            routerCalldata,
             salt,
             expiry,
             multiSignature,
