@@ -12,7 +12,7 @@ MultiSwap contracts are structured into two main categories:
 - Manages the funds (liquidity pool) and provides functionalities for fund management. Intended to mainly be called by system admin, though there is a facility for anyone to be a liquidity provider.
 
 ### CCTPFundmanager
-- Serves a similar function to the base FundManager implementation, but targetting compatability with Circle's Cross-Chain Transfer Protocol (CCTP). Funds are typically only held for short durations, as CCTP does not require a liquidity pool.
+- Serves a similar function to the base FundManager implementation, but targetting compatability with Circle's Cross-Chain Transfer Protocol (CCTP). Funds are typically only held for short durations, as CCTP does not require a sustained liquidity pool.
 
 ### LiquidityManagerRole**
 - Handles liquidity management with designated roles. It provides mechanisms to add or remove liquidity under strict role-based permissions.
