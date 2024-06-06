@@ -1,45 +1,45 @@
 # MultiSwap Documentation
-## MultiSwap contracts are structured into two main categories:
+MultiSwap contracts are structured into two main categories:
 
 ## MultiSwap Contracts:
 ### FiberRouter
-- Facilitates the execution of token swaps and interacts with various DEX aggregators, such as 1inch, Uniswap, and SushiSwap.
+- Facilitates the execution of token swaps and interacts with various DEX aggregators, such as 1inch, Uniswap, and SushiSwap. All user interactions go through this contract. Functions beginning with `swap` are called by the user on the source chain, with functions beginning with `withdraw` are called by Ferrum's node infrastructure on the destination chain.
 
 ### FeeDistributor
-- `FeeDistributor` is designed to handle the distribution of transaction fees collected from various operations within the MultiSwap ecosystem. This contract ensures that fees are allocated and disbursed accurately to various stakeholders according to predefined rules.
+- `FeeDistributor` is designed to handle the distribution of transaction fees collected from swaps. This contract ensures that fees are distributed to various stakeholders according to predefined allocations. These allocations are determined in Ferrum's backend, with on-chain signature verification for the passed amounts.
 
 ### Fundmanager
-- Manages the funds and provides functionalities related to fund allocations and balances.
+- Manages the funds (liquidity pool) and provides functionalities for fund management. Intended to mainly be called by system admin, though there is a facility for anyone to be a liquidity provider.
 
 ### CCTPFundmanager
-- Manages the funds received from CCTP and provides functionalities related to fund allocations and balances for CCTP Swaps.
+- Serves a similar function to the base FundManager implementation, but targetting compatability with Circle's Cross-Chain Transfer Protocol (CCTP). Funds are typically only held for short durations, as CCTP does not require a liquidity pool.
 
 ### LiquidityManagerRole**
-- The `LiquidityManagerRole` contract is a fundamental component of the MultiSwap ecosystem, designed to handle liquidity management with designated roles. It provides mechanisms to add or remove liquidity under strict role-based permissions, ensuring secure and efficient management of fund liquidity.
+- Handles liquidity management with designated roles. It provides mechanisms to add or remove liquidity under strict role-based permissions.
 
 ## Forge/Gas Estimation Contracts:
 ### MultiSwapForge
-- Inherits from `fiberRouter` and is primarily responsible for executing token swaps. It serves as a core component for initiating swap transactions.
+- Inherits from `fiberRouter` and is used only for gas estimation on the destination chain side by simulating withdrawal transactions. The gas consumption is then used to estimate fees for the withdraw side.
 
 ### ForgeFundManager
-- Inherits from `fundmanager` and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
+- Inherits from `fundManager` and serves the same as above.
 
 ### ForgeCCTPFundManager
-- Inherits from `CCTPFundManager` and is utilized for simulating withdrawal transactions to estimate gas fees associated with the withdrawal functions. It aids in predicting gas costs for withdrawal operations
+- Inherits from `CCTPFundManager` and serves the same as above.
 
 # FiberRouter Contract Documentation
 
 ## Overview
-`FiberRouter.sol` is a key component of the MultiSwap project designed for handling token swaps both within a single network and across different networks using the Cross-Chain Transfer Protocol (CCTP). This contract facilitates efficient token swapping mechanisms, manages gas fee payments, and ensures secure transaction processing through a router whitelist system.
+`FiberRouter.sol` is a key component of the MultiSwap project designed for handling token swaps both within a single network and across different networks, with the possibility of using CCTP. This contract facilitates efficient token swapping mechanisms, manages gas fee payments, and ensures secure transaction processing through a router whitelist system.
 
 ## Inherits
 - Inherits `Ownable`: Ensures that administrative functions are protected and can only be accessed by the contract owner.
-- Inherits `TokenReceivable`: Enhances the contract's ability to interact with and process multiple token types securely.
-- Inherits `FeeDistributor`: Allows the contract to manage and distribute transaction fees effectively.
+- Inherits `TokenReceivable`: Primarily aimed towards managing balances for fee-on-transfer tokens.
+- Inherits `FeeDistributor`: Distributes transaction fees.
 
 ## Using Libraries
 - **SafeERC20 for IERC20**
-  - This contract uses the `SafeERC20` library which provides safety checks when interacting with ERC20 tokens. These checks prevent common mistakes like failing to handle return values in token transfer operations, thereby reducing the risk of tokens getting lost or locked.
+  - This contract uses the `SafeERC20` library which provides safety checks when interacting with ERC20 tokens. These checks prevent common mistakes like failing to handle return values in token transfer operations.
 
 ## State Variables
 
@@ -49,9 +49,9 @@
 - **fundManager:** `address public`
   - Address of the Fund Manager contract that manages and orchestrates the handling of funds within various operations.
 - **cctpFundManager:** `address public`
-  - Address of the Cross-Chain Transfer Protocol (CCTP) Fund Manager. This contract handles the management of cross-chain transfers.
+  - Address of the Cross-Chain Transfer Protocol (CCTP) Fund Manager. This contract handles the management of cross-chain CCTP transfers.
 - **gasWallet:** `address payable public`
-  - The wallet address designated for receiving and managing Ethereum used to pay for transaction gas costs.
+  - The wallet address designated for receiving and managing ETH used to pay for transaction gas costs.
 
 ### Private Variables
 - **routerAllowList:** `mapping(bytes32 => bool) private`
@@ -79,7 +79,7 @@
 ## Events
 
 ### Swap
-- **Purpose:** Logs details of a cross-chain token swap, including the amounts and addresses involved.
+- **Purpose:** Logs details of a cross-chain token swap, including the amounts and addresses involved. This is used by Ferrum's backend to listen for cross-chain swaps
 - **Parameters:**
   - `sourceToken` (address): The token being swapped from.
   - `targetToken` (address): The token being swapped to.
@@ -89,7 +89,7 @@
   - `sourceAddress` (address): The address providing the source token.
   - `targetAddress` (address): The address receiving the target token.
   - `settledAmount` (uint256): The amount of the target token received.
-  - `withdrawalData` (bytes32): Additional data related to the withdrawal process.
+  - `withdrawalData` (bytes32): Additional data related to the withdrawal process. Used by Ferrum's backend to map source and destination transactions.
   - `gasAmount` (uint256): The amount of gas used for processing the swap.
   - `depositNonce` (uint256): A nonce to ensure the uniqueness of the deposit transaction.
 
@@ -217,7 +217,7 @@
 - **Effects:** Conducts the swap and adjusts token balances accordingly.
 
 #### swapOnSameNetworkETH
-- **Purpose:** Specifically handles swaps involving Ethereum, converting it to another token using a specified router within the same network.
+- **Purpose:** Specifically handles swaps involving ETH, converting it to another token using a specified router within the same network.
 - **Visibility:** External, Payable
 - **Modifiers:** `nonReentrant`
 - **Parameters:**
@@ -227,7 +227,7 @@
   - `router` (address): The router performing the swap.
   - `routerCalldata` (bytes memory): Additional data needed by the router to execute the swap.
 - **Flow:** Converts sent ETH to WETH, performs the swap via the specified router, ensures the output meets the `minAmountOut`, and sends the output tokens to `targetAddress`.
-- **Effects:** Swaps ETH to another token, modifies WETH and the output token's balances.
+- **Effects:** Swaps ETH to another token.
 
 #### swapSigned
 - **Purpose:** Facilitates a signed token swap, optionally involving cross-chain operations based on the CCTP.
@@ -240,11 +240,11 @@
   - `withdrawalData` (bytes32): Additional data required for processing withdrawals if needed.
   - `cctpType` (bool): Indicates if the swap is a CCTP operation.
   - `fd` (FeeDistributionData memory): Data structure containing fee distribution information.
-- **Flow:** Validates all input data, checks token balances, initiates the transfer of the specified amount, handles fee distributions, and if `cctpType` is true, performs a CCTP swap; otherwise, conducts a regular swap.
-- **Effects:** Initiates a token swap with or without cross-chain capabilities depending on `cctpType`.
+- **Flow:** Validates all input data, checks token balances, initiates the transfer of the specified amount, handles fee distributions, and if `cctpType` is true, performs a CCTP swap; otherwise, conducts a regular cross-chain swap.
+- **Effects:** Initiates a cross-chain token swap with or without CCTP, depending on `cctpType`.
 
 #### swapSignedAndCrossRouter
-- **Purpose:** Performs a signed token swap on the same network followed by initiating a setup for a potential cross-chain swap using the CCTP if specified.
+- **Purpose:** Performs a signed token swap on the same network followed by initiating a setup for a cross-chain swap, using CCTP if specified.
 - **Visibility:** External, Payable
 - **Modifiers:** `nonReentrant`
 - **Parameters:**
@@ -258,11 +258,11 @@
   - `withdrawalData` (bytes32): Data related to the withdrawal process.
   - `cctpType` (bool): Flag indicating whether the operation should initiate a CCTP swap.
   - `fd` (FeeDistributionData memory): Details regarding fee distribution for the transaction.
-- **Flow:** Validates the provided parameters for correctness, performs a local swap, adjusts for fees, and sets up cross-chain data if `cctpType` is true.
-- **Effects:** Executes a swap and potentially sets up a cross-chain transfer, modifying the state of involved tokens and fees.
+- **Flow:** Validates the provided parameters for correctness, performs a local swap, adjusts for fees, and sets up a cross-chain swap.
+- **Effects:** Executes a swap and initiates a cross-chain token swap with or without CCTP, depending on `cctpType`.
 
 #### swapSignedAndCrossRouterETH
-- **Purpose:** Facilitates a token swap starting with Ethereum as the input currency, followed by a potential cross-chain transfer setup.
+- **Purpose:** Facilitates a token swap starting with ETH as the input currency, followed by a cross-chain transfer setup.
 - **Visibility:** External, Payable
 - **Modifiers:** `nonReentrant`
 - **Parameters:**
@@ -275,13 +275,13 @@
   - `withdrawalData` (bytes32): Data necessary for withdrawal operations.
   - `cctpType` (bool): Indicates whether the swap includes a cross-chain transfer.
   - `fd` (FeeDistributionData memory): Information on how fees should be distributed in the transaction.
-- **Flow:** Checks parameters, handles Ethereum conversion to WETH, executes the swap, processes fees, and prepares for a cross-chain operation if applicable.
-- **Effects:** Changes the state by performing a swap and optionally setting up for cross-chain transfers.
+- **Flow:** As above, but first converts user's ETH to WETH.
+- **Effects:** As above
 
 ### Withdrawal Functions
 
 #### withdrawSigned
-- **Purpose:** Executes a signed withdrawal of tokens to a specified payee, ensuring all parameters match those signed off by authorized parties.
+- **Purpose:** Executes a signed withdrawal of tokens to a specified payee, ensuring all parameters match those signed off by node infra.
 - **Visibility:** Public, Virtual
 - **Modifiers:** `nonReentrant`
 - **Parameters:**
@@ -296,7 +296,7 @@
 - **Effects:** Reduces the token balance of the contract and increases that of the payee if the transaction is validated successfully.
 
 #### withdrawSignedAndSwapRouter
-- **Purpose:** Executes a signed withdrawal combined with a swap operation through a specified router, allowing for complex transaction patterns including cross-chain transfers if required.
+- **Purpose:** Executes a signed withdrawal combined with a swap operation through a specified router.
 - **Visibility:** Public, Virtual
 - **Modifiers:** `nonReentrant`
 - **Parameters:**
@@ -339,7 +339,7 @@
   - `selector` (bytes memory): The function selector associated with the router.
 - **Returns:** `bool` - Returns true if the router and selector combination is whitelisted, false otherwise.
 - **Flow:** Utilizes the `_getKey` function to generate a unique key for the router and selector combination and checks this against the `routerAllowList` mapping.
-- **Effects:** Purely a read operation; does not modify state.
+- **Effects:** Read operation; does not modify state.
 
 #### _makeRouterCall
 - **Purpose:** Executes a call to a router using provided calldata, handling all interactions necessary for the swap operation.
@@ -348,7 +348,7 @@
   - `router` (address): The address of the router to which the call is made.
   - `data` (bytes memory): The calldata to be passed to the router for the swap.
 - **Flow:** Makes a low-level `call` to the specified router with the provided `data`. If the call fails, it checks if there is return data to provide a specific error message; if no return data is present, a generic "Call to router failed" error is thrown.
-- **Effects:** Directly interacts with external routers, potentially modifying state based on the swap details encoded in the `data`.
+- **Effects:** Directly interacts with external routers, modifying state based on the swap details encoded in the `data`.
 
 #### _getBalance
 - **Purpose:** Retrieves the balance of a specified token for a given account. If querying the native currency, it returns the account's Ether balance.
@@ -359,7 +359,7 @@
   - `account` (address): The account whose balance is being queried.
 - **Returns:** `uint256` - The balance of the token or Ether for the specified account.
 - **Flow:** Checks if the token address matches `NATIVE_CURRENCY` to differentiate between a token balance query and an Ether balance query, using appropriate method calls.
-- **Effects:** Purely a read operation; does not modify state.
+- **Effects:** Read operation; does not modify state.
 
 #### _approveAggregatorRouter
 - **Purpose:** Approves a specified amount of a token for a router to handle, setting up for transactions such as swaps.
@@ -380,12 +380,12 @@
   - `data` (bytes memory): The data typically containing the function selector.
 - **Returns:** `bytes32` - A unique key generated based on the router address and the first four bytes (function selector) of the provided data.
 - **Flow:** Uses inline assembly to efficiently combine the router address and the function selector into a single `bytes32` key, ensuring uniqueness and consistency for whitelist checks.
-- **Effects:** Purely a computation operation; does not interact with state or external contracts.
+- **Effects:** Read operation; does not modify state.
 
 # FeeDistributor Contract Documentation
 
 ## Overview
-`FeeDistributor` is designed to handle the distribution of transaction fees collected from various operations within the MultiSwap ecosystem. This contract ensures that fees are allocated and disbursed accurately to various stakeholders according to predefined rules.
+`FeeDistributor` is designed to handle the distribution of transaction fees collected from all swap types except same network swaps. This contract ensures that fees are allocated and distributed to various stakeholders according to predefined rules.
 
 ## Imports
 The contract imports several OpenZeppelin libraries and contracts for security and functionality enhancement:
@@ -462,7 +462,7 @@ The contract imports several OpenZeppelin libraries and contracts for security a
   - `token` (address): The token in which fees are to be distributed.
   - `preFeeAmount` (uint256): The total token amount before fees are deducted.
   - `fdd` (FeeDistributionData): Data structure containing detailed distribution instructions.
-- **Flow:** Validates the transaction signature and timing, performs the distribution of fees to each recipient, and emits a `FeesDistributed` event.
+- **Flow:** Validates the transaction signature and expiry, performs the distribution of fees to each recipient, and emits a `FeesDistributed` event.
 
 ### _verify
 - **Purpose:** Private function to verify the signature of a fee distribution order.
@@ -471,16 +471,10 @@ The contract imports several OpenZeppelin libraries and contracts for security a
   - `fdd` (FeeDistributionData): The data required for executing the distribution.
 - **Flow:** Verifies the signature against the stored signers, checks the expiry and salt usage to ensure the transaction's validity.
 
-### _encodeFeeAllocations
-- **Purpose:** Encodes fee allocations for hashing and signature verification.
-- **Parameters:**
-  - `feeAllocations` (FeeAllocation[]): The allocations to be encoded.
-- **Flow:** Iterates through each allocation, encoding and hashing the details for use in transaction verification.
-
 # FundManager Contract Documentation
 
 ## Overview
-`FundManager` is a core component of the MultiSwap project, responsible for managing and distributing funds within the ecosystem. It handles various operations related to fund transfers, including liquidity management, cross-network transactions, and ensuring secure processing of transactions through signature verifications.
+`FundManager` is a core component of the MultiSwap project, responsible for managing funds within the ecosystem. It handles various operations related to fund transfers, including liquidity management, cross-network transactions, and ensuring secure processing of transactions through signature verifications. Serves as the liquidity pool for MultiSwap.
 
 ## Constants and State Variables
 - **WEEK:** `uint32 constant`
@@ -607,7 +601,7 @@ The contract imports several OpenZeppelin libraries and contracts for security a
 ## Transaction Functions
 
 ### swapToAddress
-- **Purpose:** Facilitates a token swap by transferring tokens to a specified address on a target network.
+- **Purpose:** Facilitates cross-chain swaps by checking if the target network and token is valid, and emitting `BridgeSwap` event.
 - **Parameters:**
   - `token` (address): The token to be swapped.
   - `amount` (uint256): The amount of the token to be swapped.
@@ -620,7 +614,7 @@ The contract imports several OpenZeppelin libraries and contracts for security a
   - Emits a `BridgeSwap` event logging the details of the swap.
 
 ### withdrawSigned
-- **Purpose:** Allows the withdrawal of tokens based on a verified signature, enhancing security and flexibility in fund management.
+- **Purpose:** Allows the withdrawal of tokens based on a verified signature.
 - **Parameters:**
   - `token` (address): The token to be withdrawn.
   - `payee` (address): The recipient of the tokens.
@@ -637,7 +631,7 @@ The contract imports several OpenZeppelin libraries and contracts for security a
   - Emits a `TransferBySignature` event confirming the transaction.
 
 ### withdrawSignedAndSwapRouter
-- **Purpose:** Allows for a signed withdrawal combined with a swap operation, all validated through a signature.
+- **Purpose:** Allows for a signed withdrawal combined with a swap operation, validated with a signature.
 - **Parameters:**
   - `to` (address): The recipient of the withdrawn tokens.
   - `amountIn` (uint256): The amount of the foundry token to be swapped.
@@ -675,7 +669,7 @@ The contract imports several OpenZeppelin libraries and contracts for security a
   - Emits a `BridgeLiquidityAdded` event after successfully adding liquidity.
 
 ### removeLiquidityIfPossible
-- **Purpose:** Allows liquidity providers to withdraw their tokens if the conditions permit.
+- **Purpose:** Allows liquidity providers to withdraw their tokens if there is enough liquidity.
 - **Parameters:**
   - `token` (address): The token address for which liquidity is being removed.
   - `amount` (uint256): The amount of tokens being removed.
@@ -697,7 +691,7 @@ The contract imports several OpenZeppelin libraries and contracts for security a
 # CCTPFundManager Contract Documentation
 
 ## Overview
-The `CCTPFundManager` contract is integral to the Cross-Chain Transfer Protocol (CCTP) operations within the MultiSwap ecosystem. It manages the coordination and settlement of cross-chain token transfers, ensuring secure and verifiable transactions across different blockchain networks.
+Manages the coordination and settlement of cross-chain token transfers using CCTP.
 
 ## Constants
 - **WEEK:** `uint32 constant`
@@ -793,7 +787,7 @@ The `CCTPFundManager` contract is integral to the Cross-Chain Transfer Protocol 
 - **Flow:**
   - Validates that neither address is the zero address.
   - Sets the `cctpTokenMessenger` and `usdcToken` state variables with the provided addresses.
-- **Impact:** Crucial for setting up the infrastructure required for handling CCTP transactions securely and efficiently.
+- **Impact:** Crucial for setting up the configs required for handling CCTP transactions.
 
 #### setTargetCCTPNetwork
 - **Purpose:** Configures a target network for CCTP, specifying where tokens can be sent and managed.
@@ -804,12 +798,12 @@ The `CCTPFundManager` contract is integral to the Cross-Chain Transfer Protocol 
 - **Flow:**
   - Validates that the network chain ID and domain are not zero, and that the CCTP Fund Manager address is not the zero address.
   - Maps the `_chainID` to a `TargetNetwork` struct containing the domain and fund manager address.
-- **Impact:** Enables the CCTPFundManager to manage tokens across multiple blockchain networks, extending the reach and functionality of the MultiSwap ecosystem for cross-chain operations.
+- **Impact:** Enables MultiSwap to interact with counterpart CCTPFundManager on other chains.
 
 ## Transaction Functions
 
 ### withdrawSigned
-- **Purpose:** Allows the withdrawal of tokens based on a verifiable signature, adding an extra layer of security to fund management.
+- **Purpose:** Allows the withdrawal of tokens based on a verifiable signature.
 - **Parameters:**
   - `token` (address): The ERC-20 token to be withdrawn.
   - `payee` (address): The recipient of the tokens.
@@ -865,7 +859,7 @@ The `CCTPFundManager` contract is integral to the Cross-Chain Transfer Protocol 
 - **Use Case:** This function is particularly useful for front-end applications that need to display transaction details or confirm their validity before execution.
 
 ### swapCCTP
-- **Purpose:** Executes a cross-chain token transfer under the Cross-Chain Transfer Protocol (CCTP).
+- **Purpose:** Executes a cross-chain token transfer usingCCTP.
 - **Parameters:**
   - `amountIn` (uint256): The amount of tokens to transfer.
   - `token` (address): The token address, typically USDC in this contract's configuration.
@@ -877,13 +871,11 @@ The `CCTPFundManager` contract is integral to the Cross-Chain Transfer Protocol 
   - Approves the CCTP token messenger to handle the specified amount of tokens.
   - Initiates the transfer using the CCTP token messenger's `depositForBurn` function, specifying the destination network, recipient, and token details.
   - Returns a deposit nonce generated by the CCTP messenger which acts as a unique identifier for the transaction.
-- **Impact:** 
-  - Facilitates secure, traceable cross-chain token transfers, expanding the utility and operational scope of the MultiSwap ecosystem across different blockchains.
 
 # LiquidityManagerRole Contract Documentation
 
 ## Overview
-The `LiquidityManagerRole` contract is a fundamental component of the MultiSwap ecosystem, designed to handle liquidity management with designated roles. It provides mechanisms to add or remove liquidity under strict role-based permissions, ensuring secure and efficient management of fund liquidity.
+Provides mechanisms to add or remove liquidity under strict role-based permissions, ensuring secure and efficient management of fund liquidity.
 
 ## Import Dependencies
 - **WithAdmin:** Inherits from WithAdmin to utilize administrative role checking.
@@ -967,9 +959,6 @@ The `MultiSwapForge` contract enhances the `FiberRouter` functionalities, focusi
 
 ## Functions
 
-### Constructor
-Initializes the `FiberRouter`.
-
 ### setGasEstimationAddress
 - **Parameters**:
   - `_gasEstimationAddress` (`address`): The address authorized to perform gas estimations. It should not be the zero address to ensure valid functionality.
@@ -988,7 +977,7 @@ Initializes the `FiberRouter`.
   - `cctpType` (`bool`): Boolean flag for transaction type.
 - **Visibility**: `public`
 - **Modifiers**: `override`
-- **Description**: Overrides the original `withdrawSigned` from `FiberRouter` to revert any transactions, indicating that this operation is not supported in this contract.
+- **Description**: Overrides the original `withdrawSigned` from `FiberRouter` to revert any transactions, as this is only used for gas estimation.
 
 ### withdrawSignedForGasEstimation
 - **Parameters**:
@@ -1011,7 +1000,7 @@ Initializes the `FiberRouter`.
   - `cctpType` (`bool`): Boolean flag for transaction type.
 - **Visibility**: `public`
 - **Modifiers**: `override`
-- **Description**: Overrides the original `withdrawSignedAndSwapRouter` from `FiberRouter` to revert any transactions, indicating that this operation is not supported in this contract.
+- **Description**: Overrides the original `withdrawSignedAndSwapRouter` from `FiberRouter` to revert any transactions.
 
 ### withdrawSignedAndSwapRouterForGasEstimation
 - **Parameters**:
@@ -1042,14 +1031,10 @@ The `ForgeFundManager` contract extends the `FundManager` to include specific fu
 - **Visibility**: `internal`
 - **Description**: Provides the functionality to expand the list of authorized signers for fund management, using an internal method to ensure security and integrity.
 
-## Notes
-- **PrivateKey Reference for Developers**:
-  - For development purposes, the private key associated with the test signer is `fc4a1eb6778756a953b188220062d33e3eaabd85099bef1a61da1053ae3d0c63`. It is crucial that this key is used responsibly and only within secure, controlled environments to prevent unauthorized access and ensure the safety of funds.
-
 # ForgeCCTPFundManager Contract Documentation
 
 ## Overview
-The `ForgeCCTPFundManager` contract is a specialized extension of the `CCTPFundManager` designed for simulating the withdrawals to get the gas estimation, specifically geared towards testing and development scenarios involving CCTP (Cross-Chain Trading Protocol) fund management.
+The `ForgeCCTPFundManager` contract is a specialized extension of the `CCTPFundManager` designed for simulating the withdrawals to get the gas estimation for CCTP enabled swaps.
 
 ## Import Dependencies
 - **CCTPFundManager:** Inherits from `CCTPFundManager` to leverage cross-chain fund management functionalities.
@@ -1071,4 +1056,4 @@ The `ForgeCCTPFundManager` contract is a specialized extension of the `CCTPFundM
 
 ## Notes
 - **PrivateKey Reference for Developers**:
-  - The private key for the test signer used in development is `fc4a1eb6778756a953b188220062d33e3eaabd85099bef1a61da1053ae3d0c63`. It is essential that this key is used strictly within test and development environments to prevent any security breaches or unauthorized access to fund management functions.
+  - The private key associated with the forge signer is `fc4a1eb6778756a953b188220062d33e3eaabd85099bef1a61da1053ae3d0c63`. Hardcoding this in the contract is fine, as the *Forge* set of contracts never handle any user funds, and are completely separated from on-chain business logic.
