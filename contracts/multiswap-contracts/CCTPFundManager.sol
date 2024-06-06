@@ -108,7 +108,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
      * @param _targetCCTPFundManager The fund manager address for the target network.
      */
     function setTargetCCTPNetwork(uint256 _chainID, uint32 _targetNetworkDomain, address _targetCCTPFundManager) external onlyOwner {
-        require(_targetNetworkDomain != 0, "FR: Invalid Target Network Domain");
         require(_chainID != 0, "FR: Invalid Target Network ChainID");
         require(_targetCCTPFundManager != address(0), "FR: Invalid Target CCTP Fund Manager address");
 
@@ -287,7 +286,6 @@ contract CCTPFundManager is SigCheckable, WithAdmin {
      */
     function swapCCTP(uint256 amountIn, address token, uint256 targetNetwork) external onlyRouter returns (uint64 depositNonce){
         TargetNetwork memory target = targetNetworks[targetNetwork];
-        require(target.targetNetworkDomain != 0, "FR: Target network not found");
         require(target.targetCCTPFundManager != address(0), "FR: Target CCTP FundManager address not found");
         require(token == usdcToken, "FR: Invalid token");
 

@@ -50,7 +50,7 @@
         },
         "avalanche": {
             "chainId": 43114,
-            "weth": "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
+            "weth": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
             "foundry": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
             "cctp": {
                 "tokenMessenger": "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
