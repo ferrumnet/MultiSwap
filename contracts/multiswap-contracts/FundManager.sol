@@ -3,9 +3,10 @@ pragma solidity ^0.8.24;
 
 import "../common/signature/SigCheckable.sol";
 import "./LiquidityManagerRole.sol";
+import "./StargateComposer.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract FundManager is SigCheckable, LiquidityManagerRole {
+contract FundManager is SigCheckable, LiquidityManagerRole, StargateComposer {
     using SafeERC20 for IERC20;
 
     address public fiberRouter;
@@ -21,6 +22,11 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         keccak256(
             "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 salt,uint256 expiry)"
         );
+    mapping(uint256 => StgTargetNetwork) public stgTargetNetworks;
+    struct StgTargetNetwork {
+        uint32 dstEid;
+        address targetStargateComposer;
+    }
 
     event TransferBySignature(
         address signer,
@@ -165,6 +171,18 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         isFoundryAsset[token] = false;
     }
 
+    /**
+     * @notice Add a new target Stargate network.
+     * @param _chainID The target network chain ID
+     * @param _dstEid The destination ID of the target network.
+     * @param _targetStargateComposer The stargate composer address for the target network.
+     */
+    function setStgTargetNetwork(uint256 _chainID, uint32 _dstEid, address _targetStargateComposer) external onlyOwner {
+        require(_dstEid != 0, "FR: Invalid Target Network dstEid");
+        require(_targetStargateComposer != address(0), "FR: Invalid Target Stargate Composer address");
+
+        stgTargetNetworks[_chainID] = StgTargetNetwork(_dstEid, _targetStargateComposer);
+    }
     /**
      * @dev Initiates an EVM token swap, exclusive to the router
      * @notice Ensure valid parameters and router setup
@@ -514,4 +532,28 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         return liquidities[token][liquidityAdder];
     }
 
+    /**
+     * @notice Initiates a Stargate USDC Cross-Chain Transfer swap.
+     * @dev This function handles the process of approving tokens and initiating a cross-chain token burn and deposit.
+     * @param amountIn The amount of tokens to be swapped.
+     * @param sourceAddress The address initiating the swap
+     * @param targetAddress The receiving address
+     * @param targetNetwork The identifier of the target network for the swap.
+     */
+    function swapStargate(uint256 amountIn, address sourceAddress, address targetAddress, uint256 targetNetwork) external payable onlyRouter {
+            StgTargetNetwork memory stg = stgTargetNetworks[targetNetwork];
+            require(stg.dstEid != 0, "FR: Stargate Destination Eid is required");
+            require(stg.targetStargateComposer != address(0), "FR: Target Stargate Composer address cannot be zero");
+
+            // Encode parameters into composeMsg
+            bytes memory composeMsg = abi.encode(targetAddress, amountIn);
+            // Stargate swap logic
+            this.swapUSDC{value: msg.value}(
+                stg.dstEid,
+                amountIn,
+                stg.targetStargateComposer,
+                composeMsg,
+                sourceAddress
+            );
+    }
 }

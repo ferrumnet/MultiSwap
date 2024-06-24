@@ -243,6 +243,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
      * @param amount The amount to be swapped.
      * @param withdrawalData Data related to the withdrawal.
      * @param cctpType Boolean indicating whether it's a CCTP swap.
+     * @param stgType Boolean indicating whether it's a Stargate swap.
      */
     function swapSigned(
         address token,
@@ -250,9 +251,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         SwapCrossData memory sd,
         bytes32 withdrawalData,
         bool cctpType,
+        bool stgType,
         FeeDistributionData memory fd
     ) external payable nonReentrant {
-        // Validation checks
         require(token != address(0), "FR: Token address cannot be zero");
         require(sd.targetToken != address(0), "FR: Target token address cannot be zero");
         require(sd.targetNetwork != 0, "FR: Target network is required");
@@ -260,6 +261,7 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         require(amount != 0, "FR: Amount must be greater than zero");
         require(withdrawalData != 0, "FR: Withdraw data cannot be empty");
         require(msg.value != 0, "FR: Gas Amount must be greater than zero");
+        require(!(cctpType && stgType), "FR: Only one swap type can be true");
 
         // Transfer tokens to FiberRouter
         amount = SafeAmount.safeTransferFrom(token, _msgSender(), address(this), amount);
@@ -267,14 +269,24 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
         // Distribute the fees
         uint256 amountOut = _distributeFees(token, amount, fd);
 
-        // Perform the token swap based on swapCCTP flag
         uint64 depositNonce;
         if (cctpType) {
-            // Proceed with the CCTP swap logic
+            // CCTP swap logic
             SafeERC20.safeTransfer(IERC20(token), cctpFundManager, amountOut);
             depositNonce = CCTPFundManager(cctpFundManager).swapCCTP(amountOut, token, sd.targetNetwork);
+            // Transfer the gas fee to the gasWallet
+            SafeAmount.safeTransferETH(gasWallet, msg.value);
+        } else if (stgType) {
+            // Stargate swap logic
+            SafeERC20.safeTransfer(IERC20(token), fundManager, amountOut);
+            FundManager(fundManager).swapStargate{value: msg.value}(
+                amountOut,
+                msg.sender,
+                sd.targetAddress,
+                sd.targetNetwork
+            );
         } else {
-            // Proceed with the normal swap logic
+            // Normal swap logic
             SafeERC20.safeTransfer(IERC20(token), fundManager, amountOut);
             FundManager(fundManager).swapToAddress(
                 token,
@@ -282,10 +294,9 @@ contract FiberRouter is Ownable, TokenReceivable, FeeDistributor {
                 sd.targetNetwork,
                 sd.targetAddress
             );
+            // Transfer the gas fee to the gasWallet
+            SafeAmount.safeTransferETH(gasWallet, msg.value);
         }
-
-        // Transfer the gas fee to the gasWallet
-        SafeAmount.safeTransferETH(gasWallet, msg.value);
 
         emit Swap(
             token,

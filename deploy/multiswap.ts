@@ -21,6 +21,12 @@ export const multiswap = async function (
         addresses.networks[network].cctp !== undefined
     );
     const isCctp = cctpNetworks.includes(thisNetwork)
+
+    const stgNetworks = Object.keys(addresses.networks).filter((network) =>
+        addresses.networks[network].stg !== undefined
+    );
+    const isStg = stgNetworks.includes(thisNetwork)
+
     console.log(`Deploying on network: ${thisNetwork}`)
     
     // Deploy FerrumDeployer
@@ -58,12 +64,12 @@ export const multiswap = async function (
         addresses.networks[thisNetwork].deployments.forgeCCTPFundManager = forgeCctpFundManager.target
     }
 
-    const fiberRouterAddress = addresses.networks[thisNetwork].deployments.fiberRouter
-    const fundManagerAddress = addresses.networks[thisNetwork].deployments.fundManager
-    const multiswapForgeAddress = addresses.networks[thisNetwork].deployments.multiSwapForge
-    const forgeFundManagerAddress = addresses.networks[thisNetwork].deployments.forgeFundManager
-    const cctpFundManagerAddress = addresses.networks[thisNetwork].deployments.cctpFundManager
-    const forgeCctpFundManagerAddress = addresses.networks[thisNetwork].deployments.forgeCCTPFundManager
+    // const fiberRouterAddress = addresses.networks[thisNetwork].deployments.fiberRouter
+    // const fundManagerAddress = addresses.networks[thisNetwork].deployments.fundManager
+    // const multiswapForgeAddress = addresses.networks[thisNetwork].deployments.multiSwapForge
+    // const forgeFundManagerAddress = addresses.networks[thisNetwork].deployments.forgeFundManager
+    // const cctpFundManagerAddress = addresses.networks[thisNetwork].deployments.cctpFundManager
+    // const forgeCctpFundManagerAddress = addresses.networks[thisNetwork].deployments.forgeCCTPFundManager
 
     // const fiberRouter = new hre.ethers.Contract(fiberRouterAddress, fiberRouterArtifact.abi, signer[0])
     // const fundManager = new hre.ethers.Contract(fundManagerAddress, fundManagerArtifact.abi, signer[0])
@@ -71,8 +77,6 @@ export const multiswap = async function (
     // const forgeManager = new hre.ethers.Contract(forgeFundManagerAddress, forgeFundManagerArtifact.abi, signer[0])
     // const cctpFundManager = new hre.ethers.Contract(cctpFundManagerAddress, cctpFundManagerArtifact.abi, signer[0])
     // const forgeCctpFundManager = new hre.ethers.Contract(forgeCctpFundManagerAddress, forgeCctpFundManagerArtifact.abi, signer[0])
-
-
 
     const filePath = path.join(__dirname, '../constants/addresses.json');
     writeJsonToFile(filePath, addresses);
@@ -87,12 +91,16 @@ export const multiswap = async function (
     await sendTx(fiberRouter.setGasWallet(addresses.gasWallet), "setGasWallet successful")
     
     console.log("\n##### FundManager configs #####")
-    await sendTx(fundManager.setRouter(fiberRouter), "setRouter successful")
+    await sendTx(fundManager.setRouter(addresses.networks[thisNetwork].deployments.fiberRouter), "setRouter successful")
     await sendTx(fundManager.addFoundryAsset(foundry), "addFoundryAsset successful")
     await sendTx(fundManager.addSigner(addresses.signer), "setSignerWallet successful")
     await sendTx(fundManager.setLiquidityManagers(addresses.liquidityManager, addresses.liquidityManagerBot), "setLiquidityManagers successful")
     await sendTx(fundManager.setWithdrawalAddress(addresses.withdrawal), "setWithdrawalAddress successful")
     await sendTx(fundManager.setSettlementManager(addresses.settlementManager), "setSettlementManager successful")
+    if (isStg) {
+        await sendTx(fundManager.initConfig(addresses.networks[thisNetwork].stg.stgUSDCPool, foundry, addresses.networks[thisNetwork].stg.stgEndpoint), "initConfig successful")
+    }
+    await sendTx(fundManager.setBounds(addresses.bounds), "setBounds successful")
 
     console.log("\n##### MultiSwapForge configs #####")
     await sendTx(multiswapForge.setWeth(weth), "setWeth successful")
@@ -116,19 +124,42 @@ export const multiswap = async function (
 
     // Allow targets for other networks
     console.log("\n##### Allowing targets to other networks #####")
-    let otherNetworks = Object.keys(addresses.networks).filter((network) =>
+    let otherNetworksX = Object.keys(addresses.networks).filter((network) =>
         network !== thisNetwork &&
         network !== "hardhat" &&
         network !== "localhost"
     );
     
-    for (const otherNetwork of otherNetworks) {
+    for (const otherNetwork of otherNetworksX) {
         await sendTx(fundManager.allowTarget(
             foundry,
             addresses.networks[otherNetwork].chainId,
             addresses.networks[otherNetwork].foundry),
             `allowTarget to chainId ${addresses.networks[otherNetwork].chainId} successful`
         );
+    }
+
+    // Allow stargate for other networks
+    console.log("\n##### Allowing stgTargetNetworks to other networks #####")
+    let otherNetworksStg = Object.keys(addresses.networks).filter((network) =>
+        network !== thisNetwork &&
+        network !== "hardhat" &&
+        network !== "localhost"
+    );
+        
+    for (const otherNetwork of otherNetworksStg) {
+        const stgNetworks = Object.keys(addresses.networks).filter((otherNetwork) =>
+            addresses.networks[otherNetwork].stg !== undefined
+        );
+        const isStg = stgNetworks.includes(otherNetwork)
+        if (isStg) {     
+            await sendTx(fundManager.setStgTargetNetwork(
+                addresses.networks[otherNetwork].chainId,
+                addresses.networks[otherNetwork].stg.stgEndpointID,
+                addresses.networks[otherNetwork].deployments.fundManager),
+                `StargateTargetNetwork for chainId ${otherNetwork} successful`
+            );
+        }
     }
 
     // CCTP Setup
