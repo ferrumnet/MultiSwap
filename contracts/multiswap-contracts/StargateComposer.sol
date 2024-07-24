@@ -16,9 +16,8 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
     IStargate public stargate; // stargate usdc pool contract
     IERC20 public usdc; // usdc contract address
     address public endpoint; // endpoint contract of layer zero
-    uint256 public bounds;
 
-    event ReceivedMessage(uint256 amount, bytes someMessage);
+    event ReceivedMessage(uint256 amount, uint256 amountOut, bytes someMessage);
 
     function initConfig(address _stargate, address _usdc, address _endpoint) external onlyOwner {
         require(_stargate != address(0), "Stargate pool address cannot be zero");
@@ -29,9 +28,9 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
         endpoint = _endpoint;
     }
 
-    function setBounds(uint256 _bounds) external onlyOwner {
-        require(_bounds >= 0, "The amount bounds shouldn't be a non-zero value");
-        bounds = _bounds;
+    function setEndpoint(address _endpoint) external onlyOwner {
+        require(_endpoint != address(0), "Stargate endpoint address cannot be zero");
+        endpoint = _endpoint;
     }
 
     function lzCompose(
@@ -47,21 +46,12 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         bytes memory _composeMessage = OFTComposeMsgCodec.composeMsg(_message);
 
-        // Decode the _composeMessage to get the function selector and parameters
-        (address payee, uint256 amount) = abi.decode(_composeMessage, (address, uint256));
-
-        // Calculate the lower and upper bounds for amountLD
-        uint256 lowerBound = (amount * (1000 - bounds)) / 1000;
-        uint256 upperBound = (amount * (1000 + bounds)) / 1000;
-        
-        // Check if amountLD falls within the bounds
-        require(amountLD >= lowerBound && amountLD <= upperBound, "AmountLD is outside acceptable bounds");
+        // Decode the _composeMessage to get the receiver address
+        address payee = abi.decode(_composeMessage, (address));
 
         // Call the withdrawUSDC function on this contract
         uint256 withdrawnAmount = withdrawUSDC(payee, amountLD);
-        require(withdrawnAmount == amountLD, "Failed to withdraw the expected amount");
-
-        emit ReceivedMessage(amountLD, _composeMessage);
+        emit ReceivedMessage(amountLD, withdrawnAmount, _composeMessage);
     }
 
     function withdrawUSDC(
@@ -86,7 +76,6 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
         (valueToSend, sendParam, messagingFee) = prepareTakeTaxi(_dstEid, _amount, _composer, _composeMsg);
 
         usdc.approve(address(stargate), _amount);
-
         stargate.sendToken{ value: valueToSend }(sendParam, messagingFee, _sourceAddress);
     }
     
@@ -96,10 +85,7 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
         address _composer,
         bytes memory _composeMsg
     ) public view returns (uint256 valueToSend, SendParam memory sendParam, MessagingFee memory messagingFee) {
-        bytes memory extraOptions = _composeMsg.length > 0
-            ? OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 200_000, 0) // compose gas limit
-            : bytes("");
-
+        bytes memory extraOptions = OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 200_000, 0); // compose gas limit
         sendParam = SendParam({
             dstEid: _dstEid,
             to: addressToBytes32(_composer),

@@ -546,7 +546,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole, StargateComposer {
             require(stg.targetStargateComposer != address(0), "FR: Target Stargate Composer address cannot be zero");
 
             // Encode parameters into composeMsg
-            bytes memory composeMsg = abi.encode(targetAddress, amountIn);
+            bytes memory composeMsg = abi.encode(targetAddress);
             // Stargate swap logic
             this.swapUSDC{value: msg.value}(
                 stg.dstEid,
