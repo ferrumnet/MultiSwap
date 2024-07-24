@@ -100,7 +100,6 @@ export const multiswap = async function (
     if (isStg) {
         await sendTx(fundManager.initConfig(addresses.networks[thisNetwork].stg.stgUSDCPool, foundry, addresses.networks[thisNetwork].stg.stgEndpoint), "initConfig successful")
     }
-    await sendTx(fundManager.setBounds(addresses.bounds), "setBounds successful")
 
     console.log("\n##### MultiSwapForge configs #####")
     await sendTx(multiswapForge.setWeth(weth), "setWeth successful")

@@ -8,6 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ILayerZeroComposer } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroComposer.sol";
 import { OFTComposeMsgCodec } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oft/libs/OFTComposeMsgCodec.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "../common/SafeAmount.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 abstract contract StargateComposer is Ownable, ILayerZeroComposer {
@@ -74,6 +75,14 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
         MessagingFee memory messagingFee;
 
         (valueToSend, sendParam, messagingFee) = prepareTakeTaxi(_dstEid, _amount, _composer, _composeMsg);
+
+        require(msg.value >= valueToSend, "Insufficient gas sent with the transaction");
+
+        if(msg.value > valueToSend) {
+            uint256 gas = msg.value - valueToSend;
+            // Transfer the remaining gas fee to the user wallet
+            SafeAmount.safeTransferETH(_sourceAddress, gas);
+        }
 
         usdc.approve(address(stargate), _amount);
         stargate.sendToken{ value: valueToSend }(sendParam, messagingFee, _sourceAddress);
