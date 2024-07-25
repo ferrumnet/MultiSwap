@@ -9,7 +9,7 @@ import { id } from "ethers";
 import { sendTx, getSourceSignature } from "./helpers";
 
 const main = async () => {
-    const otherNetwork = "optimism";
+    const otherNetwork = "avalanche";
 
     const thisNetwork = hre.network.name;
     const signer = await hre.ethers.provider.getSigner();
@@ -37,7 +37,7 @@ const main = async () => {
         signer
     );
 
-    const amountIn = 1000000; // 1 USDC
+    const amountIn = 2000000; // 1 USDC
     await sendTx(foundry.approve(fiberRouter, BigInt(amountIn)), "Approve successful")
 
     const salt = hexlify(randomBytes(32));
@@ -75,12 +75,8 @@ const main = async () => {
     // Convert targetAddress to buffer (remove "0x" prefix)
     const targetAddressBuffer = Buffer.from(targetAddress.slice(2), 'hex');
 
-    // Convert amountIn to 32-byte buffer (uint256 format)
-    const amountInBuffer = Buffer.alloc(32);
-    amountInBuffer.writeBigInt64BE(BigInt(amountIn), 0);
-
     // Concatenate buffers to get the encoded data
-    const encodedData = Buffer.concat([targetAddressBuffer, amountInBuffer]);
+    const encodedData = Buffer.concat([targetAddressBuffer]);
 
     // Convert encoded data to hexadecimal string
     const composeMsg = '0x' + encodedData.toString('hex');
@@ -88,7 +84,9 @@ const main = async () => {
     console.log(composeMsg); // Outputs the hexadecimal representation
 
     const gasFee = await prepareTakeTaxi(fundManager, destinationEid, amountIn, composerAddress, composeMsg);
-
+    let gasValue = BigInt(gasFee);
+    const gasFeeWithBuffer = (gasValue * 105n / 100n).toString();
+    console.log("gas fee: ", gasFeeWithBuffer);
     await sendTx(
         fiberRouter.swapSigned(
             foundryAddress,
@@ -105,7 +103,7 @@ const main = async () => {
                 ...feeDistributionData,
                 signature
             },
-            { value: gasFee }
+            { value: gasFeeWithBuffer }
         ), "Swap successful"
     );
 }

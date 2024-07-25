@@ -548,7 +548,7 @@ contract FundManager is SigCheckable, LiquidityManagerRole, StargateComposer {
             // Encode parameters into composeMsg
             bytes memory composeMsg = abi.encode(targetAddress);
             // Stargate swap logic
-            this.swapUSDC{value: msg.value}(
+            swapUSDC(
                 stg.dstEid,
                 amountIn,
                 stg.targetStargateComposer,
