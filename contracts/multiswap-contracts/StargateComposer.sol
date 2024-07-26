@@ -45,7 +45,8 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
     }
 
     /**
-     @dev Composes a LayerZero message
+     @dev Composes a LayerZero message to utilise the funds received from Stargate,
+          decode the payee address and to send the tokens to payee. 
      @param _from The sender's address
      @param _guid The unique identifier for the message
      @param _message The message to be sent
@@ -62,9 +63,10 @@ abstract contract StargateComposer is Ownable, ILayerZeroComposer {
         require(_from == address(stargate), "!stargate");
         require(msg.sender == endpoint, "!endpoint");
 
+        // Receives the amountLD, amount of tokens swapped in
         uint256 amountLD = OFTComposeMsgCodec.amountLD(_message);
         bytes memory _composeMessage = OFTComposeMsgCodec.composeMsg(_message);
-
+        
         // Decode the _composeMessage to get the receiver address
         address payee = abi.decode(_composeMessage, (address));
 

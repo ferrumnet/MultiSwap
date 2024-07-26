@@ -138,29 +138,6 @@ export const multiswap = async function (
         );
     }
 
-    // Allow stargate for other networks
-    console.log("\n##### Allowing stgTargetNetworks to other networks #####")
-    let otherNetworksStg = Object.keys(addresses.networks).filter((network) =>
-        network !== thisNetwork &&
-        network !== "hardhat" &&
-        network !== "localhost"
-    );
-        
-    for (const otherNetwork of otherNetworksStg) {
-        const stgNetworks = Object.keys(addresses.networks).filter((otherNetwork) =>
-            addresses.networks[otherNetwork].stg !== undefined
-        );
-        const isStg = stgNetworks.includes(otherNetwork)
-        if (isStg) {     
-            await sendTx(fundManager.setStgTargetNetwork(
-                addresses.networks[otherNetwork].chainId,
-                addresses.networks[otherNetwork].stg.stgEndpointID,
-                addresses.networks[otherNetwork].deployments.fundManager),
-                `StargateTargetNetwork for chainId ${otherNetwork} successful`
-            );
-        }
-    }
-
     // CCTP Setup
     if (isCctp) {
         console.log("\n##### CCTPFundManager configs #####")
