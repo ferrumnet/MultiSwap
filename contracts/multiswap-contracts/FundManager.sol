@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+pragma solidity ^0.8.24;
 
 import "../common/signature/SigCheckable.sol";
-import "foundry-contracts/contracts/common/FerrumDeployer.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./LiquidityManagerRole.sol";
+import "./StargateComposer.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract FundManager is SigCheckable, LiquidityManagerRole {
+contract FundManager is SigCheckable, LiquidityManagerRole, StargateComposer {
     using SafeERC20 for IERC20;
 
     address public fiberRouter;
@@ -20,8 +20,13 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         );
     bytes32 constant WITHDRAW_SIGNED_WITH_SWAP_METHOD =
         keccak256(
-            "WithdrawSignedWithSwap(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 routerCalldata,bytes32 salt,uint256 expiry)"
+            "withdrawSignedAndSwapRouter(address to,uint256 amountIn,uint256 minAmountOut,address foundryToken,address targetToken,address router,bytes32 salt,uint256 expiry)"
         );
+    mapping(uint256 => StgTargetNetwork) public stgTargetNetworks;
+    struct StgTargetNetwork {
+        uint32 dstEid;
+        address targetStargateComposer;
+    }
 
     event TransferBySignature(
         address signer,
@@ -167,6 +172,18 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
     }
 
     /**
+     * @notice Add a new target Stargate network.
+     * @param _chainID The target network chain ID
+     * @param _dstEid The destination ID of the target network.
+     * @param _targetStargateComposer The stargate composer address for the target network.
+     */
+    function setStgTargetNetwork(uint256 _chainID, uint32 _dstEid, address _targetStargateComposer) external onlyOwner {
+        require(_dstEid != 0, "FR: Invalid Target Network dstEid");
+        require(_targetStargateComposer != address(0), "FR: Invalid Target Stargate Composer address");
+
+        stgTargetNetworks[_chainID] = StgTargetNetwork(_dstEid, _targetStargateComposer);
+    }
+    /**
      * @dev Initiates an EVM token swap, exclusive to the router
      * @notice Ensure valid parameters and router setup
      * @param token The address of the token to be swapped
@@ -243,20 +260,18 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
      * @param router The router address
-     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
      * @return The actual amount of tokens withdrawn from Foundry
      */
-    function withdrawSignedWithSwap(
+    function withdrawSignedAndSwapRouter(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -279,7 +294,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -318,6 +332,10 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         return (digest, _signer);
     }
 
+    function withdrawRouter(address token, uint256 amount, address recipient) external onlyRouter {
+        IERC20(token).transfer(recipient, amount);
+    }
+
     /**
      * @dev Verifies details of a signed token swap withdrawal without execution
      * @param to Recipient address on the target network
@@ -326,20 +344,18 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param foundryToken Token withdrawn from Foundry
      * @param targetToken Token on the target network
      * @param router The router address
-     * @param routerCalldata The data containing information for the 1inch swap
      * @param salt Unique identifier to prevent replay attacks
      * @param expiry Expiration timestamp of the withdrawal signature
      * @param signature Cryptographic signature for verification
      * @return Digest and signer's address from the provided signature
      */
-    function withdrawSignedWithSwapVerify(
+    function withdrawSignedAndSwapRouterVerify(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes calldata signature
@@ -353,7 +369,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -406,19 +421,17 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
      * @param foundryToken The token used in the Foundry
      * @param targetToken The target token for the swap
      * @param router The router address
-     * @param routerCalldata The calldata to the router
      * @param salt The salt value for the signature
      * @param expiry The expiration time for the signature
      * @param signature The multi-signature data
      */
-    function cancelFailedWithdrawSignedWithSwap(
+    function cancelFailedwithdrawSignedAndSwapRouter(
         address to,
         uint256 amountIn,
         uint256 minAmountOut,
         address foundryToken,
         address targetToken,
         address router,
-        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
         bytes memory signature
@@ -441,7 +454,6 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
                     foundryToken,
                     targetToken,
                     router,
-                    keccak256(routerCalldata),
                     salt,
                     expiry
                 )
@@ -520,4 +532,28 @@ contract FundManager is SigCheckable, LiquidityManagerRole {
         return liquidities[token][liquidityAdder];
     }
 
+    /**
+     * @notice Initiates a Stargate USDC Cross-Chain Transfer swap.
+     * @dev This function handles the process of approving tokens and initiating a cross-chain token burn and deposit.
+     * @param amountIn The amount of tokens to be swapped.
+     * @param sourceAddress The address initiating the swap
+     * @param targetAddress The receiving address
+     * @param targetNetwork The identifier of the target network for the swap.
+     */
+    function swapStargate(uint256 amountIn, address sourceAddress, address targetAddress, uint256 targetNetwork) external payable onlyRouter {
+            StgTargetNetwork memory stg = stgTargetNetworks[targetNetwork];
+            require(stg.dstEid != 0, "FR: Stargate Destination Eid is required");
+            require(stg.targetStargateComposer != address(0), "FR: Target Stargate Composer address cannot be zero");
+
+            // Encode parameters into composeMsg
+            bytes memory composeMsg = abi.encode(targetAddress);
+            // Stargate swap logic
+            swapUSDC(
+                stg.dstEid,
+                amountIn,
+                stg.targetStargateComposer,
+                composeMsg,
+                sourceAddress
+            );
+    }
 }

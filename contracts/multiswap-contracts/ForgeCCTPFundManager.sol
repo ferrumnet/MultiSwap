@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./FundManager.sol";
+import "./CCTPFundManager.sol";
 
-contract ForgeFundManager is FundManager {
+contract ForgeCCTPFundManager is CCTPFundManager {
 
   /**
      * @dev Constructor that sets the Test Signer address for ForgeFundManager
