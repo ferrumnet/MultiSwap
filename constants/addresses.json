@@ -1,0 +1,399 @@
+{
+    "signer": "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B",
+    "liquidityManager": "0x5dAC22dB4dEaCfab7e9A0A1425f25D6B18e9839C",
+    "liquidityManagerBot": "0x9B7C800DCca6273CB6DDb861764cFB95BDAb15cc",
+    "withdrawal": "0x1370172Ed69Ec231cDB8E59d928D42824094c0C6",
+    "settlementManager": "0x5912cE9327C2F8BE2Ffce1e8E521F6a65A870a19",
+    "gasWallet": "0xBFBFE0e25835625efa98161e3286Ca1290057E1a",
+    "gasEstimationWallet": "0xF81f80C04C421F98c06232D2DF7E2aC8790bb19B",
+    "feeWallet": "0xBFBFE0e25835625efa98161e3286Ca1290057E1a",
+    "platformFee": 1,
+    "bounds": 1,
+    "networks": {
+        "arbitrum": {
+            "chainId": 42161,
+            "weth": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+            "foundry": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+            "deployments": {
+                "fiberRouter": "0xE16243Ac1C34509F09DAE2756b152043a2B7Ffb5",
+                "fundManager": "0xa114b22f1373b461242a953f513289C526F46F9D",
+                "cctpFundManager": "0x2779F1fBe5d45dC73db81A25F40D356cD2cf64B5",
+                "multiSwapForge": "0x68b6DE868A9b5C16a09673689A7550782C9fcD21",
+                "forgeFundManager": "0x0f78c4D24Df3682338646833A358749986b3Ee10",
+                "forgeCCTPFundManager": "0xbEbCa053A81E333593e1ee7Ded61cE0Ea1d482ee"
+            },
+            "cctp": {
+                "tokenMessenger": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+                "domain": 3
+            },
+            "stg": {
+                "stgUSDCPool": "0xe8CDF27AcD73a434D661C84887215F7598e7d0d3",
+                "stgEndpointID": 30110,
+                "stgEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
+                    "selectors": [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "ethereum": {
+            "chainId": 1,
+            "weth": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "foundry": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "deployments": {
+                "fiberRouter": "0x62237524Eb3a8971453DFbc26849BF58C832DBe9",
+                "fundManager": "0x47Bee1648Eb4B375E27038314738455419B3766b",
+                "multiSwapForge": "0x7aCeB18DB714424678a711a31432ec47A053820D",
+                "forgeFundManager": "0x70806c9229d67CFf0B879B9c441Afe1eA6F7Fe7e",
+                "cctpFundManager": "0xD60cf5614671B01C3f80959E4FACD788598FD564",
+                "forgeCCTPFundManager": "0xd860D4Feed23f5Cd6ec4D3f76C7A47ED1c27102C"
+            },
+            "cctp": {
+                "tokenMessenger": "0xbd3fa81b58ba92a82136038b25adec7066af3155",
+                "domain": 0
+            },
+            "stg": {
+                "stgUSDCPool": "0xc026395860Db2d07ee33e05fE50ed7bD583189C7",
+                "stgEndpointID": 30101,
+                "stgEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
+                    "selectors": [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "base": {
+            "chainId": 8453,
+            "weth": "0x4200000000000000000000000000000000000006",
+            "foundry": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "deployments": {
+                "fiberRouter": "0x877BA251159a8128741eE0cE9E1951E96Ec10477",
+                "fundManager": "0xdE3a9704bb91117c040b23c03beb11124FD22882",
+                "cctpFundManager": "0x5729c1d7E75Dad6B44e10965e063A3a006cC5c5a",
+                "multiSwapForge": "0x39ECFFdB221Fc4c35c6862999163a463C735Fa8f",
+                "forgeFundManager": "0x7d8E166c13B3bCF4230C99F9cB0924Ac64517823",
+                "forgeCCTPFundManager": "0x8cc948a766cccdE2F4427E0c9913824C37614fA6"
+            },
+            "cctp": {
+                "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+                "domain": 6
+            },
+            "stg": {
+                "stgUSDCPool": "0x27a16dc786820B16E5c9028b75B99F6f604b5d26",
+                "stgEndpointID": 30184,
+                "stgEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421cA6dc452d289314280a0f8842A65",
+                    "selectors": [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "binance": {
+            "chainId": 56,
+            "weth": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+            "foundry": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+            "deployments": {
+                "fiberRouter": "0x30Bf6F2Ed9a7b060c777cE8FEf07cF5993525CF0",
+                "fundManager": "0x033Af723ce4D799FBeD58a4a53754efaA4b0Fdae",
+                "multiSwapForge": "0x9AebD5E279ec9eB1D159f3Cb3A60931Ed80B387E",
+                "forgeFundManager": "0x80D2281F0BE4Cb582548B2548FC0F66ba85d87B1"
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
+                    "selectors": [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "avalanche": {
+            "chainId": 43114,
+            "weth": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+            "foundry": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+            "deployments": {
+                "fiberRouter": "0x0C9B78385a536676Baa35B26DDB03b242a65A0b9",
+                "fundManager": "0x994E96acE3De7E97ADC09707427289Ef21e08139",
+                "cctpFundManager": "0xCfb1330Dc5F3D86686d3884a35ceE8954F8277C0",
+                "multiSwapForge": "0xa599aaBf8f0255B9561f2458D4a7554506f2AadD",
+                "forgeFundManager": "0x3B293cBFaE8AeD9754f29e1fF74c571b9334c863",
+                "forgeCCTPFundManager": "0x803002228a488c1A6ba778EABAadEed43b8a01F0"
+            },
+            "cctp": {
+                "tokenMessenger": "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
+                "domain": 1
+            },
+            "stg": {
+                "stgUSDCPool": "0x5634c4a5FEd09819E3c46D86A965Dd9447d86e47",
+                "stgEndpointID": 30106,
+                "stgEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
+                    "selectors": [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "optimism": {
+            "chainId": 10,
+            "weth": "0x4200000000000000000000000000000000000006",
+            "foundry": "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
+            "deployments": {
+                "fiberRouter": "0x82bc75FbD47390891b7A3e745a75b49bB97F1791",
+                "fundManager": "0xbAaeC2f0c288319799cEDC5a301C4acaF809A322",
+                "cctpFundManager": "0x49BEB114833EC627326B3Db24a7E5992B0e9f04D",
+                "multiSwapForge": "0xa69e9752e06D3f3a65864f0e7ebe58A0124D0EEC",
+                "forgeFundManager": "0x2f80D81c0C4E3bf945d2b2325f1b6Ae755F0A64B",
+                "forgeCCTPFundManager": "0x451020Bc552190560ED363A62AF8AD9a095E58Fd"
+            },
+            "cctp": {
+                "tokenMessenger": "0x2B4069517957735bE00ceE0fadAE88a26365528f",
+                "domain": 2
+            },
+            "stg": {
+                "stgUSDCPool": "0xcE8CcA271Ebc0533920C83d39F417ED6A0abB7D0",
+                "stgEndpointID": 30111,
+                "stgEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+            },
+            "routers": [
+                {
+                    "router": "0x111111125421ca6dc452d289314280a0f8842a65",
+                    "selectors": [
+                        "0xd2d374e5",
+                        "0xc4d652af",
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "scroll": {
+            "chainId": 534352,
+            "weth": "0x5300000000000000000000000000000000000004",
+            "foundry": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+            "deployments": {
+                "fiberRouter": "0x90b4C9Cc6AAf15be692d20D409A86bd32897D9b1",
+                "fundManager": "0xC7b23d5Da44f3d421aD27863788bEdcce4b34B0d",
+                "multiSwapForge": "0x7bD02622F39E458D5d5eaAD51C304Cac064ACFf4",
+                "forgeFundManager": "0x4118Bd3F2c14C5F17578945C59436ECda57BaADa"
+            },
+            "stg": {
+                "stgUSDCPool": "0x3Fc69CC4A842838bCDC9499178740226062b14E4",
+                "stgEndpointID": 30214,
+                "stgEndpoint": "0x1a44076050125825900e736c501f859c50fE728c"
+            },
+            "routers": [
+                {
+                    "router": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+                    "selectors": [
+                        "0xe21fd0e9",
+                        "0x59e50fed",
+                        "0x8af033fb"
+                    ]
+                }
+            ]
+        },
+        "zksync": {
+            "chainId": 324,
+            "weth": "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91",
+            "foundry": "0x1d17CBcF0D6D143135aE902365D2E5e2A16538D4",
+            "deployments": {
+                "fiberRouter": "0x450d68a4Be9470296810162a09BB658D6948600b",
+                "fundManager": "0x9524aA7870CE93b73AFc31a7D3Bf9808513Dd25f",
+                "multiSwapForge": "0xd1b95DCB8Bce1A4d4c7dDCFA2987F78fB388Ac97",
+                "forgeFundManager": "0x765dD132DA12FF7Eb27251cDA26C51f06E103cDa"
+            },
+            "routers": [
+                {
+                    "router": "0x6fd4383cB451173D5f9304F041C7BCBf27d561fF",
+                    "selectors": [
+                        "0xa76dfc3b",
+                        "0x89af926a",
+                        "0x188ac35d",
+                        "0x175accdc",
+                        "0x0f449d71",
+                        "0x493189f0",
+                        "0xcc713a04",
+                        "0x56a75868",
+                        "0x9fda64bd",
+                        "0xf497df75",
+                        "0x07ed2379",
+                        "0x83800a8e",
+                        "0x8770ba91",
+                        "0x19367472",
+                        "0xe2c95c82",
+                        "0xea76dddf",
+                        "0xf7a70056"
+                    ]
+                }
+            ]
+        },
+        "localhost": {
+            "chainId": 11155111,
+            "weth": "0x5300000000000000000000000000000000000004",
+            "foundry": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+            "deployments": {},
+            "cctp": {
+                "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+                "domain": 6
+            },
+            "routers": [
+                {
+                    "router": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+                    "selectors": [
+                        "0xe21fd0e9",
+                        "0x59e50fed",
+                        "0x8af033fb"
+                    ]
+                }
+            ]
+        },
+        "hardhat": {
+            "chainId": 11155111,
+            "weth": "0x5300000000000000000000000000000000000004",
+            "foundry": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+            "deployments": {
+                "fiberRouter": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+                "fundManager": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+                "multiSwapForge": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+                "forgeFundManager": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+                "cctpFundManager": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+                "forgeCCTPFundManager": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+            },
+            "cctp": {
+                "tokenMessenger": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+                "domain": 6
+            },
+            "routers": [
+                {
+                    "router": "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
+                    "selectors": [
+                        "0xe21fd0e9",
+                        "0x59e50fed",
+                        "0x8af033fb"
+                    ]
+                }
+            ]
+        }
+    }
+}

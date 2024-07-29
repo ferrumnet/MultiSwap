@@ -1,12 +1,25 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.2;
+pragma solidity ^0.8.24;
 
 import "./FiberRouter.sol";
 
 contract MultiSwapForge is FiberRouter {
-    constructor() 
-        FiberRouter() {
-     }
+    
+    address public gasEstimationAddress;
+
+    constructor() {}
+
+    /**
+     @dev Sets address authorized to execute gas estimations
+     @param _gasEstimationAddress The gas estimation wallet
+     */
+    function setGasEstimationAddress(address _gasEstimationAddress) external onlyOwner {
+        require(
+            _gasEstimationAddress != address(0),
+            "Gas Estimation address cannot be zero"
+        );
+        gasEstimationAddress = _gasEstimationAddress;
+    }
 
     // Override and revert the 'withdrawSigned' function
     function withdrawSigned(
@@ -15,7 +28,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public override {
         revert("Not Supported");
     }
@@ -26,7 +40,8 @@ contract MultiSwapForge is FiberRouter {
         uint256 amount,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) external {
         super.withdrawSigned(
             token,
@@ -34,109 +49,60 @@ contract MultiSwapForge is FiberRouter {
             amount,
             salt,
             expiry,
-            multiSignature
-        );
-        revert("Not Supported");
-    }
-
-    // Function that returns the gas estimation from backend using estimateGas()
-    function estimateGasForWithdrawSigned(
-        address token,
-        address payee,
-        uint256 amount,
-        bytes32 salt,
-        uint256 expiry,
-        bytes memory multiSignature
-    ) external {
-        // Use this.withdrawSigned.selector to get the selector directly
-        bytes4 selector = this.withdrawSignedForGasEstimation.selector;
-        bytes memory data = abi.encodeWithSelector(
-            selector,
-            token,
-            payee,
-            amount,
-            salt,
-            expiry,
-            multiSignature
+            multiSignature,
+            cctpType
         );
 
-        (bool success, ) =   address(this).call(data);
-
-        require(success == false);
+        require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
     }
 
-    // Override and revert the 'withdrawSignedAndSwapOneInch' function
-    function withdrawSignedAndSwapOneInch(
+    // Override and revert the 'withdrawSignedAndSwapRouter function
+    function withdrawSignedAndSwapRouter(
         address payable to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) public override {
        revert("Not Supported");
     }
 
     // This function is only used specifically for GasEstimation & Simulation of withdrawSignedAndSwapOneInch
-    function withdrawSignedAndSwapOneInchForGasEstimation(
+    function withdrawSignedAndSwapRouterForGasEstimation(
         address payable to,
         uint256 amountIn,
-        uint256 amountOut,
+        uint256 minAmountOut,
         address foundryToken,
         address targetToken,
-        bytes memory oneInchData,
+        address router,
+        bytes memory routerCalldata,
         bytes32 salt,
         uint256 expiry,
-        bytes memory multiSignature
+        bytes memory multiSignature,
+        bool cctpType
     ) external {
         // Call the original function from FiberRouter
-        super.withdrawSignedAndSwapOneInch(
+        super.withdrawSignedAndSwapRouter(
             to,
             amountIn,
-            amountOut,
+            minAmountOut,
             foundryToken,
             targetToken,
-            oneInchData,
+            router,
+            routerCalldata,
             salt,
             expiry,
-            multiSignature
-        );
-        revert("Not Supported");
-    }
-
-    // Function that returns the gas estimation from backend using estimateGas()
-    function estimateGasForWithdrawSignedAndSwapOneInch(
-        address payable to,
-        uint256 amountIn,
-        uint256 amountOut,
-        address foundryToken,
-        address targetToken,
-        bytes memory oneInchData,
-        bytes32 salt,
-        uint256 expiry,
-        bytes memory multiSignature
-    ) external {
-        // Use this.withdrawSigned.selector to get the selector directly
-        bytes4 selector = this.withdrawSignedAndSwapOneInchForGasEstimation.selector;
-
-        bytes memory data = abi.encodeWithSelector(
-            selector,
-            to,
-            amountIn,
-            amountOut,
-            foundryToken,
-            targetToken,
-            oneInchData,
-            salt,
-            expiry,
-            multiSignature
+            multiSignature,
+            cctpType
         );
 
-        (bool success, ) =   address(this).call(data);
-
-        require(success == false);
+        require(msg.sender == gasEstimationAddress, "only authorised gas estimation address");
     }
+
 }
